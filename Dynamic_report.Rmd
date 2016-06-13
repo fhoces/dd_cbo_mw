@@ -1275,7 +1275,7 @@ increased to either \$10.10 or \$9.00. The monthly data from the CPS that CBO us
 its analysis of employment did not contain the information on family income necessary
 for this analysis, so CBO instead used data from the CPS Annual Social and Economic
 Supplement (ASEC) that was administered in March 2013, which reported family
-income and individuals' earnings for calendar year 2012 [[Addition #1]](#income-adjustment).
+income and individuals' earnings for calendar year 2012.
 
 ## Wages and Family Income Under Current Law {.tabset}
 
@@ -1286,7 +1286,7 @@ similar to the one that it used in its employment analysis-first calculating hou
 and annual family income in 2012 and then using those calculations to project wages
 and family income in 2016.
 
-> **Hourly Wages and Annual Family Income in 2012.** CBO estimated the hourly wages of workers and annual income of families in 2012 by using data from the 2013 ASEC. Workers’ hourly wages were calculated as their annual earnings divided by the number of hours they worked during the year (calculated as the number of hours they usually worked per week times the number of weeks they worked during the year)[^36]. As in its analysis of employment, CBO adjusted workers’ calculated wages up or down to move their wage toward the average wage for workers with similar observable characteristics.
+> **Hourly Wages and Annual Family Income in 2012.** CBO estimated the hourly wages of workers and annual income of families in 2012 by using data from the 2013 ASEC. Workers’ hourly wages were calculated as their annual earnings divided by the number of hours they worked during the year (calculated as the number of hours they usually worked per week times the number of weeks they worked during the year)[^36]. As in its analysis of employment, CBO adjusted workers’ calculated wages up or down to move their wage toward the average wage for workers with similar observable characteristics[[Addition #1]](#first-income-adjustment).
 
 
 > However, when CBO used those data to project workers' wages in 2016, it found far
@@ -1296,7 +1296,7 @@ according to people's responses to a direct question about how much they earn pe
 hour. CBO therefore further adjusted the distribution of hourly wages calculated from
 the ASEC to match more closely the analogous distribution from the monthly CPS,
 mostly by adjusting some workers' wages up to the minimum wage projected to apply
-to them in 2016 under current law[^38].  
+to them in 2016 under current law[^38] [[Addition #2]](#second-wage-adjustment).  
 
 > CBO also used the ASEC to measure the distribution of before-tax family cash income
 in 2012, which is the measure that the Census Bureau uses to determine the official
@@ -1315,8 +1315,7 @@ distribution of hourly wages and annual family income in 2016[^40]. As in the em
 analysis, the forecast of wage growth used for this analysis was smaller than the
 agency's overall forecast of wage growth because CBO expects that very high-wage
 workers will experience faster wage growth in the next several years than other workers
-will[^41]. In addition, CBO accounted for prospective increases in some states’ minimum
-wages, including changes scheduled in current state laws and changes projected on
+will[^41] [[Addition #3]](#forecasting-wage-and-income). In addition, CBO accounted for prospective increases in some states’ minimum wages, including changes scheduled in current state laws and changes projected on
 the basis of how states have changed their minimum wages in the past.
 
 > To project family income in 2016, CBO used its forecasts of growth in the components
@@ -1331,12 +1330,18 @@ forecasts of growth in the nonworking population.
 
 ---    
 
-#### Income adjustment  
+#### First income adjustment  
 Unlike the case wages, where the adjustments was over a small fractions of the population, here I assume that all incomes are adjusted. 
 The adjustments follows the following formula:   
 NEED TO COMPLETE.  
- 
 
+
+#### Second income adjustment  
+Need to define which group of workers I will increase the wages.  
+
+
+#### Forecasting wage and income 
+AQUI VOY
 ---  
 
 ### +Code

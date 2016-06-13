@@ -1332,7 +1332,10 @@ forecasts of growth in the nonworking population.
 ---    
 
 #### Income adjustment  
-Unlike the case wages, where the adjustments was over a small fractions of the population, here I assume that all incomes are adjusted.   
+Unlike the case wages, where the adjustments was over a small fractions of the population, here I assume that all incomes are adjusted. 
+The adjustments follows the following formula:   
+NEED TO COMPLETE.  
+ 
 
 ---  
 
@@ -1475,6 +1478,10 @@ In this section I keep a list of all the parameters or inputs where some type of
  -  Percentage of the ripple effects population that is actually affected  
  -  Fraction of teenagers affected by min wage  
  -  Average variation for population affected by the minimum wage 
+ -  Direct effect of consumption on employment  
+ -  Indirect effect of consumption on employment  
+ -  Income adjustment  
+ - 
  
  
  

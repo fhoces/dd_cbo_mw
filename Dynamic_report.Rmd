@@ -1275,7 +1275,7 @@ increased to either \$10.10 or \$9.00. The monthly data from the CPS that CBO us
 its analysis of employment did not contain the information on family income necessary
 for this analysis, so CBO instead used data from the CPS Annual Social and Economic
 Supplement (ASEC) that was administered in March 2013, which reported family
-income and individuals' earnings for calendar year 2012.
+income and individuals' earnings for calendar year 2012 [[Addition #1]](#income-adjustment).
 
 ## Wages and Family Income Under Current Law {.tabset}
 
@@ -1328,6 +1328,15 @@ agency's forecast of employment growth between 2013 and 2016. The rate of growth
 in the number of nonworking family members was similarly matched to the agency’s
 forecasts of growth in the nonworking population.
 
+
+---    
+
+#### Income adjustment  
+Unlike the case wages, where the adjustments was over a small fractions of the population, here I assume that all incomes are adjusted.   
+
+---  
+
+### +Code
 
 ### +Stats/Viz  
 

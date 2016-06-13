@@ -1,0 +1,1554 @@
+---
+title: "Effects of Min Wage - Dynamic Document" 
+author: "Fernando Hoces de la Guardia"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    theme: united
+    toc_depth: 2
+    toc_float: true
+    collapsed: false
+    smooth_scroll: false
+    number_sections: true
+    code_folding: show
+---
+
+
+  <script language="javascript"> 
+    function toggle(num) {
+      var ele = document.getElementById("toggleText" + num);
+      var text = document.getElementById("displayText" + num);
+      if(ele.style.display == "block") {
+        ele.style.display = "none";
+        text.innerHTML = "show";
+      }
+      else {
+        ele.style.display = "block";
+        text.innerHTML = "hide";
+      }
+   } 
+  </script>
+
+
+
+
+
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r loading dataSQL, eval=FALSE, include=FALSE}
+# Read in data from CPS supplement of 2013
+con <- dbConnect(SQLite(),  dbname="cps.asec.db")
+df <- dbReadTable(con, "asec13")
+df <- tbl_df(df)
+```
+
+# How CBO Estimated the Number of Workers Who Would Be Affected by the Options 
+
+
+> CBO estimated the number of directly affected workers in three main steps: calculating
+the distribution of hourly wages in 2013; projecting the wage distribution in 2016
+under current law; and identifying the workers who would be directly affected by a
+change in the federal minimum wage in 2016.  
+
+
+## First Step: calculating hourly wages for all workers in calendar year 2013 {.tabset}
+
+### Main Text 
+> In the first step, CBO calculated hourly wages for all workers in calendar year 2013,
+using monthly data from the Census Bureau’s Current Population Survey (CPS), which
+collects information from about 60,000 households [[Addition #1]](#which-data). The CPS is designed to be representative of the U.S. civilian population as a whole; each observation in the survey
+represents a number of people, and that number is the observation’s “sample weight.”
+CBO used those sample weights to estimate effects for the entire population on the
+basis of the people who were surveyed. When respondents to the survey did not report
+an hourly wage, their hourly wages were calculated as their usual earnings per week divided by their usual hours worked per week [[Addition #2]](#which-wage-variable).Because calculated wages are subject
+to error, CBO adjusted those wages to be a weighted average of a worker’s calculated
+wage and the average wage of workers with similar characteristics [[Addition #3]](#wage-adjustment)
+—increasing calculated wages that were below the group average and decreasing wages that were
+above it.
+
+<!-- 
+### +Details
+
+ <span style="color:red"></span>   
+-->
+
+#### Which data
+With this information I have identified 
+three possible data sets that match this description: CPS raw files, ORG NBER, ORG CEPR. The analysis will be performed using the CPER ORG data base.
+
+#### Which wage variable
+I assume no further adjustments like imputation for top coding, triming, excluding overtime/commisions, or imputation of usual hours for ''hours vary'' respondendts. The CEPR ORG data includes several wage variables ([described here](http://ceprdata.org/cps-uniform-data-extracts/cps-outgoing-rotation-group/)). The wage variable that best matches the description above is `wage3`
+
+#### Wage adjustment
+Make explicit that this only applies for the imputed hourly wages, and make explicit the characteristics and the weighs. 
+ The adjusment process has not been done yet and will follow the methodology proposed in [this paper](https://www.aeaweb.org/articles?id=10.1257/aer.96.3.461)
+
+$$
+\begin{align}
+w_{ig} &= \alpha w^{raw}_{ig} - (1 - \alpha)  \overline{w^{raw}_{g}} \label{samp.eq1} \\
+\text{with:    } \quad \overline{w^{raw}_{g}} &= \frac{\sum_{g} w^{raw}_{ig} }{N_{g}}  \nonumber 
+\end{align}
+$$ 
+
+
+### +Code
+
+#### Loading the data  
+```{r loading data, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, cache=TRUE}
+# Loading required libraries
+list.of.packages <- c("foreign", "dplyr", "weights", "survey", "Hmisc", "openxlsx", "rio")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+library(dplyr)
+library(foreign)
+#lapply(list.of.packages, function(x) library(x, character.only = TRUE))
+
+# Setting working directory
+
+if (Sys.info()["sysname"] == "Darwin") {
+  setwd("/Users/fhoces/dissertation/Replication/data")
+}else{
+  setwd("C:/Users/fhocesde/Documents/data/CPS")
+}
+
+
+
+
+data_use <- "CPER_ORG"
+
+# Using CEPR ORG data 
+if (data_use == "CPER_ORG") {
+# Checking if working directory contains data, download if not. 
+  if ( !("cepr_org_2013.dta" %in% dir()) ) {
+  	# create name of file to store data
+  	tf <- "cepr_org_2013.zip"
+  
+  	# download the CPS repwgts zipped file to the local computer
+  	download.file(url =  "http://ceprdata.org/wp-content/cps/data/cepr_org_2013.zip", tf , mode = "wb" )
+  
+  	# unzip the file's contents and store the file name within the temporary directory
+  	fn <- unzip( zipfile = tf ,"cepr_org_2013.dta",  overwrite = T )
+  }
+  df <- read.dta("cepr_org_2013.dta")
+}
+
+# Using NBER ORG data 
+if (data_use == "NBER_ORG") {
+  # Checking if working directory contains data, download if not. 
+  if ( !("morg13.dta" %in% dir()) ) {
+    # Downloading data 53mb
+    df <- read.dta("http://www.nber.org/morg/annual/morg13.dta")
+  }
+  df <- read.dta("morg13.dta")
+}
+
+df <- tbl_df(df)
+```  
+
+#### Code for descriptive stats
+```{r Descript stats1, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(foreign)
+library(weights)
+library(survey)
+library(Hmisc)
+library(openxlsx)
+
+#FH: Should I adjust any wage below the min to the min?
+
+
+# There are 1293 cases with missin values for the weigths. I delete them from the data. 
+df <- df %>% filter(!is.na(orgwgt))
+df$orgwgt <- df$orgwgt/12
+
+table_1  <- df  %>% 
+   summarise("(1) Total" =
+               sum(orgwgt, na.rm = TRUE), 
+             "(2) Employed" = 
+               sum( orgwgt * (empl == 1), na.rm = TRUE), 
+             "(3) Salary (among employed)" = 
+               sum(orgwgt * (empl == 1 &             #Salary worker if 
+               (selfinc == 0 & selfemp == 0))        #not self employed or     
+                , na.rm = TRUE),                     #self incorp.
+
+             "(4) Not Paid hourly (among salary)" = 
+               sum(orgwgt * (empl == 1 &              #Not paid hourly if salary and 
+               (selfinc == 0 & selfemp == 0) &        # not paid hourly
+               (paidhre == 0 | is.na(paidhre) )), na.rm = TRUE), 
+
+             "(5) Hours Vary (among not paid hourly)" =
+               sum(orgwgt * (empl == 1 &              #Hours vary if not paid hourly and 
+               (selfinc == 0 & selfemp == 0) &        #hours vary
+               (paidhre == 0 | is.na(paidhre) ) & hrsvary == 1), na.rm = TRUE),
+
+             "(6) No wage (in (3) but not in (5))" = 
+               sum(orgwgt * ( (empl == 1 & selfinc == 0 & selfemp == 0) & 
+                   (paidhre == 1 | hrsvary != 1 | is.na(hrsvary) ) & 
+                   (wage3==0 | is.na(wage3) ) ) , na.rm = TRUE), 
+             
+             "Population of Interest = (3) - (5) - (6)" = 
+              sum(orgwgt * (empl == 1 & (selfinc ==0 & selfemp == 0) & 
+                    ( (paidhre == 0 & hrsvary != 1) | paidhre ==1 )  & 
+                    wage3 != 0) , na.rm = TRUE)
+             )
+
+table_1 <- t(table_1)
+colnames(table_1) <- "N"
+table_1 <- format(table_1, big.mark = ",", digits = 0, scientific = FALSE)
+
+
+table_1_uw  <- df  %>% 
+   summarise("(1) Total" =
+               sum(!is.na(orgwgt), na.rm = TRUE), 
+             "(2) Employed" = 
+               sum( 1 * (empl == 1), na.rm = TRUE), 
+             "(3) Salary (among employed)" = 
+               sum( 1 * (empl == 1 &             #Salary worker if 
+               (selfinc == 0 & selfemp == 0))        #not self employed or     
+                , na.rm = TRUE),                     #self incorp.
+
+             "(4) Not Paid hourly (among salary)" = 
+               sum( 1 * (empl == 1 &              #Not paid hourly if salary and 
+               (selfinc == 0 & selfemp == 0) &        # not paid hourly
+               (paidhre == 0 | is.na(paidhre) )), na.rm = TRUE), 
+
+             "(5) Hours Vary (among not paid hourly)" =
+               sum( 1 * (empl == 1 &              #Hours vary if not paid hourly and 
+               (selfinc == 0 & selfemp == 0) &        #hours vary
+               (paidhre == 0 | is.na(paidhre) ) & hrsvary == 1), na.rm = TRUE),
+
+             "(6) No wage (in (3) but not in (5))" = 
+               sum( 1 * ( (empl == 1 & selfinc == 0 & selfemp == 0) & 
+                   (paidhre == 1 | hrsvary != 1 | is.na(hrsvary) ) & 
+                   (wage3==0 | is.na(wage3) ) ) , na.rm = TRUE), 
+             
+             "Population of Interest = (3) - (5) - (6)" = 
+              sum( 1 * (empl == 1 & (selfinc ==0 & selfemp == 0) & 
+                    ( (paidhre == 0 & hrsvary != 1) | paidhre ==1 )  & 
+                    wage3 != 0) , na.rm = TRUE)
+             )
+
+table_1_uw <- t(table_1_uw)
+colnames(table_1_uw) <- "N_unweighted"
+table_1_uw <- format(table_1_uw, big.mark = ",", digits = 0, scientific = FALSE)
+
+table_1 <- cbind(table_1, table_1_uw)
+
+
+# Tag population of interest
+pop_of_int <- with(df,
+                   (empl == 1 &
+                      (selfinc == 0 & selfemp == 0) & 
+                      ( (paidhre == 0 & ( hrsvary != 1 | is.na(hrsvary) )  )  | paidhre == 1 )  & 
+                      !(wage3 == 0 | is.na(wage3) ) )
+  )
+
+#Summary stats of wage
+sum.stas1 <- function(x, wt) {
+   c( "mean" = weighted.mean(x,w = wt, na.rm = TRUE),
+      "sd" = sqrt( wtd.var(x, weights = wt) ) , 
+      "median" = wtd.quantile( x, weights = wt, prob = c(.5)) ,
+      wtd.quantile( x, weights = wt, prob = c(.1, .9) ) )
+} 
+
+table_2 <- df %>% 
+  filter(pop_of_int == 1 & !is.na(wage3)) %>% 
+    with(sum.stas1(wage3, orgwgt))
+
+table_2 <- cbind(table_2)
+colnames(table_2) <- "Wage"
+
+
+table_3 <- df %>% 
+  filter(pop_of_int == 1 & !is.na(wage3)) %>% 
+    summarise("> $7.5" = weighted.mean(wage3<7.5,w = orgwgt), 
+              "> $9" = weighted.mean(wage3<9,w = orgwgt), 
+              "> $10.10" = weighted.mean(wage3<10.10,w = orgwgt), 
+              "> $13" = weighted.mean(wage3<13,w = orgwgt), 
+              "> $15" = weighted.mean(wage3<15,w = orgwgt) 
+              )
+
+table_3 <- t(table_3)
+colnames(table_3) <- "Perc"
+
+``` 
+ 
+ 
+### +Stats/Viz  
+
+```{r Output1, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+
+# Histogram of wage below $20
+if (Sys.info()["sysname"] == "Darwin") {
+  quartz()
+}else{
+  x11()
+}
+
+df  %>% 
+  filter(pop_of_int==1 & wage3<=20)  %>% 
+    with(wtd.hist(wage3, breaks = 50, 
+                  xlab = "Hourly Wage", 
+                  freq = FALSE, 
+                  main = "Distribution of Hourly Wages Below $20",
+                  weight =  orgwgt
+                  ))
+abline(v = 7.25, col = "red")
+
+ 
+knitr::kable(table_1, caption="Sample Size: Each Row is a subset of the one above", digits = 1)
+knitr::kable(table_2, caption="Descriptive statistics for wage", digits = 1)  
+
+total_n <- format(sum(df$orgwgt[pop_of_int==1], na.rm = TRUE), big.mark=",")
+
+knitr::kable(table_3, caption=paste("Fraction of Workers Earning Under $X per Hour (N=", total_n,")", sep=""), digits = 2)  
+```
+
+Add a line or two here at the end to comment about the population of interest. 
+
+## Second Step: forecasting wages and number of workers  {.tabset}
+
+### Main text 
+
+> In the second step, CBO applied forecasts of employment and wage growth to the
+hourly wages that it had calculated for 2013 to project the distribution of workers'
+hourly wages in 2016 under current law. CBO expects that very high-wage workers will
+experience faster wage growth in the next several years than will workers as a whole, so
+the forecast of wage growth for low-wage workers used in this analysis was smaller
+than the one in the agency’s overall economic forecast [[Addition #1]](#growth-adjustments).
+The forecast of wage growth also accounted for the penalties, imposed under the Affordable Care Act, that some
+employers will pay for not providing qualifying health insurance; those employers will
+probably pass along the cost of those penalties to their workers in the form of reduced
+wages[[Addition #2]](aca-adjustments). In addition, CBO accounted for prospective increases in some states’
+minimum wages, including both changes scheduled in current state laws and changes
+projected on the basis of how states have changed their minimum wages in the past.
+That adjustment boosted projected wage growth for workers in those states [[Addition #3]](#state-level-minimum-wage-adjustments). Altogether, CBO projected that nominal wages of low-wage workers—for example, those at the
+10th percentile of the wage distribution—would grow at an average annual rate of
+2.9 percent between 2013 and 2016 under current law. 
+
+#### Growth adjustments
+I assume that the growth forecasts were taken from the 10-Year Economic Projections from CBO ([this website](https://www.cbo.gov/about/products/budget_economic_data)). Anualized growth rates for the number of workers $g_{workers}$, and nominal wage per $g_{wages}$ worker where computed as follows:  
+
+$$
+\begin{align}
+\widehat{ g_{workers} } &= \left[ \frac{\widehat{ N_{workers}^{2016} } }{N_{workers}^{2013}} \right]^{1/3}- 1 \\
+\widehat{ g_{wages} }  &= \left[ \frac{\widehat{ Wages^{2016} } / \widehat{ N_{workers}^{2016} } }{Wages^{2013} / N_{workers}^{2013}} \right]^{1/3} - 1 
+\end{align}
+$$ 
+
+To create different rates of growth in wage, I compute different wage growth rates for each decile of wage. The increments across deciles were constant and the set to match a final lowest decile with a yearly growth rate of 2.9%.  
+
+The adjustment over number of workers was made through the weight variable `orgwgt` (multiplying it by the growth rate) whereas the `wage3` variable was multiplied by the forecasted growth rate of per worker wages.  
+
+#### ACA adjustments  
+
+[Not done yet]  
+
+#### State level minimum wage adjustments   
+
+CBO had to predict the future changes in the state level minimum wages. I use the actual values implemented by each state. The data comes fromt the Department of Labor ([here](https://www.dol.gov/whd/state/stateMinWageHis.htm)). 
+
+Whenever the predicted wages were below the 2016 state minimum wage they were replace by it. 
+
+**Important assumption:** when imputing state level min wages, I assume that no effects on employment where incorporated. I do this because this is my reading of what CBO did.  
+
+### +Code
+
+#### Code to get economic growth forecasts  
+```{r Getting forecast data, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
+# All projections data comes from this website: https://www.cbo.gov/about/products/budget_economic_data
+#name of the files that contain projections from CBO
+early.2016  <- "51135-2016-01-Economic%20Projections.xlsx"
+late.2015   <- "51135-2015-08-EconomicProjections.xlsx"
+early.2015  <- "51135-2015-01-EconomicProjections.xlsx"
+late.2014   <- "51135-2014-08-EconomicProjections.xlsx"
+early.2014  <- "51135-2014-02-EconomicProjections.xlsx"
+early.2013  <- "51135-2013-02-EconomicProjections.xls"  #there is no late 2013 report
+
+# This function loads the data for a given report
+get.growth.data <- function(x){
+# Checking if working directory contains data, download if not. 
+  if ( !(x %in% dir()) ) {
+    download.file(url = paste("https://www.cbo.gov/sites/default/files/", 
+                              x , sep = ""), 
+                  destfile = x, mode="wb")
+
+  }
+  if (x == early.2013) {
+    if  ( !(require(XLConnect)) ) install.packages("XLConnect")
+      out.df <- rio::import( x , sheet= "2. Calendar Year")
+  } else {
+      out.df <- read.xlsx( x , sheet = "2. Calendar Year")
+  }
+  return(out.df)
+}
+
+# Working with projections from 2013
+trends.df <- get.growth.data( early.2013 )
+
+# Get column of all projections for 2013
+sel.col <- which(trends.df==2013, arr.ind = TRUE)[2] 
+# Get row with all projections for wages and salaries in billions of (nominal) dollars
+# Note: the excel file always contains two rows with the words "wage[s]" and "salar[ies|y]", 
+# we are looking for the second one (corresponding to Wages and Salaries under Income)
+sel.row1 <- unique(
+                    apply(trends.df,
+                          2, function(x)  grep("Wage.*Salar",x ) )
+                    )[[2]]
+sel.row1 <- sel.row1[2]
+# Get row with all projections for number people employed (in millions)
+sel.row2 <- which(trends.df=="Employment, Civilian, 16 Years or Older (Household Survey)", arr.ind = TRUE)[1]
+
+#Keep only rows and colums identified above
+trends.df <- trends.df[c(sel.row1, sel.row2) , sel.col:(sel.col+7)]
+
+#Labeling and formating
+colnames(trends.df) <- 2013:(2013+7)
+trends.df <- apply(trends.df, 2, as.numeric)
+row.names(trends.df) <- c( "wages(total)", "workers")
+
+#Generate wage per worker
+trends.df <- rbind( trends.df ,  
+                    (trends.df["wages(total)", ] * 1e9 ) / ( trends.df["workers", ] * 1e6) )
+row.names(trends.df) <- c( "wages(total)", "workers", "wages per worker" )
+
+#Transpose the data
+trends.df <- t(trends.df)
+
+# Define a new data set with the anual growth rate of each variable over time
+growth.df <- trends.df/lag(trends.df,1) - 1
+
+# Compute the compounded growth factor for a given variable in a time interval
+# For example growth factor between years 1,2 and 3 will be:
+# (1+growth_rate_yr1) * (1+growth_rate_yr2) * (1+growth_rate_yr3)
+gr.factor <- function(var1, init.year, last.year) {
+  prod((growth.df[, var1] + 1)[as.character(init.year:last.year)])
+} 
+``` 
+
+
+#### Code to get minimum wage values by state  
+```{r Gettint min wage data , eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
+# Minimum wage by state: 
+# Check if data is in machine and download if not.
+if ( !("minwage" %in% dir()) ) {
+  library(XML)
+  library(RCurl)
+  fileURL <- "https://www.dol.gov/whd/state/stateMinWageHis.htm"
+  xData <- getURL(fileURL)
+  aux.1 <- readHTMLTable(xData, header = TRUE)
+  
+  min.wage.data <- cbind(aux.1[[1]], aux.1[[2]][,-1], 
+                         aux.1[[3]][,-1], aux.1[[4]][,-1], 
+                         aux.1[[5]][1:55,-1])
+  min.wage.data <- min.wage.data[, - (32:37)]
+  colnames(min.wage.data) <- c(gsub("(.*)([0-9]{4})(.*)","\\2",
+                                    names(min.wage.data))[-c(30, 31)], 
+                               "2014", "2015")
+  rownames(min.wage.data) <- min.wage.data[,1]
+  min.wage.data <- min.wage.data[,-1]
+
+  # This part was hard coded, important to check over and over. 
+  rownames(min.wage.data) <- c("Federal","AK","AL","AR","AZ","CA","CO","CT",
+                            "DE","FL","GA","HI","ID","IL","IN","IA","KS","KY",
+                            "LA","ME","MD","MA","MI","MN","MS","MO",
+                            "MT","NE","NV","NH","NJ","NM","NY","NC",
+                            "ND","OH","OK","OR","PA","RI","SC","SD",
+                            "TN","TX","UT","VT","VA","WA","WV","WI",
+                            "WY","DC", "Guam", "PR", "USVI")
+  
+  #Save all min wage data in a single csv file
+  saveRDS(min.wage.data, "minwage")
+}
+
+min.wage.data <- readRDS("minwage")
+
+
+# Function that extracts (in numeric format) the min wage for a specfic year for each state
+state.minw <- function(char.year) {
+  options(warn=-1)
+  aux.1 <- as.numeric(gsub("(.*)([0-9.]{5})(.*)", 
+                          "\\2", min.wage.data[, char.year]))
+  # If no state min wage, assign federal.
+  res1 <- as.data.frame(ifelse(is.na(aux.1), aux.1[1] , aux.1))
+  options(warn=0)
+  rownames(res1) <- rownames(min.wage.data) 
+  colnames(res1) <- char.year 
+  return(res1)
+}
+
+st.minw <- state.minw("2013")
+
+#CBO makes a forecast of future min wages. We can look at the actual min wage that took place. 
+#If CBO provides their forecast, we could check forecast acuracy. 
+#Min wage from 2016 are not available in the website above. I am hard coding any changes
+#found in wikipedia (https://en.wikipedia.org/wiki/Minimum_wage_in_the_United_States access 5/16/2016):
+
+st.minw.2016 <- state.minw("2015")
+st.minw.2016[c("AK"	, "AZ", "CA", "CT"	, "HI"	, "IL", "MA", "MI"	, 
+       "MN"	, "MT" , "NV" , "NE" , "NY"	, "OH"	, "RI", "VT"), ] <- 
+          c(  9.75	, 8.05, 10	, 9.6	  , 8.5	  , 8.25, 10	, 8.5	  , 
+      9		  , 8.05 , 8.25 , 9		 , 9		, 8.1	  , 9.6 , 9.6)
+colnames(st.minw.2016) <- "2016"
+```
+
+
+#### Code to forecast wages and workers
+```{r Adjusting wages to 2016 , eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
+#Wage adjutsment
+
+#CBO mentions that the lowest 10th percent gets a 2.9% growth in anual wage
+#I compute the anualized growth rate of wages and creat 10 bins of wage growth
+#starting at 2.4%, then adjust by minimum wages of 2016 and get a anualized 
+#growth of 2.9% for the lowest decile. 
+wage.gr <- ( gr.factor("wages per worker", 2014, 2016) )^(1/3) - 1
+
+workers.gr <- ( gr.factor("workers", 2014, 2016) )^(1/3) - 1
+
+half.gap <- wage.gr - 0.024
+wage.gr.bins <- seq(0.024, wage.gr + half.gap, length.out = 10)
+
+# CAUTION: DO NOT apply 'ntile()' fn from dplry as is will split ties differently than 'cut()' and results will no
+# be comparable to STATA. 
+aux.var  <- wtd.quantile(x = df$wage3, probs = 1:9/10,weights = df$orgwgt)
+df <- df %>%
+        mutate( w3.deciles = cut(wage3, c(0, aux.var, Inf) , 
+                                right = TRUE, include.lowest = TRUE) ,  
+                w3.adj1 =  wage3 * ( 1 + wage.gr.bins[w3.deciles] )^3) 
+
+# To compute the new total of workers we multiply the original weigths by the growth rate. 
+new_total_n <- format(sum(df$orgwgt[pop_of_int==1] * 
+                            (1 + workers.gr)^3, 
+                          na.rm = TRUE), big.mark=",")
+
+# Here we adjust min wages
+df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,],
+                              w3.adj1,
+                              st.minw.2016[state,]) )
+
+#to be done: adjust some states by inflation.
+```  
+
+
+
+### +Stats/Viz 
+For the year 2013 we downloaded the forecast from CBO use that year and computed the overall projected growth from 2014 to 2016 in the total number of employed workers and the growth in the per capita nominal wages. The resulting anual rates were `r format( (workers.gr ) * 100 , digits = 2)` and `r format( (wage.gr) * 100 , digits = 3)` respectively.
+
+```{r desc stats2,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+table_4 <- matrix(NA, 7, 2)
+colnames(table_4)  <- c("2013", "2016: status quo")
+rownames(table_4) <- c("Salary workers", 
+                       "Median wage", 
+                       "% < 7.5","% < 9", 
+                       "% < 10.10", "% < 13", 
+                       "% < 15" )
+
+table_4[1,1] <- table_1[7]
+table_4[1,2] <- new_total_n
+table_4[2,1] <- table_2[3]
+
+table_4[2,2] <- round( with(df[pop_of_int == 1 & !is.na(df$w3.adj.min), ], 
+                            wtd.quantile( w3.adj.min, weights = orgwgt * 
+                            (1 + workers.gr)^3, prob = c(.5) ) ), digits = 2 )
+
+table_4[3:7,1]  <- round(as.matrix(table_3), digits = 2)
+
+aux.1 <- df %>% 
+  filter(pop_of_int == 1 & !is.na(w3.adj.min)) %>% 
+    summarise("> $7.50" = weighted.mean(w3.adj.min<7.5,w = orgwgt * (1 + workers.gr)^3), 
+              "> $9" = weighted.mean(w3.adj.min<9,w = orgwgt * (1 + workers.gr)^3), 
+              "> $10.10" = weighted.mean(w3.adj.min<10.10,w = orgwgt * (1 + workers.gr)^3), 
+              "> $13" = weighted.mean(w3.adj.min<13,w = orgwgt * (1 + workers.gr)^3), 
+              "> $15" = weighted.mean(w3.adj.min<15,w = orgwgt * (1 + workers.gr)^3) 
+              )
+
+table_4[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
+
+library(dplyr)
+# Histogram of wage below $20
+df  %>% 
+  filter(pop_of_int==1 & wage3<=20)  %>% 
+    with(wtd.hist(wage3, breaks = 50, 
+                  xlab = "Hourly Wage", 
+                  freq = TRUE, 
+                  col=rgb(1,0,0,0.4),
+                  main = "Distribution of Hourly Wages Below $20",
+                  weight =  orgwgt
+                  ))
+df  %>% 
+  filter(pop_of_int==1 & w3.adj.min<=20)  %>% 
+    with(wtd.hist(w3.adj.min, breaks = 50, 
+                  xlab = "Hourly Wage", 
+                  freq = TRUE, 
+                  main = "Distribution of Hourly Wages Below $20", 
+                  col=rgb(0,0,1,0.4), 
+                  weight =  orgwgt * gr.factor("workers", 2014, 2016),
+                  add = TRUE) ) 
+
+abline(v = 7.25, col = "red")
+
+abline(v = 9, col = "red")
+
+abline(v = 10.10, col = "red")
+
+#TO DO: display number of workers below red bars in reactive fashion. Maybe not even a plot: only a slider with min wage and a
+#reactive box with the number of workers that would be below it.
+ 
+knitr::kable(table_4, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
+```  
+
+
+## Third Step: FLSA coverage   {.tabset}
+
+### Main text  
+> In the third step, CBO identified workers who would be directly affected by a change in
+the federal minimum wage in 2016. That group includes most workers projected to
+have hourly wages lower than the new minimum. However, it does not include
+2.6 million low-wage workers who, CBO projects, would not be covered or affected by
+the Fair Labor Standards Act (FLSA)[^25] [[Addition #1]](#non-compliance). The group of directly affected workers does 
+include 3.5 million workers who, though they may not be covered by the FLSA,
+are expected by CBO to be affected by an increase in the federal minimum because
+their hourly wages tend to be as concentrated near the minimum as are the wages of
+workers covered by the FLSA; those 3.5 million workers consist of employees of small
+firms, workers in occupations generally exempt from the FLSA, and teenagers in their
+first 90 days of employment [[Addition #2]](#not-covered-that-might-benefit).   
+
+> CBO distinguished tipped from nontipped workers because a separate minimum cash
+hourly wage applies to workers who receive more than $30 per month in tips. Under
+the FLSA and many state laws, employers may pay such workers a lower cash hourly
+wage if tips bring their total hourly earnings above the minimum hourly wage. To
+estimate the number of tipped workers, CBO applied the lower minimum cash wage to
+workers in 11 occupations (such as waiter, bartender, and hairdresser) whose
+compensation depends heavily on tips. They constitute about 10 percent of low-wage
+workers [[Addition #3]](#tipped-workers). 
+
+<span style="color:red">
+Translating this third step was much harder than the rest of the document. I needed to add more arbitrary assumption and left important adjustments for the second revision of this document.  
+</span> 
+
+#### Non compliance    
+
+My understanding of footnote 25[^25] is that the authors are trying to estimate the number of workers that earn less than than the their state's minimum wage as a proxy for non compliers. They mention that it comes up to 12% of the low wage population. Given that I do not have a definition for what the low wage population is, I will estimate the number of workers below the minumum wage and reported as a percentage of the target population. 
+
+Following the same footnote I will consider salary workers as non compliers only if their wage is strictly less than 25 cents for non-tipped workers or 13 cents for tipped workers. 
+
+#### Not covered that might benefit
+ - Include not covered by FLSA but expected to be affected: employees of small firms, ocupations generally excempt from FLSA, and teenagers in first 90 days of employment.  
+ <span style="color:red">
+I am not excluding job category yet. 
+</span> 
+
+#### Tipped workers  
+ - Apply different minimum wage to workers who receive more than \$30 in tips. This was applied to 11 ocupations (such as waiter, bartender, and hairdresser ~10% if low wage workers)
+ 
+Given that I do not know which 11 categories the report makes reference to, and which variable that defines the cateogories, I will use the variable `peernuot` to identify tipped workers. This variable overestimates the number of tipped workers (13% as opposed to the 10% mentioned in the report) because it also contains the workers paid overtime or commissions. 
+
+### +Code  
+
+#### Code to compute percentage of non compliers 
+
+```{r Estimating non compliance, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+#Percentage of total workers in 2013 that earn less that their states' minimum wage. 
+
+# variable peernuot seems to be the most appropiate variable to indicate wether or nor receives tips
+# 1=YES; 2=NO
+non.comp.stats <- df %>%
+  select(wage3, state, orgwgt, peernuot)  %>%
+    filter(pop_of_int == 1)  %>%
+      summarise(
+        "% of non compliers w/o adj" = 
+          wtd.mean(wage3 < state.minw("2013")[state, ], 
+                          weights = orgwgt), 
+        "% of non compliers with adj" = 
+          wtd.mean(wage3 + 0.25 * (peernuot == 2) + 
+                          0.13 * (peernuot == 1)  < state.minw("2013")[state, ], 
+                          weights = orgwgt) 
+        )
+
+```  
+
+### Stats/Viz  
+
+The estimated percentage of non-compliance is `r paste(format(100*non.comp.stats[2], digits=3),"%", sep="")` of the target population in 2016 (N = `r table_4[1,2]`). 
+
+## Fourth Step: ripple effects   {.tabset}
+
+### Main text 
+> In its analysis, CBO assumed that such "ripple effects" would probably apply to workers
+whose projected wage in 2016 was up to the amount that would result from
+an increase that was 50 percent larger than the increase in their effective minimum
+wage (incorporating both their state minimum and the new federal minimum) under
+either option. Thus, in states where the current minimum wage is \$7.25, CBO
+anticipates that workers earning up to about \$11.50 per hour would probably
+be affected by the \$10.10 option. In states with a higher minimum wage, the ripple
+effect would be much smaller. For instance, under current California law, the minimum
+wage is scheduled to increase to \$10.00 in 2016, and in that state, only workers
+earning up to \$10.15 per hour would probably be affected by an increase to \$10.10
+in the federal minimum, by CBO’s estimate.[[Addition #1]](#additional-population)
+
+
+> Ripple effects added 8.0 million potentially affected workers to CBO’s analysis under
+the \$10.10 option and 4.1 million under the \$9.00 option. Although CBO estimates
+that wage increases under the options are much more likely for those workers than for
+workers with still higher wages, the agency does not expect that all of them would
+receive wage increases. CBO did not have a basis for estimating the total number of
+workers whose earnings would rise, although that number would be less than the total
+number of potentially affected workers.  
+
+
+#### Additional Population  
+Determine the increase in dollars from state minimum wage in 2016 and the proposed new federal minimum wage of 10.10, and multiply this increase by 50%. Add the resulting figure to the proposed new federal minimum wage and that determines the highest wage potentially affected by ripple effects. 
+
+### +Code 
+
+
+#### Code to compute number of workers under potential ripple effectss</a>  
+
+```{r Ripple effects, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+# For each state: compute the difference between the new propose federal min wage and the
+# state's min wage in 2016
+aux.inc <- (10.10 - st.minw.2016) * ( st.minw.2016>7.25) + (10.10 - 7.25) * ( st.minw.2016 <= 7.25)
+# Replace with 0 if this difference is negative
+aux.inc[aux.inc<0] <- 0
+
+
+# Compute the total number workers with predicted wages above the proposed min wage (10.10)
+# and below the 50% of the increment relative to the states min wage in 2016
+ripple.stats1 <- df %>%  
+  summarise( 
+    "total" = sum(orgwgt[ ( w3.adj1 <= 10.10 + aux.inc[state,] * 0.5 ) & 
+                            (w3.adj1 > 10.10)] * 
+                  gr.factor("workers", "2014", "2016") ,
+                  na.rm = TRUE), 
+    "total (unw)" = sum( ( w3.adj1 <= 10.10 + aux.inc[state,] * 0.5 ) & 
+                           (w3.adj1 > 10.10) , 
+                         na.rm = TRUE)
+    ) 
+#FH: not getting the same numbers in STATA. 
+```  
+
+
+### +Stats/Viz   
+
+The resulting number of workers potentially affected by ripple effects is `r format(ripple.stats1[1], big.mark=",")`
+
+# How CBO estimated the responsiveness of employment to increases in minimum wages 
+
+> CBO reviewed a large body of research to estimate how adopting either of the two
+options for increasing the minimum wage would affect employment. Such research
+typically calculates an employment elasticity-that is, the percentage change in
+employment induced by a percentage change in the minimum wage. Researchers
+have generally focused on the employment of workers with low average wages, such as
+teenagers, high school dropouts, and workers in low-wage industries. Initially focusing
+on estimates of the employment elasticity for teenagers (in part because they were the
+most commonly studied group), CBO arrived at a teen-employment elasticity for each
+of the options, after accounting for the fact that the \$10.10 option differed significantly
+from the scenarios explored by prior research. CBO then synthesized the teen
+elasticities with broader research to construct elasticities for adults. (See Appendix B for
+a bibliography of the research that CBO reviewed.)  
+
+> The elasticities discussed in this section would apply only to directly affected workers
+and not to others whose wages would be higher than the new minimum wages under
+the options. For example, CBO concluded that the \$9.00 option probably would not
+affect the employment of workers who would earn more than \$9.00 in 2016 under
+current law (except by increasing overall demand for goods and services, an effect
+discussed below). That conclusion was the result of considering two opposing factors.
+On the one hand, wages would probably increase for some of those workers (such as
+the supervisors of minimum-wage workers), as firms sought to maintain a differential
+between their wages and those of employees earning the minimum wage-and that
+wage increase would tend to lower employment. On the other hand, some firms would
+probably employ more workers with wages higher than the new minimum, because the
+productivity of those workers relative to their wages would be higher than that of
+workers whose wages had been pushed up by the minimum-wage increase.  
+
+
+## Elasticities for Teenagers Under the $9.00 Option  
+[NOTE: the analysis combines the \$9 and \$10 option]  
+
+> CBO reviewed the economic research to develop a range of estimates of the elasticity
+of teen employment with respect to a change in the minimum wage under the
+\$9.00 option. On the basis of that review, CBO selected a central estimate of that elasticity of -0.075; in other words, a 10 percent increase in the minimum wage would
+reduce employment among teenage workers by three-quarters of one percent.
+However, there is considerable uncertainty about that elasticity, and CBO developed a
+range of estimates to reflect that uncertainty. The high end of the likely range was
+-0.15 and the low end was zero. In CBO’s assessment, there is about a two-thirds
+chance that the effect of the \$9.00 option on the employment of teenage workers
+would lie within that range. Some studies, however, have found that increases in the
+minimum wage raise employment slightly, while others have found much larger
+negative effects on employment than are reflected in CBO's range.  
+ 
+> Several factors influenced CBO’s conclusion about the range of elasticities for
+teenagers. First, CBO put more weight on studies using certain methodologies than on
+other studies. Several studies compare employment rates among states that have
+different minimum wages but otherwise similar labor markets; such analyses plausibly
+isolate the effects of minimum wages from the effects of national economic changes,
+such as fluctuations in the business cycle. Other studies try to isolate the employment
+effects of minimum-wage increases by comparing the national employment rate in
+years when the minimum wage was high to the rate in years when the minimum wage
+was low. CBO put the most weight on the studies of state-by-state differences, judging
+those studies to have estimated more accurately the effects of minimum wages on
+employment. Changes in state minimum wages are sometimes related to local
+economic conditions in ways that could lead elasticity estimates based on those
+changes to be higher or lower than the elasticity that would apply to similar changes in
+law in the future; CBO considered studies that took a variety of approaches to
+addressing that issue.
+
+
+> Second, CBO considered the role of publication bias in its analysis. Academic journals
+tend to publish studies whose reported effects can be distinguished from no effect with
+a sufficient degree of statistical precision. According to some analyses of the minimumwage
+literature, an unexpectedly large number of studies report a negative effect on
+employment with a degree of precision just above conventional thresholds for
+publication. That would suggest that journals’ failure to publish studies finding weak
+effects of minimum-wage changes on employment may have led to a published
+literature skewed toward stronger effects. CBO therefore located its range of plausible
+elasticities slightly closer to zero-that is, indicating a weaker effect on employment-
+than it would have otherwise.  
+
+> Third, CBO considered whether economic conditions in 2016 could lead the
+responsiveness of employment to an increase in the minimum wage to be larger than it
+had been in the past. One recent study has found evidence that the employment
+elasticity is more negative when unemployment is high. However, CBO projects a
+national unemployment rate of about 6 percent for 2016-a rate similar to the
+average of unemployment rates during the periods studied in the literature from which
+CBO drew elasticity estimates.[^28] CBO therefore did not adjust its central elasticity
+estimates to account for economic conditions in 2016.  
+
+> However, the extent to which employment would respond to changes in the minimum
+wage in 2016 in the same way that it has in past years is uncertain. For example, the
+relatively slow growth in the wages of low-wage workers observed in the past few
+decades has been partly attributed by many analysts to growth in information and other
+technologies, which have automated some of the tasks traditionally done by those
+workers. Continued improvements in such technology will probably lead to the
+automation of some other tasks that they still perform, such as payment collection at
+retail stores. The pace of technological innovation, though, is difficult to predict.
+Uncertainty about future developments in the labor market is reflected in CBO's range
+of estimates.  
+
+## Elasticities for Teenagers Under the $10.10 Option  {.tabset}  
+
+### Main text 
+
+> In analyzing the \$10.10 option, CBO used a central estimate of the elasticity of
+employment for teenagers of -0.10, with a likely range from a very slight negative
+amount to -0.20. Four main factors differentiate the \$10.10 option from the \$9.00
+option and from policies studied in previous research, leading CBO to conclude that
+the elasticity would be larger (in absolute value) under the \$10.10 option.  
+
+> First, the \$10.10 option would index the minimum wage to inflation and would
+therefore result in a higher minimum wage for many years in the future. The federal
+minimum wage has not been previously indexed to inflation, and some employers may
+have refrained from reducing employment in response to prior minimum-wage
+increases, realizing that inflation would soon erode the cost of those increases.
+Therefore, an indexed minimum wage would probably reduce employment more than
+a nonindexed minimum wage would-and neither the \$9.00 option nor most policies
+studied in past research are indexed.  
+
+> Second, most studies measure changes in employment over a short term, typically a
+year or two. However, employment reductions after a minimum-wage increase are
+probably larger over a longer term, in part because those reductions may be less
+attributable to the elimination of existing low-wage jobs than to slower growth in the
+number of low-wage jobs, which is difficult to detect in short-term studies. CBO
+assessed the effects of both options in the second half of 2016-two years after the first
+step of the \$10.10 option, but only one year after the first step of the \$9.00 option.
+That longer lag between the initiation of the option and the evaluation date led CBO to
+estimate a larger elasticity for the \$10.10 option than for the \$9.00 option. 
+
+> Third, raising the minimum wage from \$7.25 to \$10.10 represents a 39 percent
+increase, which would be larger than most of the increases that have been studied, and
+CBO expects that employment would be more responsive to a larger increase.[^29] Many
+employers incur adjustment costs when they reduce staffing (especially if that requires
+restructuring their operations), which may deter them from laying off low-wage workers
+in response to a small increase in the minimum wage. But the savings from not having
+those employees are more likely to exceed the adjustment costs when the minimumwage
+increase is large.[^30]
+
+> Fourth, the \$10.10 option would apply to a larger fraction of the workforce—one that
+accounts for about 10 percent of all hours worked, CBO projects-than many previous
+increases did. It would do so not only because the percentage increase is large, but
+also because the minimum wage before the increase would be higher in real (inflation adjusted)
+terms than it was before many previous increases (see Figure 1)[^31]. For
+example, although the percentage increase in the federal minimum wage from 2007
+to 2009 was similar to the one projected under the \$10.10 option, the fraction of
+the workforce affected under that option would be about five times as large (see
+Table A-1)[^32]. When a greater proportion of a firm's work hours are affected by the
+minimum wage, the adjustment cost per worker of reducing staffing (again, especially if
+the firm is restructuring its operations) is probably smaller, making the firm more likely
+to reduce employment. 
+
+  
+
+  **Added Narrative/Assumptions + Modeling**   
+
+Key points from each parragraph in this section:  
+1 - CBO assumed no ripple effects on employment  
+2 - Elasticity for the \$9 dollar option was selected at -0.075 with two thirds of it between 0 and -0.15. Reasons:   
+2.1 - More weight was given to studies that exploit across state variation (as opposed to over time country level variation)  
+2.2 - The estimates take in to account publication bias towards highly negative estimates.   
+2.3 - CBO acknowledges that effects could be larger (in abs value) during recesions but do not predict a recesion for 2016.  
+2.4 - CBO acknowledges uncertainty in the estimates of elasticity due to possible technological changes in the future.  
+3 -  Elasticity for the \$10.10 dollar option was selected at -0.1 with two thirds of it between 0 and -0.2. Four reasons:    
+3.1 - Indexation makes it more expensive in the long run.   
+3.2 - This option would be implemented earliear and this would allow for longer term effects.   
+3.3 - 39% is higher than previous increases and would not leave space for employers to adjust (other than firing)  
+3.4 - It affects more workers, hence a bigger fraction of a firm's payroll and overall costs.   
+  
+
+### Meta-analysis 
+<span style="color:red">  
+Here is where I need to make the meta-analysis. 
+</span> 
+
+### Added code 
+  <a id="displayText" href="javascript:toggle(8);">TO ADD</a>  
+  <div id="toggleText8" style="display: none">  
+```{r , eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+#
+```  
+  </div> 
+
+### +Stats/Viz    
+
+
+
+##  Translating Elasticities From Previous Research for Use in CBO’s Analysis  
+
+> In order to project the change in employment that would result from the \$9.00 and
+\$10.10 options, CBO converted the elasticity estimates that it drew from the literature
+on teenage workers to elasticity estimates for directly affected teenagers and adults.
+
+> **Elasticities for Directly Affected Teenagers.** The research discussed above typically defines
+employment elasticity (e) as the responsiveness in the employment ($\%\Delta E$) of a group of
+workers, such as teenagers, to a change in the applicable minimum wage ($\%\Delta MW$ —
+that is, the change in the federal or state minimum, whichever is higher), as shown in
+the following equation:
+
+$$
+\begin{align}
+e_{literature}  =  \frac{\% \Delta E}{\% \Delta MW}
+\end{align}
+$$ 
+
+> The elasticity ranges reported earlier in this appendix are based on that approach so
+that they will be more easily comparable to the elasticities typically reported in the
+research literature. In its calculations, however, CBO used elasticities that were
+modified in two ways to be more accurate estimates of the effect of the options.  
+
+> The first modification that CBO made arose because the literature typically focuses on
+the historical employment response of all teenagers to a change in the minimum wage.
+Many of those teenagers initially had low wages and, when the minimum wage rose,
+received a wage increase (or were rendered jobless); but many other teenagers had
+wages that were higher than the new minimum and therefore were largely unaffected
+by the change. In contrast, CBO’s approach examines the responsiveness of
+employment of only directly affected teenagers to a change in the minimum wage—
+that is, the responsiveness of employment of those who would otherwise earn less than
+the new minimum wage[[Addition #1]](#direct-population). When analyzing the \$10.10 option, for example, CBO’s
+approach focuses on the responsiveness of teenage workers who would have earned
+less than \$10.10 per hour in 2016 if the option had not been implemented. The two
+approaches are similar, but they can yield different results when the fraction of
+teenagers with low wages varies over time and with policy changes. In CBO’s view, an
+approach that focuses on the response of low-wage workers is more accurate.     
+
+> The second modification that CBO made was to use elasticities that relate employment
+not to changes in the minimum wage itself but to average changes in workers’ wages
+induced by a change in the minimum wage. (For instance, a worker who would
+otherwise have earned \$9.00 per hour would receive a 12 percent increase if the
+minimum wage rose to \$10.10. However, the minimum wage for that worker would
+rise from \$7.25 to \$10.10, an increase of 39 percent.) The elasticities that are typically
+reported in the literature are scaled to the increase in the minimum wage itself—but for
+two reasons, an approach relying on them is not as well suited for projecting the
+change in employment resulting from a future change in the minimum wage. First, that
+approach does not incorporate information about the distribution of workers’ wages.
+For example, in a projection of the effect of the \$10.10 option, it would make no
+difference, under that approach, whether most workers would otherwise have earned
+\$7.25 or \$10.09. Second, that approach regards all directly affected workers as
+equally likely to lose their jobs after a minimum-wage increase, no matter what
+they would otherwise have been paid [[Addition #2]](#wage-variation). In CBO’s view, by contrast, workers whose
+wages are just below the new minimum wage are more likely to remain employed after it increases than workers who are earning substantially less and are probably less
+valuable to the employer. CBO’s approach accounts for the distribution of workers’
+wages and for the difference in the likelihood of losing one’s job.  
+
+> CBO calculated the responsiveness of employment among directly affected teenagers
+by dividing the elasticities drawn from the literature by the portion of employed
+teenagers who would earn less than the new minimum wage before its implementation
+($p_{direct}$) and then multiplying by the ratio of the percentage change in the applicable
+minimum wage ($\% \Delta MW$) to the average percentage change in the wages of those
+teenagers ($\% \Delta W_{direct}$). The following equation shows the calculation:
+
+$$
+\begin{align}
+e_{direct}  \equiv \frac{\% \Delta E_{direct}}{\% \Delta W_{direct}} = 
+\frac{e_{literature}}{p_{direct}} \times 
+\frac{\% \Delta MW}{\% \Delta W_{direct}}  \nonumber 
+\end{align}
+$$ 
+
+> CBO calculated those conversion factors using CPS data from 1979 through 2009.
+The CPS data indicate that past increases in the minimum wage typically affected about
+a third of employed teenagers and were typically about 50 percent higher than the
+average of the wage changes necessary for compliance with the new minimum. Thus,
+elasticities for directly affected teenagers are about 4.5 times higher, CBO estimates,
+than the teen-employment elasticities with respect to the change in the applicable
+minimum wage discussed in the previous section [[Addition #3]](#adjustment-factors).  
+
+AQUI VOY   
+### Added Narrative/Assumptions + Modeling  
+
+#### Direct population  
+The literature reports the estimated effect for a given population $e_{literature}$. This estimate can be seen as the weigthed average between the elasticities for the directly affected population ($e_{direct}$), with wages below the new minumum, and the non affected ($e_{NA}$) populations, with wages above the new minimum: 
+
+$$
+\begin{align}
+e_{literature} =& p_{direct} e_{direct} + (1 - p_{direct})e_{NA}  
+\end{align}
+$$ 
+
+The underlying assumption is that $e_{NA} = 0$. With this the first proposed adjusment becomes: 
+$$
+\begin{align}
+e_{direct} =& \frac{e_{literature}}{p_{A}}
+\end{align}
+$$ 
+
+
+
+#### Wage variation
+The key idea is that the final effect on employment will be computed as $\% \Delta w_{direct} \times e_{direct} \times N_{direct}$, where $N_{direct}$ is the total population affected by the minimum wage. Given that wage level varies within this population the total effect should be computed as $\sum_{g} \% \Delta w_{g} e_{direct,g} \times N_{g}$ for $g = 1 \dots G$ wage brackets. The report uses the former expression to approximate the latter **[VERIFY THIS]**. 
+
+#### Adjustment factors
+My reading of this parragraph is that they calculated the fraction of teenagers with earnings below the minimum wage from 1979 to 2009 and the result came to about a third. Then they look at the average change in earnings for teenagers subject to the minimum wage over the same period, and compared that to the nominal change in each variation of the minimum wage. This ratio came to be about 1.5. With this the final estimates for the elasticity for teenagers came to be 4.5 ($1.5/(1/3)$) times higher than what is estimated in the literature. 
+
+[FH: why not just look at those same factors in the 2013 data with the proposed changes?]
+
+
+### Added code 
+
+
+  <a id="displayText" href="javascript:toggle(9);">Code for elasticity adjustments</a>  
+  <div id="toggleText9" style="display: none">  
+```{r adjust elasticity, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+# Compute the total number workers with predicted wages above the proposed min wage (10.10)
+# and below the 50% of the increment relative to the states min wage in 2016
+elast.adj <- df %>%  
+  summarise( 
+    "Teenagers w<10.10" = sum(orgwgt[ ( w3.adj1 <= 10.10 & w3.adj1>0) & 
+                            (age < 20) & (pop_of_int == 1)] * 
+                  gr.factor("workers", "2014", "2016") ,
+                  na.rm = TRUE), 
+    "Working Teenagers" = sum(orgwgt[(age < 20) & (pop_of_int == 1)] * 
+                  gr.factor("workers", "2014", "2016") ,
+                  na.rm = TRUE),
+    "Average variation" = mean(w3.adj1[(age < 20) & (pop_of_int == 1) & w3.adj1 <= 10.10] - 
+              7.25 ,
+              na.rm = TRUE)/7.25, 
+    "Adjustment Factor" = 1/(`Teenagers w<10.10`/`Working Teenagers`) * (10.10/7.25 - 1)/`Average variation` 
+    )
+
+table_5 <- rbind(
+  format(t(as.matrix(elast.adj[,1:2])), big.mark = ",", scientific = FALSE),
+  format(t(as.matrix(elast.adj[,3:4])), big.mark = ",", scientific = FALSE, digits = 2)
+)
+colnames(table_5) <- "Stats"
+  
+```  
+  </div> 
+
+### Added Stats/Visualizations   
+
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+knitr::kable(table_5, caption="Adjustment factors for elasticity of teenagers", digits = 2)  
+```    
+
+
+
+
+## Elasticities for directly affected adults    
+> Much less research has been conducted on the
+responsiveness of adult employment to minimum-wage increases than on the
+responsiveness of teenage employment. Using the available information, CBO
+concluded that the elasticity for directly affected adults was about one-third of the
+elasticity for directly affected teenagers, and the agency applied that proportional
+adjustment to the central estimates and likely ranges of elasticities for teens discussed
+above.  
+
+### Added Narrative/Assumptions + Modeling   
+
+$e_{adults} = e_{teenagers} \times \frac{1}{3}$  
+
+
+### Added code 
+  <a id="displayText" href="javascript:toggle(10);">TO ADD</a>  
+  <div id="toggleText10" style="display: none">  
+```{r , eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+#
+```  
+  </div> 
+
+### Added Stats/Visualizations   
+
+
+
+# Estimating the total effects of the minimum wage on employment (GE effects)  
+
+
+
+
+>  CBO's central estimates that the \$10.10 and 
+\$9.00 options would reduce employment
+by roughly 500,000 and 100,000 workers, respectively, were based on four main
+factors. Two were discussed above: the number of low-wage workers directly affected
+by the options and the responsiveness of the employment of low-wage workers to
+increases in minimum wages. The remaining two factors were the change in the wages
+of directly affected workers and the increase in demand for goods and services caused
+by each option. To calculate the total effect on employment, CBO multiplied estimates
+of the first three factors together for teenagers; did the same for adults; added the
+results; and then added an amount to account for the fourth factor[[Addition #1]](#adding-results). To reflect the
+considerable uncertainty in estimating the total employment effect, CBO also reported
+a range within which, in the agency's assessment, there was about a two-thirds chance
+that the actual effect would lie. 
+
+## The increase in the wages of directly affected workers {.tabset} 
+
+### Original  
+
+
+> CBO first projected wages for all workers in 2016 under current law; it then increased
+wages that would be below the new minimum wage under consideration to equal that
+new minimum. The difference between the directly affected workers' wages before and
+after that adjustment was used to calculate the average percentage changes in directly
+affected workers' wages (before accounting for job losses caused by the minimumwage
+increase). Under the \$10.10 option, CBO projects average percentage changes
+of about 18 percent for teenagers and 14 percent for adults. The projected changes
+are smaller under the \$9.00 option—10 percent for teenagers and 8 percent for
+adults. All those percentage changes are lower than the percentage changes in the
+minimum wage itself because most low-wage workers in 2016 would earn more than
+\$7.25 under current law[[Addition #2]](#average-wage-variation).  
+
+
+### +Details  
+
+### +Stats/Viz  
+
+
+## The increase in demand for goods and services  {.tabset} 
+
+### Original  
+
+> Raising the minimum wage would have four direct effects on the aggregate demand for
+goods and services. First, consumption would be reduced among people who became
+jobless because of the minimum-wage increase. In estimating that effect, CBO
+accounted for lower savings and some borrowing by people who would thereby avoid
+a sharp reduction in their standard of living. Second, additional spending by affected
+workers with earnings increases would boost demand. Third, demand would be
+reduced because business owners and shareholders would absorb part of the cost of
+the minimum-wage increase in the form of reduced profits and therefore would reduce
+their spending. Fourth, demand would also be reduced because affected employers
+would pass part of their increased costs on to consumers in the form of higher prices
+for goods and services; those higher prices would reduce the average consumer’s
+purchasing power, resulting in less spending by consumers after adjusting for inflation.
+(For examples of the research that CBO reviewed on these topics, see Appendix B.).  
+
+> On balance, according to CBO's analysis, raising the minimum wage would increase
+demand for goods and services because, taken together, the second, third, and fourth
+direct effects would shift income from business owners and consumers (as a whole) to
+low-wage workers. Low-wage workers generally spend a larger share of each dollar
+they receive than the average business owner or consumer does; thus, when a dollar
+from business owners or consumers is shifted to low-wage workers, overall spending
+increases. The increase in demand from that shifting of income would be larger than
+the decrease in demand from the reduced consumption of people who became jobless,
+CBO estimates[[Addition #3]](#direct-effects-on-consumption).
+
+
+
+> Increasing the minimum wage would also have indirect effects on demand that could
+either enhance or reduce the direct effects. For instance, the greater demand for goods
+and services just described would prompt some companies to increase investment to
+bolster their future production, further boosting demand. But higher prices of goods
+and services sold by companies employing minimum-wage workers would cause
+consumers to shift their purchases to other companies, potentially creating bottlenecks
+until those companies adjusted to the increased demand. On net, the indirect effects
+would reduce demand, according to CBO's central estimates. (Under current
+conditions, the indirect effects would increase demand, CBO estimates, but they would
+reduce demand in 2016 because the economy will be stronger and the Federal Reserve
+would therefore be more active in offsetting the direct increase in demand by raising
+interest rates.)[[Addition #4]](#indirect-effects-on-consumption).
+  
+> The increased demand for goods and services that would result from an increase in the
+minimum wage would have a short-term impact, boosting employment by a few tens of
+thousands of workers in the second half of 2016 under the \$10.10 option, CBO
+estimates. The agency's estimation approach was similar to the one that it used to
+assess the effects of the American Recovery and Reinvestment Act of 2009 (ARRA) and
+of various policies designed to increase output and employment—but adjusted to  
+Overall effect on consumption and its effect on employment account for the much stronger economy projected for late 2016. Specifically, CBO
+estimated the impact of both the \$10.10 option and the \$9.00 option on demand
+while accounting for both the direct and indirect effects. Then CBO estimated the effect
+of those changes in demand on productivity, hours worked per worker, and
+employment, using historical relationships as a guide. Changes in demand would
+affect employment gradually, over several quarters, because part of a rise in output
+would initially result in higher productivity and hours worked per worker, rather than in
+increased employment [[Addition #5]](#overall-effect-on-consumption-and-its-effect-on-employment).
+
+> The overall increase in demand from boosting the minimum wage, and the resulting
+increase in employment, are represented in the findings of most previous research only
+to a small extent. For example, a study of impacts on directly affected workers captures
+the macroeconomic effects only on those workers, not on all workers. Also, a study of a
+minimum-wage increase in a given state may capture its effects on demand for in-state
+goods but not for out-of-state goods. After analyzing the importance of such factors,
+CBO concluded that previous research incorporated roughly 10 percent of the overall
+effects on aggregate demand. CBO therefore reduced its estimate of the economywide
+demand effects of a minimum-wage increase by about 10 percent to avoid
+double-counting those effects[[Addition #6]](#prevent-double-counting).
+
+### +Details  
+
+#### Adding results  
+Taken literally this parragraph implies that the effects on employment were:
+
+$$ 
+\begin{align}  
+\widehat{ \Delta E }  = &N^{teen}_A \times \eta^{teen}_{A} \times \Delta w^{teen}_{A}  + \\
+      & N^{adult}_A \times \eta^{adult}_{A} \times \Delta w^{adult}_{A}  + \Delta Consumption\\
+\end{align}
+$$
+
+The problem with the expression above is that of the three added terms, the first two are in employment units but the last one should be in dollar units. For this reason I assume that the employment effects of an increase in consumption are calculated in two steps: first the effect of change in the minimum wage on aggregate demand $\Delta Consumption$ and the effect of aggregate demand on employment. 
+$$ 
+\begin{align}  
+\widehat{ \Delta E }  = &N^{teen}_A \times \eta^{teen}_{A} \times \Delta w^{teen}_{A}  + \\
+      & N^{adult}_A \times \eta^{adult}_{A} \times \Delta w^{adult}_{A}  + \widehat{ \Delta Aggr.E }(\Delta Consumption)\\
+\end{align}
+$$  
+
+#### Average wage variation  
+$$ 
+\begin{align}  
+\widehat{  \Delta w^{teen}_{A} }  &= 18\%\\
+\widehat{  \Delta w^{adult}_{A} }  &= 14\%
+\end{align}
+$$  
+
+
+#### Direct effects on consumption  
+ - Job loses $\Rightarrow$ reduction in consumption.  
+ - Increase wages $\Rightarrow$ increase consumption.  
+ - Less profits for business owners and shareholders  $\Rightarrow$ reduction in consumption.  
+ - Increase prices  $\Rightarrow$ reduction in consumption.   
+
+Overall the direct effect on consumption is estimated[?] to be positive due to a higher marginal propension to consume of the low wage individuals relative to high income ones.   
+
+#### Indirect effects on consumption  
+ - Increase in consumption $\Rightarrow$ Increase investment in the future  $\Rightarrow$ Increase consumption in the future.  
+ - Increase prices of low-wage-intensive items $\Rightarrow$ increase demand in other items  $\Rightarrow$ Bottleneck in other items until firms adjust. 
+ 
+Overall the indirect effect on consumption is estimated[?] to be negative. 
+
+#### Overall effect on consumption and its effect on employment  
+CBO estimated [?] that the net effect on consumption would be possitive and that its effect on employment would be between 30,000 and 50,000 additional jobs for 2016. This effects are estimated for the short run only. The methodology is mention to be similar the one used to asses the American Recovery and Reinvestment Act ([found here]())
+
+#### Prevent double counting  
+My reading of this parragraph is that the estimated elasticities in the literature already account for approximatly 10% of the effects through consumption, so the final effect of consumption here is multiplied by 0.9 to prevent double counting.   
+
+### Added code 
+  <a id="displayText" href="javascript:toggle(10);">TO ADD</a>  
+  <div id="toggleText10" style="display: none">  
+```{r , eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+#
+```  
+  </div> 
+
+### +Stats/Viz  
+
+
+# How CBO estimated the effects of the options on family income  
+
+> CBO analyzed the effects on family income of the two options for increasing the federal
+minimum wage by comparing a projected distribution of family income in 2016 under
+current law with the distribution that would prevail if the federal minimum wage was
+increased to either \$10.10 or \$9.00. The monthly data from the CPS that CBO used in
+its analysis of employment did not contain the information on family income necessary
+for this analysis, so CBO instead used data from the CPS Annual Social and Economic
+Supplement (ASEC) that was administered in March 2013, which reported family
+income and individuals' earnings for calendar year 2012.
+
+## Wages and Family Income Under Current Law {.tabset}
+
+### Original
+> Before it could estimate the effect of the two options on family income in 2016, CBO
+needed to project family income under current law. CBO used a two-step process
+similar to the one that it used in its employment analysis-first calculating hourly wages
+and annual family income in 2012 and then using those calculations to project wages
+and family income in 2016.
+
+> **Hourly Wages and Annual Family Income in 2012.** CBO estimated the hourly wages of workers and annual income of families in 2012 by using data from the 2013 ASEC. Workers’ hourly wages were calculated as their annual earnings divided by the number of hours they worked during the year (calculated as the number of hours they usually worked per week times the number of weeks they worked during the year)[^36]. As in its analysis of employment, CBO adjusted workers’ calculated wages up or down to move their wage toward the average wage for workers with similar observable characteristics.
+
+
+> However, when CBO used those data to project workers' wages in 2016, it found far
+fewer workers who would be directly affected by the change in the minimum wage than
+it had in its analysis of employment.[^37] The discrepancy probably arose because of greater measurement error in the ASEC than in the monthly CPS, which reports wages
+according to people's responses to a direct question about how much they earn per
+hour. CBO therefore further adjusted the distribution of hourly wages calculated from
+the ASEC to match more closely the analogous distribution from the monthly CPS,
+mostly by adjusting some workers' wages up to the minimum wage projected to apply
+to them in 2016 under current law[^38].  
+
+> CBO also used the ASEC to measure the distribution of before-tax family cash income
+in 2012, which is the measure that the Census Bureau uses to determine the official
+poverty rate. That measure of income includes labor earnings, capital and business
+income, and other private sources of income, as well as cash transfers from the
+government, such as Supplemental Security Income (SSI) and Social Security (both
+Old-Age and Survivors Insurance and Disability Insurance payments)[^39]. It does not
+include noncash government transfers, such as benefits provided through the
+Supplemental Nutrition Assistance Program (SNAP), Medicaid, or Medicare, nor does it
+reflect the taxes people pay or the tax credits they receive, such as the earned income
+tax credit (EITC).
+
+> **Projecting Hourly Wages and Annual Family Income in 2016.** CBO used the calculations
+described above and its forecasts of growth in wages and other income to project the
+distribution of hourly wages and annual family income in 2016[^40]. As in the employment
+analysis, the forecast of wage growth used for this analysis was smaller than the
+agency's overall forecast of wage growth because CBO expects that very high-wage
+workers will experience faster wage growth in the next several years than other workers
+will[^41]. In addition, CBO accounted for prospective increases in some states’ minimum
+wages, including changes scheduled in current state laws and changes projected on
+the basis of how states have changed their minimum wages in the past.
+
+> To project family income in 2016, CBO used its forecasts of growth in the components
+of income when they were available-as they were for interest and dividends, for
+example. CBO projected that the other components of income will grow at the same
+rate that the price index for personal consumption expenditures does in CBO's
+forecast. CBO estimated that the number of workers will increase according to the
+agency's forecast of employment growth between 2013 and 2016. The rate of growth
+in the number of nonworking family members was similarly matched to the agency’s
+forecasts of growth in the nonworking population.
+
+
+### +Stats/Viz  
+
+
+
+## Estimating the Effects of Increases in the Minimum Wage on Family Income  {.tabset}
+
+### Original  
+
+> The steps described above show how CBO formed an estimate of the distribution of
+hourly wages and family income in 2016 under current law. CBO then estimated how
+a higher minimum wage would affect family income in 2016. To do that, CBO first
+estimated the effect of an increase in the minimum wage on workers' annual earnings.
+CBO then projected how that change in earnings, along with several other factors,
+would change family income.
+
+> **Changes in the Annual Earnings of Workers.** CBO estimated the effect of increases in the
+minimum wage on the annual earnings of low-wage workers using methods similar to
+those used in its analysis of employment. The higher wages of two groups were
+multiplied by the workers' projected 2016 annual hours of work to estimate their
+annual earnings under the options. The first group consisted of workers who were
+projected to have wages lower than the new minimum in 2016 under current law. The
+second group consisted of workers whose projected wages in 2016 would be up to as
+much as \$11.50; as in its analysis of the number of affected workers, CBO estimated
+that wages would rise for people in that category, on average.  
+
+> The wages of the first group were initially adjusted up to the new minimum, and then
+further adjustments for ripple effects were made in both groups. Specifically, those
+ripple effects were projected to extend up to the amount that would result from an
+increase that was 50 percent larger than the increase in their applicable federal or state
+minimum wage under either option. Ripple effects were included for workers whose
+wages under current law were projected to be slightly less and slightly more than the
+minimum wages under each option, respectively. The ripple effects were the largest for
+workers who, under current law, would have earned precisely the minimum wage that
+would be set under the option. On average, the ripple effects were substantially smaller
+than the increases in wages needed to bring workers up to the new minimum.  
+
+> CBO's analysis of annual earnings also accounted for reductions in employment—and
+therefore in some workers’ earnings—that would result from the increases in the
+minimum wage. Here, CBO used the same employment elasticities that it used in its
+analysis of the options' effects on employment. Employment reductions were restricted
+to workers who would have had, under current law, an hourly wage less than the new
+minimum. Workers who would have had wages between the new minimum and \$11.50 were not considered to be at risk of losing employment as a result of the
+minimum-wage increase, as discussed above.   
+
+> The reductions in employment would be concentrated more among teenage workers
+than among older workers, CBO expects, both because they tend to have lower wages
+and because their employment typically responds more sharply to changes in the
+minimum wage (as discussed above). Among workers at least 20 years old, CBO
+anticipates that the reductions in employment would be disproportionately
+concentrated among those who would have had the lowest wages under current law
+(apart from those to whom the minimum wage would not apply). Because many lowwage
+workers move in and out of employment within a year, CBO estimated the effects
+of the employment loss among low-wage workers by assuming that the affected people
+worked, on average, about half as many weeks as they otherwise would have; CBO
+therefore lowered projected earnings by 50 percent for twice as many workers as the
+projected number of people who would become jobless (rather than lowering earnings
+by 100 percent for a number of workers equal to the number of people who would
+become jobless).
+
+> **Changes in the Annual Income of Families.** An increase in the minimum wage would not
+only affect family income by changing workers’ earnings. It would also result in losses
+in income for business owners, decreases in real income for many people because of
+increases in prices, and increases in some people's income generated by higher
+demand for goods and services. To determine the economywide effect on total income,
+CBO subtracted the output lost because of the decline in employment from the output
+gained because of the increase in the aggregate demand for goods and services.
+On balance, the total amount of real income in the economy would increase by
+\$2 billion in 2016 under the \$10.10 option, CBO projects, and by \$1 billion under the
+\$9.00 option.  
+
+> In CBO's estimation, overall real income would increase for families with income less
+than six times the poverty threshold but would decrease for higher-income families,
+because both the income losses for business owners and the increase in prices would
+have the greatest effects on those higher-income families. In CBO's estimation, about
+1 percent of the reduction in real income from those two factors would fall on people
+living in families whose income was below the poverty threshold, whereas about
+70 percent would fall on people living in families whose income was more than six
+times the poverty threshold.
+
+> CBO used those estimates of the change in income for families to project how many
+families would move into and out of poverty[^42]. Following the official definition of poverty, CBO did not consider the effects of a minimum-wage increase on taxes, tax
+credits, or noncash transfer payments in its calculations. (CBO has not analyzed the
+effects of minimum-wage increases on a measure of income that accounts for taxes, tax
+credits, or noncash transfers.) Some of those effects would partly offset the gain to
+families from a higher minimum wage. For example, workers who received higher
+wages because of an increase in the minimum wage would pay more payroll taxes
+(though they would later be eligible for more Social Security benefits), and some of
+their families would be eligible to receive less in noncash means-tested benefits, such
+as those provided by SNAP. The amount of the EITC received by workers in poor
+families would increase in some cases and decrease in others, depending on each
+worker's earnings and family income.  
+
+
+
+
+### +Stats/Viz  
+
+
+
+
+
+
+# Results 
+
+ - ~500,000 job would be destroyed
+ - 16.5 million workers would receive a salary increase. 
+ - Distributional effects: 
+    - below poverty line (PL) +\$5billion [show gains and losses within bins] 
+    - between one and three PL +\$12billion 
+    - between three and six PL +\$2billion 
+    - above six PL -\$17billion  
+    
+  
+
+# Need to cite:  
+ - agency’s overall economic forecast in when forecasting distribution of [wages in the future](#second-step-forecasting-wages-and-employment)
+ - effects of ACA on [wages in th e future](#second-step-forecasting-wages-and-employment) [NOT DONE YET]
+ - forecasted increases in the [minimum wage in different states](#second-step-forecasting-wages-and-employment) (from the perspective of december 2013)   
+ 
+
+# Parameters/inputs to vary:  
+In this section I keep a list of all the parameters or inputs where some type of decision was made in computing the policy estimate.  
+ -  Cut CPS in half/quarter and estimate effects  
+ -  Use different wage variables   
+ -  Use different type of adjustments (ala Lemiux)  
+ -  Definitions of population of interest (Include unemployed? NILF?)  
+ -  Forecast for growth in workers
+ -  Forecast for growth in wages  
+ -  Predicted effects of ACA  
+ -  Effects of state min wages   
+ -  Non compliance   
+ -  3.5 million of non FLSA likely to benefit  
+ -  Distribution of tipped workers
+ -  Wages affected by ripple effects   
+ -  Percentage of the ripple effects population that is actually affected  
+ -  Fraction of teenagers affected by min wage  
+ -  Average variation for population affected by the minimum wage 
+ 
+ 
+ 
+ 
+
+# Costs/benefits mention in the literature that can be added to the model:   
+ - SNAP.  
+ - Wage compression (Autor). 
+ - Rise in prices.   
+ - Morale booster (relative to a check from the goverment).
+ - EITC is clunky (operated by goverment, need to apply)
+ - Effects on turnover. 
+ - Effects on hours (Michl)
+ - Effects on overall unemployment (Tulip)
+ - Increase likelihood of automation. 
+ - Offsets of fringe benefits
+www.google.com
+
+# Footnotes of original report
+
+
+[^25]: To project the percentage of low-wage workers who would not be covered or affected by the FLSA in
+2016, CBO estimated the share earning less than the federal minimum wage (or their state’s
+minimum wage, if higher) in 2013, which was 12 percent. Because the agency concluded that
+nontipped workers who reported being paid up to 25 cents less, and tipped workers who reported
+being paid up to 13 cents less, than the federal minimum wage—or the state minimum, if it was
+higher—had probably misreported their wages, it did not count such workers as being paid less than
+the minimum wage. The analysis does not account for localities’ minimum wages because it uses
+data from the CPS, which does not identify the localities in which respondents work.
+
+
+[^28]: See Congressional Budget Office, The Budget and Economic Outlook: 2014 to 2024 (February
+2014), [www.cbo.gov/publication/45010](www.cbo.gov/publication/45010). For additional information about CBO’s projections of
+future labor market conditions, see Congressional Budget Office, The Slow Recovery of the Labor
+Market (February 2014), [www.cbo.gov/publication/45011](www.cbo.gov/publication/45011).  
+
+[^29]: The last increase in the federal minimum wage, implemented between 2007 and 2009, constituted
+a 41 percent increase, but earlier percentage increases were typically lower. Some states have
+implemented large percentage increases in the minimum wage, however. New York, for example,
+increased its minimum wage from \$5.15 to \$7.15 per hour—a 39 percent increase—between
+2005 and 2007.
+
+[^30]: In addition, at the same time that the proposed increases in the minimum wage would take effect,
+the Affordable Care Act's requirement that many employers provide health insurance (or pay a
+penalty if they do not) will impose an additional cost on employers for some low-wage workers who
+do not currently have employment-based health insurance. CBO expects that the cost will ultimately
+be borne by workers through lower wages; but before that adjustment has fully taken effect, the cost
+further boosts the likelihood that employers' savings from reducing the size of their workforces would
+exceed their adjustment costs.  
+
+[^31]: The 10 percent of work hours affected in 2016 by the \$10.10 option is not directly comparable to
+the percentage of workers projected to make less than \$10.10 per hour in 2016 as reported in
+Figure 1. That percentage is based on a count of workers, rather than of hours worked, and it
+includes workers making less than \$10.10 who are not covered by the FLSA.
+
+[^32]: The 10 percent of work hours affected in 2016 by the \$10.10 option reported above differs from the 11.4 percent in 2016 reported in Table A-1 mainly because of the different definition of directly
+affected workers used in Table A-1 to create a consistent series over time.
+
+[^36]: CBO did not exclude observations for which the Census Bureau imputed annual earnings, the
+number of hours of work per week, or the number of weeks worked per year.  
+
+[^37]: To be consistent with the analysis of the number of workers affected by an increase in the minimum wage, CBO identified nontipped workers who were paid up to 25 cents less and tipped workers who
+were paid up to 13 cents less than the federal minimum wage-or the state minimum if it was
+higher—as workers who would be affected by a change in the minimum wage.
+
+[^38]: As it did in estimating the number of affected workers, CBO identified tipped workers as those in 11 occupations (such as waiter, bartender, and hairdresser) whose compensation depends heavily on tips. Throughout its analysis, CBO applied to those workers the lower minimum wage for tipped workers.
+
+[^39]: Specifically, before-tax family cash income includes wage and salary earnings; pension or retirement income; income from self-employment, Temporary Assistance for Needy Families (TANF), Supplemental Security Income, Social Security, child support, unemployment compensation, workers’ compensation, disability benefits, educational assistance, and financial assistance from outside the household; and other cash income.
+
+[^40]: See Congressional Budget Office, The Budget and Economic Outlook: 2014 to 2024 (February
+2014), [www.cbo.gov/publication/45010](www.cbo.gov/publication/45010).
+
+[^41]: In addition, the Affordable Care Act's requirement that many employers provide health insurance (or pay a penalty if they do not) will impose an additional cost on employers for some low-wage workers who do not currently have employment-based health insurance. CBO expects that the cost will ultimately be borne by workers through lower wages.
+
+[^42]: The Census Bureau's poverty thresholds, which identify the income level below which families are classified as being in poverty, were projected to grow at the same rate that CBO forecast for growth in the consumer price index for urban consumers, or CPI-U. That approach is consistent with the fact that poverty thresholds are updated annually for inflation with the CPI-U.
+
+
+<!-- 
+  </div>  
+
+TO DO:
+- Mosaic Vis
+- Gtrends/nytimes vis
+- Tabs\add all original text
+- Distributional effects
+-->

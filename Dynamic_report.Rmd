@@ -1296,7 +1296,7 @@ according to people's responses to a direct question about how much they earn pe
 hour. CBO therefore further adjusted the distribution of hourly wages calculated from
 the ASEC to match more closely the analogous distribution from the monthly CPS,
 mostly by adjusting some workers' wages up to the minimum wage projected to apply
-to them in 2016 under current law[^38] [[Addition #2]](#second-wage-adjustment).  
+to them in 2016 under current law[^38] [[Addition #2]](#second-income-adjustment).  
 
 > CBO also used the ASEC to measure the distribution of before-tax family cash income
 in 2012, which is the measure that the Census Bureau uses to determine the official
@@ -1325,7 +1325,7 @@ rate that the price index for personal consumption expenditures does in CBO's
 forecast. CBO estimated that the number of workers will increase according to the
 agency's forecast of employment growth between 2013 and 2016. The rate of growth
 in the number of nonworking family members was similarly matched to the agency’s
-forecasts of growth in the nonworking population.
+forecasts of growth in the nonworking population [[Addition #4]](#non-working-population-growth).
 
 
 ---    
@@ -1335,14 +1335,16 @@ Unlike the case wages, where the adjustments was over a small fractions of the p
 The adjustments follows the following formula:   
 NEED TO COMPLETE.  
 
-
 #### Second income adjustment  
 Need to define which group of workers I will increase the wages.  
 
+#### Forecasting wage and income   
+Differential growth by quantiles.   
 
-#### Forecasting wage and income 
-AQUI VOY
----  
+#### Growth of non working population  
+Find CBO estimates. 
+  
+---   
 
 ### +Code
 
@@ -1350,16 +1352,18 @@ AQUI VOY
 
 
 
-## Estimating the Effects of Increases in the Minimum Wage on Family Income  {.tabset}
+## Estimating the Effects of Increases in the Minimum Wage on Family Income [part 1] {.tabset}
 
-### Original  
+
 
 > The steps described above show how CBO formed an estimate of the distribution of
 hourly wages and family income in 2016 under current law. CBO then estimated how
 a higher minimum wage would affect family income in 2016. To do that, CBO first
 estimated the effect of an increase in the minimum wage on workers' annual earnings.
 CBO then projected how that change in earnings, along with several other factors,
-would change family income.
+would change family income [[Addition #1]](#general-description).
+
+### Original  
 
 > **Changes in the Annual Earnings of Workers.** CBO estimated the effect of increases in the
 minimum wage on the annual earnings of low-wage workers using methods similar to
@@ -1369,7 +1373,7 @@ annual earnings under the options. The first group consisted of workers who were
 projected to have wages lower than the new minimum in 2016 under current law. The
 second group consisted of workers whose projected wages in 2016 would be up to as
 much as \$11.50; as in its analysis of the number of affected workers, CBO estimated
-that wages would rise for people in that category, on average.  
+that wages would rise for people in that category, on average [[Addition #2]](#wage-incresase).  
 
 > The wages of the first group were initially adjusted up to the new minimum, and then
 further adjustments for ripple effects were made in both groups. Specifically, those
@@ -1380,15 +1384,14 @@ wages under current law were projected to be slightly less and slightly more tha
 minimum wages under each option, respectively. The ripple effects were the largest for
 workers who, under current law, would have earned precisely the minimum wage that
 would be set under the option. On average, the ripple effects were substantially smaller
-than the increases in wages needed to bring workers up to the new minimum.  
+than the increases in wages needed to bring workers up to the new minimum [[Addition #3]](#ripple-effects).  
 
 > CBO's analysis of annual earnings also accounted for reductions in employment—and
 therefore in some workers’ earnings—that would result from the increases in the
 minimum wage. Here, CBO used the same employment elasticities that it used in its
 analysis of the options' effects on employment. Employment reductions were restricted
 to workers who would have had, under current law, an hourly wage less than the new
-minimum. Workers who would have had wages between the new minimum and \$11.50 were not considered to be at risk of losing employment as a result of the
-minimum-wage increase, as discussed above.   
+minimum. Workers who would have had wages between the new minimum and \$11.50 were not considered to be at risk of losing employment as a result of the minimum-wage increase, as discussed above [[Addition #4]](#no-ripple-effects-on-employment).   
 
 > The reductions in employment would be concentrated more among teenage workers
 than among older workers, CBO expects, both because they tend to have lower wages
@@ -1403,7 +1406,49 @@ worked, on average, about half as many weeks as they otherwise would have; CBO
 therefore lowered projected earnings by 50 percent for twice as many workers as the
 projected number of people who would become jobless (rather than lowering earnings
 by 100 percent for a number of workers equal to the number of people who would
-become jobless).
+become jobless)[[Addition #5]](#destroying-jobs).
+
+
+---    
+
+#### General description  
+Maybe put an equation here that describes how more first we chage wages and then family income.
+
+#### Wage incresase
+Not clear where the projections on hours worked for 2016 came from. Two groups: (i) up to min wage, and (ii) up to \$ 11.50.
+
+
+#### Ripple effects  
+$$
+\begin{align}
+w_r &= \widehat{w} +  0.5 \frac{w^{1}_{min} - \widehat{w} }{\widehat{w}} 
+\end{align}
+$$
+
+Clarify the ideas in equations. 
+
+#### No ripple effects on employment  
+Just make that explicit. 
+
+#### Destroying jobs  
+- Define how much more affected are teenagers relative to other workers.    
+- Define weights for job destruction among lowest wage earners age 20 and older. 
+- Define algorithm to sample jobs to be 'destroyed'. Make explicit that we are actually cutting wages in half and double the number of jobs to be delete. 
+
+
+
+---  
+
+### +Code  
+
+
+### +Stats/Viz  
+
+
+## Estimating the Effects of Increases in the Minimum Wage on Family Income [part 2] {.tabset}
+
+
+### Original
 
 > **Changes in the Annual Income of Families.** An increase in the minimum wage would not
 only affect family income by changing workers’ earnings. It would also result in losses
@@ -1414,7 +1459,7 @@ CBO subtracted the output lost because of the decline in employment from the out
 gained because of the increase in the aggregate demand for goods and services.
 On balance, the total amount of real income in the economy would increase by
 \$2 billion in 2016 under the \$10.10 option, CBO projects, and by \$1 billion under the
-\$9.00 option.  
+\$9.00 option[[Addition #1]](#quantifying-loses).  
 
 > In CBO's estimation, overall real income would increase for families with income less
 than six times the poverty threshold but would decrease for higher-income families,
@@ -1423,7 +1468,7 @@ have the greatest effects on those higher-income families. In CBO's estimation, 
 1 percent of the reduction in real income from those two factors would fall on people
 living in families whose income was below the poverty threshold, whereas about
 70 percent would fall on people living in families whose income was more than six
-times the poverty threshold.
+times the poverty threshold[[Addition #2]](#distributional-effects).
 
 > CBO used those estimates of the change in income for families to project how many
 families would move into and out of poverty[^42]. Following the official definition of poverty, CBO did not consider the effects of a minimum-wage increase on taxes, tax
@@ -1436,12 +1481,29 @@ wages because of an increase in the minimum wage would pay more payroll taxes
 their families would be eligible to receive less in noncash means-tested benefits, such
 as those provided by SNAP. The amount of the EITC received by workers in poor
 families would increase in some cases and decrease in others, depending on each
-worker's earnings and family income.  
+worker's earnings and family income[[Addition #3]](#interaction-with-other-programs)  
 
 
+---    
+
+#### Quantifying loses  
+- Mix gains and loses. 
+- Output lost - increase in aggregate demand (!) 
+- net gain (!) of 2 billion dollars.  
+
+#### Distributional effects   
+- Only results, no methodology at all!  This is probably the most important (and overlooked part of the report)
+
+#### Interaction with other programs 
+No interactions with other programs is assumed (SNAP or EITC).     
+
+---  
+
+### +Code  
 
 
 ### +Stats/Viz  
+
 
 
 

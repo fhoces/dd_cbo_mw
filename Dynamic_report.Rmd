@@ -46,13 +46,43 @@ df <- dbReadTable(con, "asec13")
 df <- tbl_df(df)
 ```
 
-NOTE: so far I am not adding the sections of uncertainty in the estimates as they do not seem to actually estimate anything.   
+THERE IS A BUG WITH THE HEADER
+<h1><span class="header-section"></span> Short description of what the report does</h1>
+
+The report estimates the effect of a minimum wage increase over employment and family income. The main text consists of three separate pieces (number of pages in parenthesis): excecutive summary (4), report (15), and methodological appendix (18).   
+
+**Excecutive Summary:**  
+  1 - 500,000 jobs are destroyed  
+  2 - 16.5 million workers get a wage increase  
+  3 - \$31 billion gross wage increase (not sure where is this in the appendix)  
+  4 - \$2 billion net income increase: distributed as +5, +12, +2, -17 over \<PL, [PL,3PL), [3PL,6PL), \>6PL 
+
+
+**Report:**   
+ 1 - Description of current Min wage   
+ 2 - Description of proposed increases  
+ 3 - Mechanisms: how the proposed increases would affect employment and family income  
+ 4 - Estimates on employment and family income.   
+ 5 - Conjectures on effect on federal budget.  
+  
+**The appendix A** is the "true" document, as it explains the finding presented in the executive summary. The appendix contains:   
+1- Explanation of how they define the number of affected workers   
+2- Explanation on what the chosen elasticities are  
+3- Computation of effects for different population with different elasticites + 'GE' effects  
+4- Estimation of distributional effects.    
+
+The appendix is where the replication takes place. It is cited verbatim below with added narrative, modeling, code and intermediate output. So far I am not adding the sub-sections of "uncertainty in the estimates" as they do not seem to actually estimate anything.   
+
+
+<h1><span class="header-section"></span> Appendix A: The Basis of CBO’s Findings</h1>
+  
+
 
 > This appendix describes the steps that the Congressional Budget Office (CBO) took to
 arrive at the estimates in this report—estimates of the number of low-wage workers
 affected by the two options for increasing the minimum wage; of the responsiveness of
 employment to changes in the minimum wage; of the options' total effects on
-employment; and of the options' effects on family income.
+employment; and of the options' effects on family income[[Addition #1](#note-for-the-reader)].
 
 # How CBO estimated the number of workers who would be affected by the options 
 > CBO estimated the number of workers who would be directly affected by the two
@@ -105,20 +135,24 @@ above it[^23].
 
 <!-- 
 ### +Details
-
  <span style="color:red"></span>   
 -->
+
+#### Note for the reader  
+A useful way to think about this exercise is the following:  
+ - Sections 1-3 are concern with estimating the effects on employment. This effect is determined by the relevant labor demand elasticity ($\eta$) times the relevant wage variation ($\% \Delta w$) times the relevant population ($N$). Section 1 defines the relevant population, section 2 defines the relevant elasticity, section 3 combines them with the relevant wage variation and adds general equilibrium (or macroeconomic) effects.  
+ - Section 4 describes the distributional effects.   
 
 #### Which data
 With this information I have identified 
 three possible data sets that match this description: CPS raw files, ORG NBER, ORG CEPR. The analysis will be performed using the CPER ORG data base.
 
 #### Which wage variable
-I assume no further adjustments like imputation for top coding, triming, excluding overtime/commisions, or imputation of usual hours for ''hours vary'' respondendts. The CEPR ORG data includes several wage variables ([described here](http://ceprdata.org/cps-uniform-data-extracts/cps-outgoing-rotation-group/)). The wage variable that best matches the description above is `wage3`
+I assume no further adjustments like imputation for top coding, trimming, excluding overtime/commissions, or imputation of usual hours for ''hours vary'' respondents. The CEPR ORG data includes several wage variables ([described here](http://ceprdata.org/cps-uniform-data-extracts/cps-outgoing-rotation-group/)). The wage variable that best matches the description above is `wage3`
 
 #### Wage adjustment
 Make explicit that this only applies for the imputed hourly wages, and make explicit the characteristics and the weighs. 
- The adjusment process has not been done yet and will follow the methodology proposed in [this paper](https://www.aeaweb.org/articles?id=10.1257/aer.96.3.461)
+ The adjustment process has not been done yet and will follow the methodology proposed in [this paper](https://www.aeaweb.org/articles?id=10.1257/aer.96.3.461)
 
 $$
 \begin{align}
@@ -365,7 +399,7 @@ That adjustment boosted projected wage growth for workers in those states [[Addi
 2.9 percent between 2013 and 2016 under current law. 
 
 #### Growth adjustments
-I assume that the growth forecasts were taken from the 10-Year Economic Projections from CBO ([this website](https://www.cbo.gov/about/products/budget_economic_data)). Anualized growth rates for the number of workers $g_{workers}$, and nominal wage per $g_{wages}$ worker where computed as follows:  
+I assume that the growth forecasts were taken from the 10-Year Economic Projections from CBO ([this website](https://www.cbo.gov/about/products/budget_economic_data)). Annualized growth rates for the number of workers $g_{workers}$, and nominal wage per $g_{wages}$ worker where computed as follows:  
 
 $$
 \begin{align}
@@ -384,7 +418,7 @@ The adjustment over number of workers was made through the weight variable `orgw
 
 #### State level minimum wage adjustments   
 
-CBO had to predict the future changes in the state level minimum wages. I use the actual values implemented by each state. The data comes fromt the Department of Labor ([here](https://www.dol.gov/whd/state/stateMinWageHis.htm)). 
+CBO had to predict the future changes in the state level minimum wages. I use the actual values implemented by each state. The data comes from the Department of Labor ([here](https://www.dol.gov/whd/state/stateMinWageHis.htm)). 
 
 Whenever the predicted wages were below the 2016 state minimum wage they were replace by it. 
 
@@ -570,7 +604,7 @@ df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,],
 
 
 ### +Stats/Viz 
-For the year 2013 we downloaded the forecast from CBO use that year and computed the overall projected growth from 2014 to 2016 in the total number of employed workers and the growth in the per capita nominal wages. The resulting anual rates were `r format( (workers.gr ) * 100 , digits = 2)` and `r format( (wage.gr) * 100 , digits = 3)` respectively.
+For the year 2013 we downloaded the forecast from CBO use that year and computed the overall projected growth from 2014 to 2016 in the total number of employed workers and the growth in the per capita nominal wages. The resulting annual rates were `r format( (workers.gr ) * 100 , digits = 2)` and `r format( (wage.gr) * 100 , digits = 3)` respectively.
 
 ```{r desc stats2,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 table_4 <- matrix(NA, 7, 2)
@@ -661,25 +695,25 @@ compensation depends heavily on tips. They constitute about 10 percent of low-wa
 workers [[Addition #3]](#tipped-workers). 
 
 <span style="color:red">
-Translating this third step was much harder than the rest of the document. I needed to add more arbitrary assumption and left important adjustments for the second revision of this document.  
+Translating this third step was much harder than the rest of the document. I needed to add more arbitrary assumptions and left important adjustments for the second revision of this document.  
 </span> 
 
 #### Non compliance    
 
-My understanding of footnote 25[^25] is that the authors are trying to estimate the number of workers that earn less than than the their state's minimum wage as a proxy for non compliers. They mention that it comes up to 12% of the low wage population. Given that I do not have a definition for what the low wage population is, I will estimate the number of workers below the minumum wage and reported as a percentage of the target population. 
+My understanding of footnote 25[^25] is that the authors are trying to estimate the number of workers that earn less than than the their state's minimum wage as a proxy for non compliers. They mention that it comes up to 12% of the low wage population. Given that I do not have a definition for what the low wage population is, I will estimate the number of workers below the minimum wage and reported as a percentage of the target population. 
 
 Following the same footnote I will consider salary workers as non compliers only if their wage is strictly less than 25 cents for non-tipped workers or 13 cents for tipped workers. 
 
 #### Not covered that might benefit
- - Include not covered by FLSA but expected to be affected: employees of small firms, ocupations generally excempt from FLSA, and teenagers in first 90 days of employment.  
+ - Include not covered by FLSA but expected to be affected: employees of small firms, occupations generally exempt from FLSA, and teenagers in first 90 days of employment.  
  <span style="color:red">
 I am not excluding job category yet. 
 </span> 
 
 #### Tipped workers  
- - Apply different minimum wage to workers who receive more than \$30 in tips. This was applied to 11 ocupations (such as waiter, bartender, and hairdresser ~10% if low wage workers)
+ - Apply different minimum wage to workers who receive more than \$30 in tips. This was applied to 11 occupations (such as waiter, bartender, and hairdresser ~10% if low wage workers)
  
-Given that I do not know which 11 categories the report makes reference to, and which variable that defines the cateogories, I will use the variable `peernuot` to identify tipped workers. This variable overestimates the number of tipped workers (13% as opposed to the 10% mentioned in the report) because it also contains the workers paid overtime or commissions. 
+Given that I do not know which 11 categories the report makes reference to, and which variable that defines the categories, I will use the variable `peernuot` to identify tipped workers. This variable overestimates the number of tipped workers (13% as opposed to the 10% mentioned in the report) because it also contains the workers paid overtime or commissions. 
 
 ### +Code  
 
@@ -706,11 +740,12 @@ non.comp.stats <- df %>%
 ```  
 
 ### Stats/Viz  
+<span style="color:red">IN THIS SECTION A MOSAIC PLOT WOULD HELP CLARIFY THINGS A LOT</span>  
 
 The estimated percentage of non-compliance is `r paste(format(100*non.comp.stats[2], digits=3),"%", sep="")` of the target population in 2016 (N = `r table_4[1,2]`). 
 
 
-## Other Workers Who Would Probably Be Affected by Increases in the Minimum Wage [ripple effects] {.tabset}
+## Other Workers Who Would Probably Be Affected by Increases in the Minimum Wage (ripple effects) {.tabset}
 
 ### Main text 
 
@@ -927,16 +962,16 @@ to reduce employment.
 
 **Added Narrative/Assumptions + Modeling**   
 
-Key points from each parragraph in this section:  
+Key points from each paragraph in this section:  
 1 - CBO assumed no ripple effects on employment  
 2 - Elasticity for the \$9 dollar option was selected at -0.075 with two thirds of it between 0 and -0.15. Reasons:   
 2.1 - More weight was given to studies that exploit across state variation (as opposed to over time country level variation)  
 2.2 - The estimates take in to account publication bias towards highly negative estimates.   
-2.3 - CBO acknowledges that effects could be larger (in abs value) during recesions but do not predict a recesion for 2016.  
+2.3 - CBO acknowledges that effects could be larger (in abs value) during recessions but do not predict a recession for 2016.  
 2.4 - CBO acknowledges uncertainty in the estimates of elasticity due to possible technological changes in the future.  
 3 -  Elasticity for the \$10.10 dollar option was selected at -0.1 with two thirds of it between 0 and -0.2. Four reasons:    
 3.1 - Indexation makes it more expensive in the long run.   
-3.2 - This option would be implemented earliear and this would allow for longer term effects.   
+3.2 - This option would be implemented earlier and this would allow for longer term effects.   
 3.3 - 39% is higher than previous increases and would not leave space for employers to adjust (other than firing)  
 3.4 - It affects more workers, hence a bigger fraction of a firm's payroll and overall costs.  
 
@@ -1035,7 +1070,7 @@ minimum wage discussed in the previous section [[Addition #3]](#adjustment-facto
 
 
 #### Direct population  
-The literature reports the estimated effect for a given population $e_{literature}$. This estimate can be seen as the weigthed average between the elasticities for the directly affected population ($e_{direct}$), with wages below the new minumum, and the non affected ($e_{NA}$) populations, with wages above the new minimum: 
+The literature reports the estimated effect for a given population $e_{literature}$. This estimate can be seen as the weighted average between the elasticities for the directly affected population ($e_{direct}$), with wages below the new minimum, and the non affected ($e_{NA}$) populations, with wages above the new minimum: 
 
 $$
 \begin{align}
@@ -1043,7 +1078,7 @@ e_{literature} =& p_{direct} e_{direct} + (1 - p_{direct})e_{NA}
 \end{align}
 $$ 
 
-The underlying assumption is that $e_{NA} = 0$. With this the first proposed adjusment becomes: 
+The underlying assumption is that $e_{NA} = 0$. With this the first proposed adjustment becomes: 
 $$
 \begin{align}
 e_{direct} =& \frac{e_{literature}}{p_{A}}
@@ -1056,7 +1091,7 @@ $$
 The key idea is that the final effect on employment will be computed as $\% \Delta w_{direct} \times e_{direct} \times N_{direct}$, where $N_{direct}$ is the total population affected by the minimum wage. Given that wage level varies within this population the total effect should be computed as $\sum_{g} \% \Delta w_{g} e_{direct,g} \times N_{g}$ for $g = 1 \dots G$ wage brackets. The report uses the former expression to approximate the latter **[VERIFY THIS]**. 
 
 #### Adjustment factors
-My reading of this parragraph is that they calculated the fraction of teenagers with earnings below the minimum wage from 1979 to 2009 and the result came to about a third. Then they look at the average change in earnings for teenagers subject to the minimum wage over the same period, and compared that to the nominal change in each variation of the minimum wage. This ratio came to be about 1.5. With this the final estimates for the elasticity for teenagers came to be 4.5 ($1.5/(1/3)$) times higher than what is estimated in the literature.   
+My reading of this paragraph is that they calculated the fraction of teenagers with earnings below the minimum wage from 1979 to 2009 and the result came to about a third. Then they look at the average change in earnings for teenagers subject to the minimum wage over the same period, and compared that to the nominal change in each variation of the minimum wage. This ratio came to be about 1.5. With this the final estimates for the elasticity for teenagers came to be 4.5 ($1.5/(1/3)$) times higher than what is estimated in the literature.   
 
 FH: why not just look at those same factors in the 2013 data with the proposed changes? 
 
@@ -1177,7 +1212,7 @@ minimum wage itself because most low-wage workers in 2016 would earn more than
 **Details**  
 
 #### Adding results  
-Taken literally this parragraph implies that the effects on employment were:
+Taken literally this paragraph implies that the effects on employment were:
 
 $$ 
 \begin{align}  
@@ -1288,7 +1323,7 @@ double-counting those effects[[Addition #6]](#prevent-double-counting).
  - Less profits for business owners and shareholders  $\Rightarrow$ reduction in consumption.  
  - Increase prices  $\Rightarrow$ reduction in consumption.   
 
-Overall the direct effect on consumption is estimated[?] to be positive due to a higher marginal propension to consume of the low wage individuals relative to high income ones.   
+Overall the direct effect on consumption is estimated[?] to be positive due to a higher marginal propensity to consume of the low wage individuals relative to high income ones.   
 
 #### Indirect effects on consumption  
  - Increase in consumption $\Rightarrow$ Increase investment in the future  $\Rightarrow$ Increase consumption in the future.  
@@ -1297,10 +1332,10 @@ Overall the direct effect on consumption is estimated[?] to be positive due to a
 Overall the indirect effect on consumption is estimated[?] to be negative. 
 
 #### Overall effect on consumption and its effect on employment  
-CBO estimated [?] that the net effect on consumption would be possitive and that its effect on employment would be between 30,000 and 50,000 additional jobs for 2016. This effects are estimated for the short run only. The methodology is mention to be similar the one used to asses the American Recovery and Reinvestment Act ([found here]())
+CBO estimated [?] that the net effect on consumption would be positive and that its effect on employment would be between 30,000 and 50,000 additional jobs for 2016. This effects are estimated for the short run only. The methodology is mention to be similar the one used to asses the American Recovery and Reinvestment Act ([found here]())
 
 #### Prevent double counting  
-My reading of this parragraph is that the estimated elasticities in the literature already account for approximatly 10% of the effects through consumption, so the final effect of consumption here is multiplied by 0.9 to prevent double counting.   
+My reading of this paragraph is that the estimated elasticities in the literature already account for approximately 10% of the effects through consumption, so the final effect of consumption here is multiplied by 0.9 to prevent double counting.   
 
 ---  
 
@@ -1462,7 +1497,7 @@ become jobless)[[Addition #5]](#destroying-jobs).
 ---    
 
 #### General description  
-Maybe put an equation here that describes how more first we chage wages and then family income.
+Maybe put an equation here that describes how more first we change wages and then family income.
 
 #### Wage incresase
 Not clear where the projections on hours worked for 2016 came from. Two groups: (i) up to min wage, and (ii) up to \$ 11.50.
@@ -1571,13 +1606,6 @@ No interactions with other programs is assumed (SNAP or EITC).
     - above six PL -\$17billion  
     
   
-
-# Need to cite:  
- - agency’s overall economic forecast in when forecasting distribution of [wages in the future](#second-step-forecasting-wages-and-employment)
- - effects of ACA on [wages in th e future](#second-step-forecasting-wages-and-employment) [NOT DONE YET]
- - forecasted increases in the [minimum wage in different states](#second-step-forecasting-wages-and-employment) (from the perspective of december 2013)   
- 
-
 # Parameters/inputs to vary:  
 In this section I keep a list of all the parameters or inputs where some type of decision was made in computing the policy estimate.  
  -  Cut CPS in half/quarter and estimate effects  
@@ -1611,8 +1639,8 @@ In this section I keep a list of all the parameters or inputs where some type of
  - SNAP.  
  - Wage compression (Autor). 
  - Rise in prices.   
- - Morale booster (relative to a check from the goverment).
- - EITC is clunky (operated by goverment, need to apply)
+ - Morale booster (relative to a check from the government).
+ - EITC is clunky (operated by government, need to apply)
  - Effects on turnover. 
  - Effects on hours (Michl)
  - Effects on overall unemployment (Tulip)
@@ -1637,7 +1665,7 @@ December 2013 and does not account for subsequent developments.
 [^25]: To project the percentage of low-wage workers who would not be covered or affected by the FLSA in
 2016, CBO estimated the share earning less than the federal minimum wage (or their state’s
 minimum wage, if higher) in 2013, which was 12 percent. Because the agency concluded that
-nontipped workers who reported being paid up to 25 cents less, and tipped workers who reported
+non tipped workers who reported being paid up to 25 cents less, and tipped workers who reported
 being paid up to 13 cents less, than the federal minimum wage—or the state minimum, if it was
 higher—had probably misreported their wages, it did not count such workers as being paid less than
 the minimum wage. The analysis does not account for localities’ minimum wages because it uses

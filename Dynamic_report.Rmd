@@ -46,8 +46,7 @@ df <- dbReadTable(con, "asec13")
 df <- tbl_df(df)
 ```
 
-THERE IS A BUG WITH THE HEADER
-<h1><span class="header-section"></span> Short description of what the report does</h1>
+<font size= "+3">Short description of what the report does</font>
 
 The report estimates the effect of a minimum wage increase over employment and family income. The main text consists of three separate pieces (number of pages in parenthesis): excecutive summary (4), report (15), and methodological appendix (18).   
 
@@ -74,7 +73,7 @@ The report estimates the effect of a minimum wage increase over employment and f
 The appendix is where the replication takes place. It is cited verbatim below with added narrative, modeling, code and intermediate output. So far I am not adding the sub-sections of "uncertainty in the estimates" as they do not seem to actually estimate anything.   
 
 
-<h1><span class="header-section"></span> Appendix A: The Basis of CBO’s Findings</h1>
+<font size= "+3"> Appendix A: The Basis of CBO’s Findings</font>
   
 
 
@@ -140,7 +139,8 @@ above it[^23].
 
 #### Note for the reader  
 A useful way to think about this exercise is the following:  
- - Sections 1-3 are concern with estimating the effects on employment. This effect is determined by the relevant labor demand elasticity ($\eta$) times the relevant wage variation ($\% \Delta w$) times the relevant population ($N$). Section 1 defines the relevant population, section 2 defines the relevant elasticity, section 3 combines them with the relevant wage variation and adds general equilibrium (or macroeconomic) effects.  
+ - Sections 1-3 are concern with estimating the effects on employment. This effect is determined by the relevant labor demand elasticity ($\eta$), times the relevant wage variation ($\% \Delta w$), times the relevant population ($N$). Section 1 defines the relevant population, section 2 defines the relevant elasticity, section 3 combines them with the relevant wage variation and adds general equilibrium (or macroeconomic) effects.  
+ 
  - Section 4 describes the distributional effects.   
 
 #### Which data

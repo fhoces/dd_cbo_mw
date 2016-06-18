@@ -1,0 +1,56 @@
+---
+title: "Reader Companion for CBO report on Min Wage"
+author: "Fernando Hoces de la Guardia"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+The report presents policy estimates of a net negative effect on employment and a net positive effect on wages and familiy income. This companion descbribes the details behind both policy estimates. 
+
+## Employment effects
+At a general level the effects on employment ($\widehat{\Delta E}$) will be calculated using a more detailed version of the following equation:
+
+$$
+\begin{align}
+\widehat{\Delta E} &= N \times \eta \times \% \Delta w  + \text{Other factors}
+\end{align}
+$$
+  
+Where $N$ represents the relevant population, $\eta$ the elasticity of labor demand, $\Delta w$ the relevant percentual variation in wages, and the *Other factors* will encapsulate effects on employment throught an increase in the aggreagate demand.  
+
+To compute this effects we first describe the data used, the wage variable choosen, and the procedure used to forecast the wage ditribution to the future.  
+
+
+### Data, wages, and forecast  
+To simulate the policy effects we need the distribution of wages and employment under the status quo. From the perspective of 2013, this implies forecasting to 2016 data on employment and wages. To do this we use the Current Population Survey, Outgoing Rotation Group for the year 2013.  
+
+Details on data and wage: 
+ - Name data  
+ - Define wage variable  
+ 
+To forecast the wages: apply growth to wages and workers; apply future state min wage; ACA adjustments; wage growth was broken in to deciles.     
+
+Details on forecast: 
+ - Name source of forecasts  
+ - Name source of min wages  
+ - Describe wage growth and how it was broken in to deciles.   
+ 
+ 
+
+### Get the $N$   
+
+### Get the $\eta$  
+
+### Get the $\Delta w$
+
+### Other factors  
+
+
+ 
+## Distributional effects  

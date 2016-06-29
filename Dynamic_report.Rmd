@@ -500,7 +500,7 @@ gr.factor <- function(var1, init.year, last.year) {
 
 
 #### Code to get minimum wage values by state  
-```{r Gettint min wage data , eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
+```{r Getting min wage data , eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
 # Minimum wage by state: 
 # Check if data is in machine and download if not.
 if ( !("minwage" %in% dir()) ) {

@@ -2,18 +2,40 @@
 title: "Reader Companion for CBO report on Min Wage"
 author: "Fernando Hoces de la Guardia"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  html_document:
+    toc: true
+    theme: united
+    toc_depth: 2
+    toc_float: false
+    collapsed: false
+    smooth_scroll: false
+    number_sections: true
+    code_folding: hide
 ---
+
+
+<!-- 
+resource_files:
+- apps/app1/app.R
+runtime: shiny
+-->
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = TRUE)
 ```
 
 
+# Introduction  
+- Note on how the original report was made under a tight deadline. It should not be as an article to refute/confirm. The reader should approach the report as a living document to be benefited from incremental improvements.    
 
-The report presents policy estimates of a net negative effect on employment and a net positive effect on wages and familiy income. This companion descbribes the details behind both policy estimates. 
+PA cannot be incorrect in the same sense that a paper can be incorrect. 
 
-## Employment effects
+
+The report describes two policy estimates: the effects of minimum wage on employment and the distributional effects of minimum wage on wages and familiy income. This companion presents the details behind both policy estimates. 
+
+# Employment effects
 At a general level the effects on employment ($\widehat{\Delta E}$) will be calculated using a more detailed version of the following equation:
 
 $$
@@ -24,33 +46,891 @@ $$
   
 Where $N$ represents the relevant population, $\eta$ the elasticity of labor demand, $\Delta w$ the relevant percentual variation in wages, and the *Other factors* will encapsulate effects on employment throught an increase in the aggreagate demand.  
 
-To compute this effects we first describe the data used, the wage variable choosen, and the procedure used to forecast the wage ditribution to the future.  
+To describe the methodology behind each of those four components we first describe the data used, the wage variable choosen, and the procedure used to forecast the wage ditribution of 2016 using from 2013.  
 
 
-### Data, wages, and forecast  
-To simulate the policy effects we need the distribution of wages and employment under the status quo. From the perspective of 2013, this implies forecasting to 2016 data on employment and wages. To do this we use the Current Population Survey, Outgoing Rotation Group for the year 2013.  
+## Data, wages, and forecast  
+To simulate the policy effects we need the distribution of wages and employment under the status quo. From the perspective of 2013, this implies forecasting to 2016 data on employment and wages. 
 
-Details on data and wage: 
- - Name data  
- - Define wage variable  
+
+### Data
+With this information I have identified 
+three possible data sets that match this description: CPS raw files, ORG NBER, ORG CEPR. The analysis will be performed using the CPER ORG data base.
+
+### Wage variable
+I assume no further adjustments like imputation for top coding, trimming, excluding overtime/commissions, or imputation of usual hours for ''hours vary'' respondents. The CEPR ORG data includes several wage variables ([described here](http://ceprdata.org/cps-uniform-data-extracts/cps-outgoing-rotation-group/)). The wage variable that best matches the description above is `wage3`
+
+### Wage adjustment
+Make explicit that this only applies for the imputed hourly wages, and make explicit the characteristics and the weighs. 
+ The adjustment process has not been done yet and will follow the methodology proposed in [this paper](https://www.aeaweb.org/articles?id=10.1257/aer.96.3.461)
+
+### Wage forecast  
+With this data-variable-adjustment we forecast the wage distribution, from 2013 to 2016 in the following way:
+
+#### Growth adjustments
+I assume that the growth forecasts were taken from the 10-Year Economic Projections from CBO ([this website](https://www.cbo.gov/about/products/budget_economic_data)). Annualized growth rates for the number of workers $g_{workers}$, and nominal wage per $g_{wages}$ worker where computed as follows:  
+
+$$
+\begin{align}
+\widehat{ g_{workers} } &= \left[ \frac{\widehat{ N_{workers}^{2016} } }{N_{workers}^{2013}} \right]^{1/3}- 1 \\
+\widehat{ g_{wages} }  &= \left[ \frac{\widehat{ Wages^{2016} } / \widehat{ N_{workers}^{2016} } }{Wages^{2013} / N_{workers}^{2013}} \right]^{1/3} - 1 
+\end{align}
+$$ 
+
+To create different rates of growth in wage, I compute different wage growth rates for each decile of wage. The increments across deciles were constant and the set to match a final lowest decile with a yearly growth rate of 2.9%.  
+
+The adjustment over number of workers was made through the weight variable `orgwgt` (multiplying it by the growth rate) whereas the `wage3` variable was multiplied by the forecasted growth rate of per worker wages.  
+
+#### ACA adjustments  
+
+[Not done yet]  
+
+#### State level minimum wage adjustments   
+
+CBO had to predict the future changes in the state level minimum wages. I use the actual values implemented by each state. The data comes from the Department of Labor ([here](https://www.dol.gov/whd/state/stateMinWageHis.htm)). 
+
+Whenever the predicted wages were below the 2016 state minimum wage they were replace by it. 
+
+**Important assumption:** when imputing state level min wages, I assume that no effects on employment where incorporated. I do this because this is my reading of what CBO did.  
+
+
+### Loading the data  
+```{r loading data, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, cache=FALSE}
+# Loading required libraries
+list.of.packages <- c("foreign", "dplyr", "weights", "survey", "Hmisc", "openxlsx", "rio")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+library(dplyr)
+library(foreign)
+#lapply(list.of.packages, function(x) library(x, character.only = TRUE))
+
+# Setting working directory
+
+if (Sys.info()["sysname"] == "Darwin") {
+  setwd("/Users/fhoces/dissertation/Replication/data")
+}else{
+  setwd("C:/Users/fhocesde/Documents/data/CPS")
+}
+
+
+
+
+data_use <- "CPER_ORG"
+
+# Using CEPR ORG data 
+if (data_use == "CPER_ORG") {
+# Checking if working directory contains data, download if not. 
+  if ( !("cepr_org_2013.dta" %in% dir()) ) {
+  	# create name of file to store data
+  	tf <- "cepr_org_2013.zip"
+  
+  	# download the CPS repwgts zipped file to the local computer
+  	download.file(url =  "http://ceprdata.org/wp-content/cps/data/cepr_org_2013.zip", tf , mode = "wb" )
+  
+  	# unzip the file's contents and store the file name within the temporary directory
+  	fn <- unzip( zipfile = tf ,"cepr_org_2013.dta",  overwrite = T )
+  }
+  df <- read.dta("cepr_org_2013.dta")
+}
+
+# Using NBER ORG data 
+if (data_use == "NBER_ORG") {
+  # Checking if working directory contains data, download if not. 
+  if ( !("morg13.dta" %in% dir()) ) {
+    # Downloading data 53mb
+    df <- read.dta("http://www.nber.org/morg/annual/morg13.dta")
+  }
+  df <- read.dta("morg13.dta")
+}
+
+df <- tbl_df(df)
+```  
+
+### Code for descriptive stats
+```{r Descript stats1, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, cache=FALSE}
+library(dplyr)
+library(foreign)
+library(weights)
+library(survey)
+library(Hmisc)
+library(openxlsx)
+
+#FH: Should I adjust any wage below the min to the min?
+
+
+# There are 1293 cases with missin values for the weigths. I delete them from the data. 
+df <- df %>% filter(!is.na(orgwgt))
+df$orgwgt <- df$orgwgt/12
+
+table_1  <- df  %>% 
+   summarise("(1) Total" =
+               sum(orgwgt, na.rm = TRUE), 
+             "(2) Employed" = 
+               sum( orgwgt * (empl == 1), na.rm = TRUE), 
+             "(3) Salary (among employed)" = 
+               sum(orgwgt * (empl == 1 &             #Salary worker if 
+               (selfinc == 0 & selfemp == 0))        #not self employed or     
+                , na.rm = TRUE),                     #self incorp.
+
+             "(4) Not Paid hourly (among salary)" = 
+               sum(orgwgt * (empl == 1 &              #Not paid hourly if salary and 
+               (selfinc == 0 & selfemp == 0) &        # not paid hourly
+               (paidhre == 0 | is.na(paidhre) )), na.rm = TRUE), 
+
+             "(5) Hours Vary (among not paid hourly)" =
+               sum(orgwgt * (empl == 1 &              #Hours vary if not paid hourly and 
+               (selfinc == 0 & selfemp == 0) &        #hours vary
+               (paidhre == 0 | is.na(paidhre) ) & hrsvary == 1), na.rm = TRUE),
+
+             "(6) No wage (in (3) but not in (5))" = 
+               sum(orgwgt * ( (empl == 1 & selfinc == 0 & selfemp == 0) & 
+                   (paidhre == 1 | hrsvary != 1 | is.na(hrsvary) ) & 
+                   (wage3==0 | is.na(wage3) ) ) , na.rm = TRUE), 
+             
+             "Population of Interest = (3) - (5) - (6)" = 
+              sum(orgwgt * (empl == 1 & (selfinc ==0 & selfemp == 0) & 
+                    ( (paidhre == 0 & hrsvary != 1) | paidhre ==1 )  & 
+                    wage3 != 0) , na.rm = TRUE)
+             )
+
+table_1 <- t(table_1)
+colnames(table_1) <- "N"
+table_1 <- format(table_1, big.mark = ",", digits = 0, scientific = FALSE)
+
+
+table_1_uw  <- df  %>% 
+   summarise("(1) Total" =
+               sum(!is.na(orgwgt), na.rm = TRUE), 
+             "(2) Employed" = 
+               sum( 1 * (empl == 1), na.rm = TRUE), 
+             "(3) Salary (among employed)" = 
+               sum( 1 * (empl == 1 &             #Salary worker if 
+               (selfinc == 0 & selfemp == 0))        #not self employed or     
+                , na.rm = TRUE),                     #self incorp.
+
+             "(4) Not Paid hourly (among salary)" = 
+               sum( 1 * (empl == 1 &              #Not paid hourly if salary and 
+               (selfinc == 0 & selfemp == 0) &        # not paid hourly
+               (paidhre == 0 | is.na(paidhre) )), na.rm = TRUE), 
+
+             "(5) Hours Vary (among not paid hourly)" =
+               sum( 1 * (empl == 1 &              #Hours vary if not paid hourly and 
+               (selfinc == 0 & selfemp == 0) &        #hours vary
+               (paidhre == 0 | is.na(paidhre) ) & hrsvary == 1), na.rm = TRUE),
+
+             "(6) No wage (in (3) but not in (5))" = 
+               sum( 1 * ( (empl == 1 & selfinc == 0 & selfemp == 0) & 
+                   (paidhre == 1 | hrsvary != 1 | is.na(hrsvary) ) & 
+                   (wage3==0 | is.na(wage3) ) ) , na.rm = TRUE), 
+             
+             "Population of Interest = (3) - (5) - (6)" = 
+              sum( 1 * (empl == 1 & (selfinc ==0 & selfemp == 0) & 
+                    ( (paidhre == 0 & hrsvary != 1) | paidhre ==1 )  & 
+                    wage3 != 0) , na.rm = TRUE)
+             )
+
+table_1_uw <- t(table_1_uw)
+colnames(table_1_uw) <- "N_unweighted"
+table_1_uw <- format(table_1_uw, big.mark = ",", digits = 0, scientific = FALSE)
+
+table_1 <- cbind(table_1, table_1_uw)
+
+
+# Tag population of interest
+pop_of_int <- with(df,
+                   (empl == 1 &
+                      (selfinc == 0 & selfemp == 0) & 
+                      ( (paidhre == 0 & ( hrsvary != 1 | is.na(hrsvary) )  )  | paidhre == 1 )  & 
+                      !(wage3 == 0 | is.na(wage3) ) )
+  )
+
+#Summary stats of wage
+sum.stas1 <- function(x, wt) {
+   c( "mean" = weighted.mean(x,w = wt, na.rm = TRUE),
+      "sd" = sqrt( wtd.var(x, weights = wt) ) , 
+      "median" = wtd.quantile( x, weights = wt, prob = c(.5)) ,
+      wtd.quantile( x, weights = wt, prob = c(.1, .9) ) )
+} 
+
+table_2 <- df %>% 
+  filter(pop_of_int == 1 & !is.na(wage3)) %>% 
+    with(sum.stas1(wage3, orgwgt))
+
+table_2 <- cbind(table_2)
+colnames(table_2) <- "Wage"
+
+
+table_3 <- df %>% 
+  filter(pop_of_int == 1 & !is.na(wage3)) %>% 
+    summarise("> $7.5" = weighted.mean(wage3<7.5,w = orgwgt), 
+              "> $9" = weighted.mean(wage3<9,w = orgwgt), 
+              "> $10.10" = weighted.mean(wage3<10.10,w = orgwgt), 
+              "> $13" = weighted.mean(wage3<13,w = orgwgt), 
+              "> $15" = weighted.mean(wage3<15,w = orgwgt) 
+              )
+
+table_3 <- t(table_3)
+colnames(table_3) <- "Perc"
+
+``` 
+
+
+#### Code to get economic growth forecasts  
+```{r Getting forecast data, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
+# All projections data comes from this website: https://www.cbo.gov/about/products/budget_economic_data
+#name of the files that contain projections from CBO
+early.2016  <- "51135-2016-01-Economic%20Projections.xlsx"
+late.2015   <- "51135-2015-08-EconomicProjections.xlsx"
+early.2015  <- "51135-2015-01-EconomicProjections.xlsx"
+late.2014   <- "51135-2014-08-EconomicProjections.xlsx"
+early.2014  <- "51135-2014-02-EconomicProjections.xlsx"
+early.2013  <- "51135-2013-02-EconomicProjections.xls"  #there is no late 2013 report
+
+# This function loads the data for a given report
+get.growth.data <- function(x){
+# Checking if working directory contains data, download if not. 
+  if ( !(x %in% dir()) ) {
+    download.file(url = paste("https://www.cbo.gov/sites/default/files/", 
+                              x , sep = ""), 
+                  destfile = x, mode="wb")
+
+  }
+  if (x == early.2013) {
+    if  ( !(require(XLConnect)) ) install.packages("XLConnect")
+      out.df <- rio::import( x , sheet= "2. Calendar Year")
+  } else {
+      out.df <- read.xlsx( x , sheet = "2. Calendar Year")
+  }
+  return(out.df)
+}
+
+# Working with projections from 2013
+trends.df <- get.growth.data( early.2013 )
+
+# Get column of all projections for 2013
+sel.col <- which(trends.df==2013, arr.ind = TRUE)[2] 
+# Get row with all projections for wages and salaries in billions of (nominal) dollars
+# Note: the excel file always contains two rows with the words "wage[s]" and "salar[ies|y]", 
+# we are looking for the second one (corresponding to Wages and Salaries under Income)
+sel.row1 <- unique(
+                    apply(trends.df,
+                          2, function(x)  grep("Wage.*Salar",x ) )
+                    )[[2]]
+sel.row1 <- sel.row1[2]
+# Get row with all projections for number people employed (in millions)
+sel.row2 <- which(trends.df=="Employment, Civilian, 16 Years or Older (Household Survey)", arr.ind = TRUE)[1]
+
+#Keep only rows and colums identified above
+trends.df <- trends.df[c(sel.row1, sel.row2) , sel.col:(sel.col+7)]
+
+#Labeling and formating
+colnames(trends.df) <- 2013:(2013+7)
+trends.df <- apply(trends.df, 2, as.numeric)
+row.names(trends.df) <- c( "wages(total)", "workers")
+
+#Generate wage per worker
+trends.df <- rbind( trends.df ,  
+                    (trends.df["wages(total)", ] * 1e9 ) / ( trends.df["workers", ] * 1e6) )
+row.names(trends.df) <- c( "wages(total)", "workers", "wages per worker" )
+
+#Transpose the data
+trends.df <- t(trends.df)
+
+# Define a new data set with the anual growth rate of each variable over time
+growth.df <- trends.df/lag(trends.df,1) - 1
+
+# Compute the compounded growth factor for a given variable in a time interval
+# For example growth factor between years 1,2 and 3 will be:
+# (1+growth_rate_yr1) * (1+growth_rate_yr2) * (1+growth_rate_yr3)
+gr.factor <- function(var1, init.year, last.year) {
+  prod((growth.df[, var1] + 1)[as.character(init.year:last.year)])
+} 
+``` 
+
+
+#### Code to get minimum wage values by state  
+```{r Getting min wage data , eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
+# Minimum wage by state: 
+# Check if data is in machine and download if not.
+if ( !("minwage" %in% dir()) ) {
+  library(XML)
+  library(RCurl)
+  fileURL <- "https://www.dol.gov/whd/state/stateMinWageHis.htm"
+  xData <- getURL(fileURL)
+  aux.1 <- readHTMLTable(xData, header = TRUE)
+  
+  min.wage.data <- cbind(aux.1[[1]], aux.1[[2]][,-1], 
+                         aux.1[[3]][,-1], aux.1[[4]][,-1], 
+                         aux.1[[5]][1:55,-1])
+  min.wage.data <- min.wage.data[, - (32:37)]
+  colnames(min.wage.data) <- c(gsub("(.*)([0-9]{4})(.*)","\\2",
+                                    names(min.wage.data))[-c(30, 31)], 
+                               "2014", "2015")
+  rownames(min.wage.data) <- min.wage.data[,1]
+  min.wage.data <- min.wage.data[,-1]
+
+  # This part was hard coded, important to check over and over. 
+  rownames(min.wage.data) <- c("Federal","AK","AL","AR","AZ","CA","CO","CT",
+                            "DE","FL","GA","HI","ID","IL","IN","IA","KS","KY",
+                            "LA","ME","MD","MA","MI","MN","MS","MO",
+                            "MT","NE","NV","NH","NJ","NM","NY","NC",
+                            "ND","OH","OK","OR","PA","RI","SC","SD",
+                            "TN","TX","UT","VT","VA","WA","WV","WI",
+                            "WY","DC", "Guam", "PR", "USVI")
+  
+  #Save all min wage data in a single csv file
+  saveRDS(min.wage.data, "minwage")
+}
+
+min.wage.data <- readRDS("minwage")
+
+
+# Function that extracts (in numeric format) the min wage for a specfic year for each state
+state.minw <- function(char.year) {
+  options(warn=-1)
+  aux.1 <- as.numeric(gsub("(.*)([0-9.]{5})(.*)", 
+                          "\\2", min.wage.data[, char.year]))
+  # If no state min wage, assign federal.
+  res1 <- as.data.frame(ifelse(is.na(aux.1), aux.1[1] , aux.1))
+  options(warn=0)
+  rownames(res1) <- rownames(min.wage.data) 
+  colnames(res1) <- char.year 
+  return(res1)
+}
+
+st.minw <- state.minw("2013")
+
+#CBO makes a forecast of future min wages. We can look at the actual min wage that took place. 
+#If CBO provides their forecast, we could check forecast acuracy. 
+#Min wage from 2016 are not available in the website above. I am hard coding any changes
+#found in wikipedia (https://en.wikipedia.org/wiki/Minimum_wage_in_the_United_States access 5/16/2016):
+
+st.minw.2016 <- state.minw("2015")
+st.minw.2016[c("AK"	, "AZ", "CA", "CT"	, "HI"	, "IL", "MA", "MI"	, 
+       "MN"	, "MT" , "NV" , "NE" , "NY"	, "OH"	, "RI", "VT"), ] <- 
+          c(  9.75	, 8.05, 10	, 9.6	  , 8.5	  , 8.25, 10	, 8.5	  , 
+      9		  , 8.05 , 8.25 , 9		 , 9		, 8.1	  , 9.6 , 9.6)
+colnames(st.minw.2016) <- "2016"
+```
+
+
+#### Code to forecast wages and workers
+```{r Adjusting wages to 2016 , eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
+library(dplyr)
+library(foreign)
+library(weights)
+library(survey)
+library(Hmisc)
+library(openxlsx)
+#Wage adjutsment
+
+#CBO mentions that the lowest 10th percent gets a 2.9% growth in anual wage
+#I compute the anualized growth rate of wages and creat 10 bins of wage growth
+#starting at 2.4%, then adjust by minimum wages of 2016 and get a anualized 
+#growth of 2.9% for the lowest decile. 
+wage.gr <- ( gr.factor("wages per worker", 2014, 2016) )^(1/3) - 1
+
+workers.gr <- ( gr.factor("workers", 2014, 2016) )^(1/3) - 1
+
+half.gap <- wage.gr - 0.024
+wage.gr.bins <- seq(0.024, wage.gr + half.gap, length.out = 10)
+
+# CAUTION: DO NOT apply 'ntile()' fn from dplry as is will split ties differently than 'cut()' and results will no
+# be comparable to STATA. 
+aux.var  <- wtd.quantile(x = df$wage3, probs = 1:9/10,weights = df$orgwgt)
+df <- df %>%
+        mutate( w3.deciles = cut(wage3, c(0, aux.var, Inf) , 
+                                right = TRUE, include.lowest = TRUE) ,  
+                w3.adj1 =  wage3 * ( 1 + wage.gr.bins[w3.deciles] )^3) 
+
+# To compute the new total of workers we multiply the original weigths by the growth rate. 
+new_total_n <- format(sum(df$orgwgt[pop_of_int==1] * 
+                            (1 + workers.gr)^3, 
+                          na.rm = TRUE), big.mark=",")
+
+# Here we adjust min wages
+df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,],
+                              w3.adj1,
+                              st.minw.2016[state,]) )
+
+#to be done: adjust some states by inflation.
+```  
+
+
+```{r desc stats2,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+table_4 <- matrix(NA, 7, 2)
+colnames(table_4)  <- c("2013", "2016: status quo")
+rownames(table_4) <- c("Salary workers", 
+                       "Median wage", 
+                       "% < 7.5","% < 9", 
+                       "% < 10.10", "% < 13", 
+                       "% < 15" )
+
+table_4[1,1] <- table_1[7]
+table_4[1,2] <- new_total_n
+table_4[2,1] <- table_2[3]
+
+table_4[2,2] <- round( with(df[pop_of_int == 1 & !is.na(df$w3.adj.min), ], 
+                            wtd.quantile( w3.adj.min, weights = orgwgt * 
+                            (1 + workers.gr)^3, prob = c(.5) ) ), digits = 2 )
+
+table_4[3:7,1]  <- round(as.matrix(table_3), digits = 2)
+
+aux.1 <- df %>% 
+  filter(pop_of_int == 1 & !is.na(w3.adj.min)) %>% 
+    summarise("> $7.50" = weighted.mean(w3.adj.min<7.5,w = orgwgt * (1 + workers.gr)^3), 
+              "> $9" = weighted.mean(w3.adj.min<9,w = orgwgt * (1 + workers.gr)^3), 
+              "> $10.10" = weighted.mean(w3.adj.min<10.10,w = orgwgt * (1 + workers.gr)^3), 
+              "> $13" = weighted.mean(w3.adj.min<13,w = orgwgt * (1 + workers.gr)^3), 
+              "> $15" = weighted.mean(w3.adj.min<15,w = orgwgt * (1 + workers.gr)^3) 
+              )
+
+table_4[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
+
+library(dplyr)
+# Histogram of wage below $20
+df  %>% 
+  filter(pop_of_int==1 & wage3<=20)  %>% 
+    with(wtd.hist(wage3, breaks = 50, 
+                  xlab = "Hourly Wage", 
+                  freq = TRUE, 
+                  col=rgb(1,0,0,0.4),
+                  main = "Distribution of Hourly Wages Below $20",
+                  weight =  orgwgt
+                  ))
+df  %>% 
+  filter(pop_of_int==1 & w3.adj.min<=20)  %>% 
+    with(wtd.hist(w3.adj.min, breaks = 50, 
+                  xlab = "Hourly Wage", 
+                  freq = TRUE, 
+                  main = "Distribution of Hourly Wages Below $20", 
+                  col=rgb(0,0,1,0.4), 
+                  weight =  orgwgt * gr.factor("workers", 2014, 2016),
+                  add = TRUE) ) 
+
+abline(v = 7.25, col = "red")
+
+abline(v = 9, col = "red")
+
+abline(v = 10.10, col = "red")
+
+#TO DO: display number of workers below red bars in reactive fashion. Maybe not even a plot: only a slider with min wage and a
+#reactive box with the number of workers that would be below it.
  
-To forecast the wages: apply growth to wages and workers; apply future state min wage; ACA adjustments; wage growth was broken in to deciles.     
+knitr::kable(table_4, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
+```  
 
-Details on forecast: 
- - Name source of forecasts  
- - Name source of min wages  
- - Describe wage growth and how it was broken in to deciles.   
+
+
+## Get the $N$   
  
  
+### Visualize the universe  
 
-### Get the $N$   
+```{r Universe, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold', cache=FALSE}
+library(treemap)
 
-### Get the $\eta$  
+dev.off()
+x11()
+asd <- df %>% 
+        mutate("teen" = ifelse(age<20, "teen", "adult"), 
+               "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1)) %>%  
+                  group_by(lfstat,selfemp_inc, teen)  %>% 
+            summarise("total" = sum(orgwgt, na.rm = TRUE)) 
 
-### Get the $\Delta w$
+asd$selfemp_inc[asd$lfstat!="Employed"] = NA 
+asd$teen[asd$lfstat!="Employed"] = NA 
 
-### Other factors  
+asd$selfemp_inc[asd$selfemp_inc==0]  <- "salary"
+asd$selfemp_inc[asd$selfemp_inc==1]  <- "self employed or self incorporated"
+
+treemap(asd,
+ index=c("lfstat", "selfemp_inc", "teen"),
+ vSize=c("total"),
+ range = c(7, 15),
+ type="index",
+ algorithm="pivotSize",
+ fontsize.labels = c(12:8),
+ border.col = c("#FFFFFF", "#000000","#000000"), 
+ aspRatio= 1.5, 
+ palette = c("#D3D3D3"), 
+title.legend="number of employees",
+fontface.labels  = c(3,2,1,1), 
+align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom") ), 
+bg.labels = 1
+)
+
+#####################
+dev.off()
+x11()
+asd <- df %>% 
+        mutate("teen" = ifelse(age<20, "teen", "adult"), 
+               "wage_c" = cut(wage3, c(-Inf, 7:15,Inf) ), 
+               "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1) ) %>% 
+          group_by(lfstat,selfemp, selfemp_inc, teen, wage_c)  %>% 
+            summarise("total" = sum(orgwgt, na.rm = TRUE)) 
+
+asd$selfemp_inc[asd$lfstat!="Employed"] = NA
+asd$teen[asd$lfstat!="Employed"] = NA
+asd$wage_c[asd$lfstat!="Employed"] = NA
 
 
+asd$selfemp_inc[asd$selfemp_inc==0]  <- "salary"
+asd$selfemp_inc[asd$selfemp_inc==1]  <- "self employed or self incorporated"
+
+asd$wage_n <- as.numeric(asd$wage_c)
+
+asd$color <-heat.colors( nlevels(asd$wage_c) )[asd$wage_c]
+asd$color[is.na(asd$color)] <- "#D3D3D3"
+
+treemap(asd,
+ index=c("lfstat", "selfemp_inc", "teen", "wage_c"),
+ vSize=c("total"),
+ vColor = c("color"),
+ range = c(7, 15),
+ type="color",
+  aspRatio= 1.5, 
+ algorithm="pivotSize",
+  border.col = c("#FFFFFF", "#000000","#000000","#000000"), 
+ sortID="-wage_n", 
+ fontsize.labels = c(12:8),
+ #aspRatio= c(4,3), 
+ palette = c(rev(heat.colors( nlevels(asd$wage_c) )),"#D3D3D3"), 
+title.legend="number of employees",
+align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom"), c("center", "center")), 
+fontface.labels  = c(3,2,1,1), 
+bg.labels = 1
+)
+
+```   
+
+### Identify population  
+
+Now we have predicted salaries and population for 2016, from the perspective of 2013 ($\widehat{w^{16|13}}$). The two relevant populations to define now are the number of low wage workers ($\widehat{ N_{lowwage} }$) and the number of workers that, under the status quo, would earn less than the new minimum wage ($\widehat{ N_{w\leq MW^{1}} }$). 
+
+Three adjustments are applied to the population of workers with wages below the new minumum wage:    
+
+  1 - Workers whose earnings are mainly from tips are tagged and a different minimum wage is apply to them (\$2.13).  
+  2 - A fraction $\alpha_{1}$ of $\widehat{ N_{w\leq MW^{1}} }$ is deleted to account for non compliers.  
+  3 - A fraction $\alpha_{2}$ of $\widehat{ N_{w\leq MW^{1}} }$ is deleted to account for workers not subject to the Fair Labor Standards Act.  
+  
+
+#### Tipped workers (TO BE COMPLETED) 
+ - Apply different minimum wage to workers who receive more than \$30 in tips. This was applied to 11 occupations (such as waiter, bartender, and hairdresser ~10% if low wage workers)
  
-## Distributional effects  
+Given that I do not know which 11 categories the report makes reference to, and which variable that defines the categories, I will use the variable `peernuot` to identify tipped workers. This variable overestimates the number of tipped workers (13% as opposed to the 10% mentioned in the report) because it also contains the workers paid overtime or commissions. 
+
+Tipped workers with wages below 7.25 is are 1% of the total tipped workers. Non-tipped workers with wages below 7.25 are 1.6% of the total. 
+
+#### Non compliance    
+
+We estimate the proportion of workers that earn less than the their state's minimum wage in 2013 as a proxy for non compliers under the new minimum wage in 2016. The orginal reports mention that it comes up to 12% of the low wage population. Given that I do not have a definition for what the low wage population is, I will estimate the number of workers below the minimum wage and reported as a percentage of the target population. 
+
+Following the same footnote I will consider salary workers as non compliers only if their wage is strictly less than 25 cents for non-tipped workers or 13 cents for tipped workers. 
+
+#### Not covered that might benefit (TO BE COMPLETED) 
+ - Include not covered by FLSA but expected to be affected: employees of small firms, occupations generally exempt from FLSA, and teenagers in first 90 days of employment.  
+ <span style="color:red">
+I am not excluding job category yet. 
+</span> 
+
+
+```{r Target population, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold', cache=FALSE}
+library(treemap)
+
+dev.off()
+x11()
+asd <- df %>% 
+        mutate("teen" = ifelse(age<20, "teen", "adult"), 
+               "wage_c" = ifelse(w3.adj.min<11.5, "Low Wage", "High wage"), 
+                "min_wage" = ifelse(w3.adj.min<10.10, "Target Pop", "Think label"), 
+               "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1) ) %>% 
+          group_by(lfstat,selfemp, selfemp_inc, teen, wage_c, min_wage)  %>% 
+            summarise("total" = sum(orgwgt, na.rm = TRUE)) 
+
+asd$selfemp_inc[asd$lfstat!="Employed"] = NA
+asd$teen[asd$lfstat!="Employed" | asd$selfemp_inc == 1] = NA
+asd$wage_c[asd$lfstat!="Employed"] = NA
+asd$min_wage[asd$lfstat!="Employed" | asd$wage_c == "High wage" ] = NA
+
+
+
+asd$selfemp_inc[asd$selfemp_inc==0]  <- "salary"
+asd$selfemp_inc[asd$selfemp_inc==1]  <- "self employed or self incorporated"
+
+asd$wage_n <- as.numeric(asd$wage_c)
+
+asd$color <-heat.colors( nlevels(as.factor(asd$min_wage)) )[as.factor(asd$min_wage)]
+asd$color[is.na(asd$color)] <- "#D3D3D3"
+
+treemap(asd,
+ index=c("lfstat", "selfemp_inc", "teen", "wage_c", "min_wage"),
+ vSize=c("total"),
+ vColor = c("color"),
+ range = c(7, 15),
+ type="color",
+  aspRatio= 1.5, 
+ algorithm="pivotSize",
+  border.col = c("#FFFFFF", "#000000","#000000","#000000"), 
+ sortID="-wage_n", 
+ fontsize.labels = c(12:8),
+ #aspRatio= c(4,3), 
+ palette = c(rev(cm.colors( nlevels(asd$wage_c) )),"#D3D3D3"), 
+title.legend="number of employees",
+align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom"), c("center", "center")), 
+fontface.labels  = c(3,2,1,1), 
+bg.labels = 1
+)
+
+```   
+
+
+#### Code to compute percentage of non compliers 
+
+```{r Estimating non compliance, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+#Percentage of total workers in 2013 that earn less that their states' minimum wage. 
+
+# variable peernuot seems to be the most appropiate variable to indicate wether or nor receives tips
+# 1=YES; 2=NO
+non.comp.stats <- df %>%
+  select(wage3, state, orgwgt, peernuot)  %>%
+    filter(pop_of_int == 1 & wage3<=11.5)  %>%
+      summarise(
+        "% of non compliers w/o adj" = 
+          wtd.mean(wage3 < state.minw("2013")[state, ], 
+                          weights = orgwgt), 
+        "% of non compliers with adj" = 
+          wtd.mean(wage3 + 0.25 * (peernuot == 2) + 
+                          0.13 * (peernuot == 1)  < state.minw("2013")[state, ], 
+                          weights = orgwgt) 
+        )
+
+```  
+
+
+The estimated percentage of non-compliance is `r paste(format(100*non.comp.stats[2], digits=3),"%", sep="")` of the target population in 2013 (N = `r table_4[1,2]`). 
+
+
+#### Code to compute percentage of non compliers 
+
+
+
+
+
+```{r Sim I, echo=FALSE, eval=FALSE}
+#need to figure out how to load the data in to the shiny viz
+
+shinyAppDir(
+ "apps/app1", 
+  options=list(
+    width="100%", height=550
+  )
+)
+```  
+  
+### Summary  
+Define $\hat{g(2016|2013)}$ as the growth factor for the population from the year 2013 to 2016 ($\hat{g(2016|2013)} = (1 + \hat{g})^3$, where $\hat{g}$ is the anual growth rate of the population). Then:  
+
+$$ 
+\begin{align}
+\widehat{ N^{final}_{teen} } &= \hat{N_{low \, wage}} (2016|2013)  \times P(\hat{w} \leq MW^{1} | \hat{w} \leq  low \, wage) \times
+(1 - \hat{\alpha_{1}} - \hat{\alpha_{2}}) \times P(Age \leq 19 | \hat{w} \leq MW^{1}) \\
+&= \hat{g(2016|2013)} \times  \hat{N_{employed}} (2013) \times P(\hat{w} \leq low\,wage)  \times P(\hat{w} \leq MW^{1} | \hat{w} \leq  low \, wage) \times \\
+&\quad (1 - \hat{\alpha_{1}} - \hat{\alpha_{2}}) \times P(Age \leq 19 | \hat{w} \leq MW^{1}) \\
+&= \hat{g(2016|2013)} \times  \hat{N_{employed}} (2013) P(\hat{w} \leq MW^{1} ) \times (1 - \hat{\alpha_{1}} - \hat{\alpha_{2}}) \times P(Age \leq 19 | \hat{w} \leq MW^{1})
+\end{align}
+$$
+
+Analogusly for the adult population: 
+
+$$ 
+\begin{align}
+\widehat{ N^{final}_{adult} } &= \hat{g(2016|2013)} \times  \hat{N_{employed}} (2013) P(\hat{w} \leq MW^{1} ) \times (1 - \hat{\alpha_{1}} - \hat{\alpha_{2}}) \times P(Age > 19 | \hat{w} \leq MW^{1})
+\end{align}
+$$
+
+
+PUT A TABLE HERE WITH THE ESTIMATES FOR EACH COMPONENT.   
+
+
+
+## Get the $\eta \times \Delta w$  
+
+In order to get the elasticity of labor demand that best fits the context analysed here, two steps were required: (i) Identify from the literature the best estimate available; (ii) extrapolate that estimate to fit the specific context of this policy analysis. 
+
+### Getting the best estimates from the literature  
+
+It is unclear the precise mechanism used by CBO to choose the estimates for the labor demand elasticity. Later I will assume that it came from a meta-analysis and calibrate the weights of some of the meta-analysis cited in the report to reflect their choice.  
+
+For now I take their estimate at face value: -0.1 with a ''likely range'' a range from 0 to -0.2 (''likely range'' is used throughout the report to estimate the expert judgment that the elasticity will be in that range 2/3 of the time)[^1]. The reasons provided in the report for this figure can be summarize as:  
+  - More weight was given to studies that exploit across state variation (as opposed to over time country level variation).    
+  - The estimates take in to account publication bias towards highly negative estimates.  
+  - The magnitude of the increase (%39) and the fact that would be indexed to inflation going forward, makes it an unusually large increase in the minimum wage.    
+With this elements we can write the chosen elasticy from the literature ($\eta_{lit}$) as the product of the original assesment of the literature ($\eta_{lit}^{0}$), a reduction factor for publication bias ($F_{pub.bias}<1$) and a amplification factor for a larger variation in minimum wage ($F_{large.variation}>1$):
+
+$$ 
+\begin{align} 
+\eta_{lit} &= \eta_{lit}^{0} \times F_{pub.bias} \times F_{large.variation} = -0.1
+\end{align}
+$$ 
+  
+Additionally, CBO provides two additional caveats that could be added to the analysis:  
+ - Ripple effects on employment were assume to null as the result of two opposing effects: (i) ''ripple-wages'' would increase unemployment but (ii) substitution of marginally more productive workers for layed off workers below the new minimum wage would decrease unemploytment. THIS IS A "PRESUMED ZERO".    
+ - CBO acknowledges that effects could be larger (in abs value) during recessions but do not predict a recession for 2016. No estimaton is provided of how much larger those effects would be in case of a recession.  
+ 
+### Extrapolating research estimate to current context  
+Three adjustments are proposed: (i) extrapolate elasticity estimates for teenager to adults; (ii) rescale elasticy to population affected by the new minimum wage; (iii) adjust elasticities to relflect average wage variation from and increase in the minimum wage.  
+
+#### Extrapolate from teenagers to adult population  
+
+Most of the estimates from the literate are for teenage population. CBO proposes to extrapolate this estimates to the adult population in the following fashion:
+$$
+\begin{align}
+\eta^{adults}_{w\leq MW} = \eta^{teens}_{w\leq MW} \times F_{extrapolation}
+\end{align}
+$$  
+
+Where a value $F_{extrapolation} = 1/3$ is choosen to reflect that the demand for adult labor is suspected to be more inelastic than the demand for teen labor. 
+
+#### Re-escale elasticities to the population affected by the minimum wage  
+
+The literature reports the estimated effect for a given population $\eta_{lit}$. This estimate can be seen as the weighted average between the demand elasticities for the directly affected population ($\eta_{w\leq MW}$), with wages below the new minimum, and the non affected ($\eta_{w > MW}$) populations, with wages above the new minimum: 
+
+$$
+\begin{align}
+\eta^{g}_{lit} =& p^{g}_{w\leq MW} \eta^{g}_{w\leq MW} + (1 - p^{g}_{w\leq MW})\eta^{g}_{w > MW}  \hspace{4em} g = \{teens, \, adults \}
+\end{align}
+$$ 
+
+The underlying assumption is that $\eta_{w > MW} = 0$. With this the first proposed adjustment becomes: 
+
+$$
+\begin{align}
+\eta^{g}_{w\leq MW} =& \frac{\eta^{g}_{lit}}{p^{g}_{w\leq MW}}  \hspace{4em} g = \{teens, \, adults \}
+\end{align}
+$$ 
+
+The fraction of the population with a forecasted income below the new minimum wage ($p^{g}_{w\leq MW}$) is ADD HERE for teenagers and ADD HERE for adults.  
+
+#### Adjust elasticies to average wage variation  
+
+Given that the percentual variation from the old wage to the new minimum wage varies for different levels of wages, total effect should be computed as $\sum_{b} \% \Delta w_{b} \eta^{g}_{w\leq MW} \times N_{b}$ for $b = 1 \dots B$ wage brackets.
+
+The report approximates this calculation by computing the employment effect for average wage variation across the total population, in age group $g$, affected by the minimum wage:  $\overline{\%\Delta w^{g}} \times \eta^{g}_{w\leq MW} \times \widehat{ N^{final}_{g} }$.  
+
+Finally CBO argues that as the variation changes the elasticity should be rescaled to reflect such variation. With the elasticity resulting in:
+
+$$
+\begin{align}
+\widetilde{ \eta^{g}_{w\leq MW} } &=  \frac{\eta^{g}_{lit}}{p^{g}_{w\leq MW}} \times \frac{\%\Delta MW}{\overline{\%\Delta w^{g}}} = \eta^{g}_{lit} \times F_{adjs}  \hspace{4em} g = \{teens, \, adults \}
+\end{align}
+$$
+
+## Other factors  
+CBO argues that a rise in the minimum wage would have effects in aggregate consumption and this in turn would have effects on employment. The overall effects is estimated in an increase in employment between 30,000 and 50,000 jobs (``a few tens of thousands of jobs''). A narrative argument is provided for the mechanisms behind this effect, but no detail is provided as to how the effect is actually estimated. 
+
+The effects on consumption are separated into direct and indirect. 
+
+### Direct effects on consumption  
+ - Job loses $\Rightarrow$ reduction in consumption.  
+ - Increase wages $\Rightarrow$ increase consumption.  
+ - Less profits for business owners and shareholders  $\Rightarrow$ reduction in consumption.  
+ - Increase prices  $\Rightarrow$ reduction in consumption.   
+
+Overall the direct effect on consumption is estimated[?] to be positive due to a higher marginal propensity to consume of the low wage individuals relative to high income ones.   
+
+### Indirect effects on consumption  
+ - Increase in consumption $\Rightarrow$ Increase investment in the future  $\Rightarrow$ Increase consumption in the future.  
+ - Increase prices of low-wage-intensive items $\Rightarrow$ increase demand in other items  $\Rightarrow$ Bottleneck in other items until firms adjust. 
+ 
+Overall the indirect effect on consumption is estimated[?] to be negative. 
+
+### Overall effect on consumption and its effect on employment  
+CBO estimated [?] that the net effect on consumption would be positive and that its effect on employment would be between 30,000 and 50,000 additional jobs for 2016. This effects are estimated for the short run only. The methodology is mention to be similar the one used to asses the American Recovery and Reinvestment Act ([found here]())
+
+### Prevent double counting  
+The estimated elasticities in the literature already account for approximately 10% of the effects through consumption, so the final effect of consumption here is multiplied by 0.9 to prevent double counting.   
+
+$$
+\begin{align}
+\widehat{OF} &=  40,000 \times 0.9
+\end{align}
+$$
+
+
+```{r employment effect, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+stats2 <-  df  %>% 
+  filter(pop_of_int == 1) %>% 
+  mutate("adult" = ifelse(age>20, "Adult", "Teen") )  %>% 
+  group_by(adult)  %>% 
+  summarise( "N" = sum(orgwgt)/1e6,
+             "% Empl Below MW" = mean( 1*(w3.adj.min <=10.10), na.rm = TRUE) * 100 , 
+             "% Mean Wage Inc" = mean( ifelse(w3.adj.min <=10.10,
+                                            (10.10 - w3.adj.min)/w3.adj.min, NA) , 
+                                     na.rm = TRUE) * 100 ) 
+
+aux1 <- df %>%
+  select(wage3, age, state, orgwgt, peernuot)  %>%
+  filter(pop_of_int == 1 & wage3 < 11.5) %>% 
+  mutate("adult" = ifelse(age>20, "Adult", "Teen") )  %>% 
+  group_by(adult)  %>% 
+      summarise(
+          "% of non compliers with adj" = 
+          wtd.mean(wage3 + 0.25 * (peernuot == 2) + 
+                          0.13 * (peernuot == 1)  < state.minw("2013")[state, ], 
+                          weights = orgwgt)*100 
+
+        ) 
+
+stats2 <- cbind(stats2, aux1[,2])
+
+t(stats2)
+
+# As it should have been computed according to doc
+delta.e1 <- sum( stats2$N * stats2$`% Empl Below MW`/100 * ( 1 - stats2$`% of non compliers with adj`/100 - 0) *
+       stats2$`% Mean Wage Inc`/100 * 0.1/(stats2$`% Empl Below MW`/100) *
+       ((stats2$`% Mean Wage Inc`/100)/0.37) * c(1/3, 1) 
+) - 0.05 * 0.9
+# As described in doc
+delta.e2 <- sum( stats2$N * stats2$`% Empl Below MW`/100 * ( 1 - stats2$`% of non compliers with adj`/100 - 0) *
+       stats2$`% Mean Wage Inc`/100 * 0.1 * 4.5 * c(1/3, 1) ) - 0.05 * 0.9 
+
+# "Arbitrary" Sens. Anal to get lower unemp (0.9 * wage in c, 0.37 to 0.5, 1/3 to 1/4)
+delta.e3 <- sum( stats2$N * stats2$`% Empl Below MW`/100 * ( 1 - stats2$`% of non compliers with adj`/100 - 0) *
+       0.9*stats2$`% Mean Wage Inc`/100 * 0.1/(stats2$`% Empl Below MW`/100) *
+       ((0.9*stats2$`% Mean Wage Inc`/100)/0.5) * c(1/4, 1) 
+) - 0.05 * 0.9
+
+# library(foreign)
+# df.ma <- read.dta("C:/Users/fhocesde/Documents/dissertation/meta-analysis/minwage1.dta")
+# x11()
+# 
+# hist(df.ma$tstatistic, breaks = 300, xlim = c(-8,4))
+# 
+# abline(v = c(-1.96, -1.6, 1.6, 1.96), col = "red")  
+```    
+
+
+## Computing effects on employment  
+
+Putting all elements together we get: 
+$$
+\begin{align}
+ \widehat{ \Delta E } &= \sum_{g\in\{A,T\}} \left( \widehat{ N^{final}_{g} } \times \widetilde{ \eta^{g}_{w\leq MW} }\times \overline{\%\Delta w^{g}}  \right) - \widehat{OF}
+\end{align}
+$$  
+
+
+Using all the components descbribed above we get $\widehat{ \Delta^{-} E } =$ `r round(delta.e1*1000)` thousand jobs. The report however computes $F_{adjs}$ in a different fashion and gets a value of 4.5[^2]. Plugging this value into the equation above one gets $\widehat{ \Delta^{-} E } =$ `r round(delta.e2*1000)` thousand jobs. 
+
+# Distributional effects  
+
+# What is in the 2/3  
+  - CBO acknowledges uncertainty in the estimates of elasticity due to possible technological changes in the future.  
+  - 
+
+[^1]: The report presents smaller estimates for the \$9.00 dollar option (-0.075). The rationale is that a smaller increase (in magnitude but also not indexed by inflation, and with later implementation than the 10.10 option)   will allow firms to adjust other margins before reducing employment. 
+
+[^2]: CBO calculated the fraction of teenagers with earnings below the minimum wage from 1979 to 2009 and the result came to about a third. Then they look at the average change in earnings for teenagers subject to the minimum wage over the same period, and compared that to the nominal change in each variation of the minimum wage. This ratio came to be about 1.5. With this the final estimates for the elasticity for teenagers came to be 4.5 ($1.5/(1/3)$) times higher than what is estimated in the literature.   
+

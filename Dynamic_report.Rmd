@@ -1629,6 +1629,14 @@ In this section I keep a list of all the parameters or inputs where some type of
  -  Vary distribution of job destruction  
  -  Destroy jobs up to a 100% (instead of 50% for 2N)  
  -  Impute losses from the increase in the minimum wage to different quintiles.   
+ ---  
+ - CPS_ASEC: cut sample in half  
+ - Change earnings variable  
+ - Use different adjustment in wages  
+ - Increase wages by different factors  
+ - Forecast of wages, non-wage income, workers and non-workers  
+ - 
+   
  
  
  

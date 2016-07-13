@@ -1634,7 +1634,8 @@ In this section I keep a list of all the parameters or inputs where some type of
  - Change earnings variable  
  - Use different adjustment in wages  
  - Increase wages by different factors  
- - Forecast of wages, non-wage income, workers and non-workers  
+ - Forecast of wages, non-wage income (use non-wage growth instead of CPI),
+ workers and non-workers  
  - 
    
  

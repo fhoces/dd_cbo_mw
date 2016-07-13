@@ -943,7 +943,7 @@ $$
 
 
 #### Loading the data  
-```{r loading data cps_asec, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, cache=FALSE}
+```{r loading data cps_asec, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
 # Loading required libraries
 list.of.packages <- c("foreign", "dplyr", "weights", "survey", "Hmisc", "openxlsx", "rio")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -982,19 +982,9 @@ if (data_use == "CPER_ASEC") {
 df <- tbl_df(df)
 ```  
 
-#### Computing wages  
-```{r computing wages from CPS ASEC,  eval=FALSE, echo=TRUE, warning=FALSE, message=FALSE}  
-# Workers’ hourly wages were calculated as their annual earnings divided by the number of hours they 
-# worked during the year (calculated as the number of hours they usually worked per week times the number of weeks they worked during the year)
-asd  <- function(new.wage)  (new.wage - 7.25)*.5*( 1 + 5*(10.10 - new.wage)/new.wage )  + new.wage
-hwr_wage = with(df, incp_ern/(uhours * weeks) )  
-hwr_wage[hwr_wage<0] = NA
 
-```  
-
-
-#### Code for descriptive stats
-```{r Descript stats1 cps asec, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, cache=FALSE}
+#### Code for computing wages and descriptive stats
+```{r Descript stats1 cps asec, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
 library(dplyr)
 library(foreign)
 library(weights)
@@ -1021,11 +1011,11 @@ table_5 <- t(table_5)
 colnames(table_5) <- "N"
 table_5 <- format(table_5, big.mark = ",", digits = 0, scientific = FALSE)
 
-# Tag population of interest
+# Tag population of interest FH: Need to deal with 598 NA's
 pop_of_int <- with(df,
                    (empl == 1 &
                       (selfinc == 0 & selfemp == 0) & 
-                      !(incp_ern == 0 | is.na(incp_ern) ) )
+                      !(rincp_wag == 0 | is.na(rincp_wag) ) )
   )
 
 #Summary stats of wage
@@ -1038,13 +1028,13 @@ sum.stas1 <- function(x, wt) {
 
 table_6 <- df %>% 
   filter(pop_of_int == 1 & !is.na(hhwgt)) %>%
-    select(incp_ern, hrslyr, wkslyr, hhwgt) 
+    select(rincp_wag, hrslyr, wkslyr, hhwgt) 
 
-table_6 <- sapply(table_6[,c("incp_ern", "hrslyr", "wkslyr")],function(x) sum.stas1(x, table_6$hhwgt) )
+table_6 <- sapply(table_6[,c("rincp_wag", "hrslyr", "wkslyr")],function(x) sum.stas1(x, table_6$hhwgt) )
 table_6 <- cbind(table_6)
 colnames(table_6) <- c("Earnings", "Hours", "weeks") 
 
-df$wage <- with(df, incp_ern/(hrslyr * wkslyr) )
+df$wage <- with(df, rincp_wag/(hrslyr * wkslyr) )
 df$wage[df$wage<0] = NA
 table_7 <- df %>% 
   filter(pop_of_int == 1 & !is.na(wage)) %>% 
@@ -1081,7 +1071,8 @@ This is not the case in our estimations here: using the CPS ASEC we get `r round
 We assume that this second adjustment are a linear transformation ("mostly by adjusting some workers’ wages up to the minimum wage projected to apply to them in 2016 under current law"):
 $$
 \begin{align}
-\widetilde{w_{ig}} &= (1  + I(U \geq 0) \times F_{1}) w_{ig}I(g \in G_{1}) + w_{ig}( 1- I(g \in G_{1}))  \quad \text{with:  } U\sim Uniform(a,b) 
+\widetilde{w_{ig}} &= (1  + I(U \geq 0) \times F_{1}) w_{ig}I(g \in G_{1}) + \\
+&\quad w_{ig}( 1- I(g \in G_{1}))  \quad \text{with:  } U\sim Uniform(a,b) 
 \end{align}
 $$ 
 
@@ -1142,24 +1133,40 @@ sel.col <- which(trends.df==2013, arr.ind = TRUE)[2]
 # we are looking for the second one (corresponding to Wages and Salaries under Income)
 sel.row1 <- unique(
                     apply(trends.df,
-                          2, function(x)  grep("Wage.*Salar",x ) )
+                          2, function(x)  grep("Wage.*Salar.*",x ) )
                     )[[2]]
 sel.row1 <- sel.row1[2]
+
 # Get row with all projections for number people employed (in millions)
 sel.row2 <- which(trends.df=="Employment, Civilian, 16 Years or Older (Household Survey)", arr.ind = TRUE)[1]
+# FH: I would use the following. But CBO uses the Price Index, Personal Consumption Expenditures (PCE)
+# sel.row3 <- unique(
+#                     apply(trends.df,
+#                           2, function(x)  grep("Nonwage Income", x ) )
+#                   )[[2]]
+# 
+#
+
+sel.row3 <- unique(
+                    apply(trends.df,
+                          2, function(x)  grep("Price Index, Personal Consumption", x ) )
+                  )[[2]]
+
 
 #Keep only rows and colums identified above
-trends.df <- trends.df[c(sel.row1, sel.row2) , sel.col:(sel.col+7)]
+trends.df <- trends.df[c(sel.row1, sel.row2, sel.row3) , sel.col:(sel.col+7)]
 
 #Labeling and formating
 colnames(trends.df) <- 2013:(2013+7)
 trends.df <- apply(trends.df, 2, as.numeric)
-row.names(trends.df) <- c( "wages(total)", "workers")
+row.names(trends.df) <- c( "wages(total)", "workers", "Price Index, Personal Consumption")
 
-#Generate wage per worker
+#Generate wage and non-wage income per worker
 trends.df <- rbind( trends.df ,  
                     (trends.df["wages(total)", ] * 1e9 ) / ( trends.df["workers", ] * 1e6) )
-row.names(trends.df) <- c( "wages(total)", "workers", "wages per worker" )
+
+row.names(trends.df) <- c( "wages(total)", "workers", "Price Index, Personal Consumption",
+                            "wages per worker")
 
 #Transpose the data
 trends.df <- t(trends.df)
@@ -1242,7 +1249,7 @@ colnames(st.minw.2016) <- "2016"
 ```
 
 
-#### Code to forecast wages and workers
+#### Code to forecast wages, workers and non-wage income
 ```{r Adjusting income to 2016 , eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
 library(dplyr)
 library(foreign)
@@ -1252,13 +1259,16 @@ library(Hmisc)
 library(openxlsx)
 #Wage adjutsment
 
+#IMPORTANT NOTE: I SUSPECT THAT THE FORECAST SHOULD BE FROM 2012 in ASEC, VERIFY LATER
 #CBO mentions that the lowest 10th percent gets a 2.9% growth in anual wage
 #I compute the anualized growth rate of wages and creat 10 bins of wage growth
 #starting at 2.4%, then adjust by minimum wages of 2016 and get a anualized 
 #growth of 2.9% for the lowest decile. 
 wage.gr <- ( gr.factor("wages per worker", 2014, 2016) )^(1/3) - 1
-
 workers.gr <- ( gr.factor("workers", 2014, 2016) )^(1/3) - 1
+#FH:again, I would rather use the non wage growth
+non.wage.gr <- ( gr.factor("Price Index, Personal Consumption", 2014, 2016) )^(1/3) - 1
+
 
 half.gap <- wage.gr - 0.024
 wage.gr.bins <- seq(0.024, wage.gr + half.gap, length.out = 10)
@@ -1267,57 +1277,66 @@ wage.gr.bins <- seq(0.024, wage.gr + half.gap, length.out = 10)
 # be comparable to STATA. 
 aux.var  <- wtd.quantile(x = df$wage, probs = 1:9/10,weights = df$hhwgt)
 df <- df %>%
-        mutate( w3.deciles = cut(wage, c(0, aux.var, Inf) , 
+        mutate( wage.deciles = cut(wage, c(0, aux.var, Inf) , 
                                 right = TRUE, include.lowest = TRUE) ,  
-                w3.adj1 =  wage * ( 1 + wage.gr.bins[w3.deciles] )^3) 
+                wage.adj1 =  wage * ( 1 + wage.gr.bins[wage.deciles] )^3) 
 
 # To compute the new total of workers we multiply the original weigths by the growth rate. 
 new_total_n <- format(sum(df$hhwgt[pop_of_int==1] * 
                             (1 + workers.gr)^3, 
                           na.rm = TRUE), big.mark=",")
 
-# Here we adjust min wages
-df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,],
-                              w3.adj1,
+# Here we adjust min wages up to their state minimum wage
+df$wage.adj.min <- with( df, ifelse(wage.adj1> st.minw.2016[state,],
+                              wage.adj1,
                               st.minw.2016[state,]) )
 
-#to be done: adjust some states by inflation.
+#FROM NOW ON 'wage.adj.min' is the variable that contains the forecasted wage in 2016 under the status quo
+
+#Adjust non-wage income  
+#1.1Separate HH income in to wage and non-wage
+df$non.wage <- (df$rincp_ern - df$rincp_wag) 
+df$non.wage <- df$non.wage * gr.factor("Price Index, Personal Consumption", 2014, 2016)
+
+
 ```  
 
 
 ```{r desc stats2 in income,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
-table_4 <- matrix(NA, 7, 2)
-colnames(table_4)  <- c("2013", "2016: status quo")
-rownames(table_4) <- c("Salary workers", 
+# WHY TABLE 4?
+table_8 <- matrix(NA, 7, 2)
+colnames(table_8)  <- c("2013", "2016: status quo")
+rownames(table_8) <- c("Salary workers", 
                        "Median wage", 
                        "% < 7.5","% < 9", 
                        "% < 10.10", "% < 13", 
                        "% < 15" )
-
-table_4[1,1] <- table_1[3]
-table_4[1,2] <- new_total_n
-table_4[2,1] <- round( with(df[pop_of_int == 1 & !is.na(df$wage), ], 
+# Total in 2013
+table_8[1,1] <- table_5[3]
+# projected total in 2016
+table_8[1,2] <- new_total_n
+# Median wage before projections
+table_8[2,1] <- round( with(df[pop_of_int == 1 & !is.na(df$wage), ], 
                             wtd.quantile( wage, weights = hhwgt
                                           , prob = c(.5) ) ), digits = 2 )
-
-table_4[2,2] <- round( with(df[pop_of_int == 1 & !is.na(df$w3.adj.min), ], 
-                            wtd.quantile( w3.adj.min, weights = hhwgt * 
+# Median wage after projections
+table_8[2,2] <- round( with(df[pop_of_int == 1 & !is.na(df$wage.adj.min), ], 
+                            wtd.quantile( wage.adj.min, weights = hhwgt * 
                             (1 + workers.gr)^3, prob = c(.5) ) ), digits = 2 )
-
-table_4[3:7,1]  <- round(as.matrix(table_3), digits = 2)
+# Wage distribution in 2013
+table_8[3:7,1]  <- round(as.matrix(table_7), digits = 2)
 
 aux.1 <- df %>% 
-  filter(pop_of_int == 1 & !is.na(w3.adj.min)) %>% 
-    summarise("> $7.50" = weighted.mean(w3.adj.min<7.5,w = hhwgt * (1 + workers.gr)^3), 
-              "> $9" = weighted.mean(w3.adj.min<9,w = hhwgt * (1 + workers.gr)^3), 
-              "> $10.10" = weighted.mean(w3.adj.min<10.10,w = hhwgt * (1 + workers.gr)^3), 
-              "> $13" = weighted.mean(w3.adj.min<13,w = hhwgt * (1 + workers.gr)^3), 
-              "> $15" = weighted.mean(w3.adj.min<15,w = hhwgt * (1 + workers.gr)^3) 
+  filter(pop_of_int == 1 & !is.na(wage.adj.min)) %>% 
+    summarise("> $7.50" = weighted.mean(wage.adj.min<7.5,w = hhwgt * (1 + workers.gr)^3), 
+              "> $9" = weighted.mean(wage.adj.min<9,w = hhwgt * (1 + workers.gr)^3), 
+              "> $10.10" = weighted.mean(wage.adj.min<10.10,w = hhwgt * (1 + workers.gr)^3), 
+              "> $13" = weighted.mean(wage.adj.min<13,w = hhwgt * (1 + workers.gr)^3), 
+              "> $15" = weighted.mean(wage.adj.min<15,w = hhwgt * (1 + workers.gr)^3) 
               )
 
-table_4[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
+table_8[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
 
-library(dplyr)
 # Histogram of wage below $20
 df  %>% 
   filter(pop_of_int==1 & wage<=20)  %>% 
@@ -1329,8 +1348,8 @@ df  %>%
                   weight =  hhwgt
                   ))
 df  %>% 
-  filter(pop_of_int==1 & w3.adj.min<=20)  %>% 
-    with(wtd.hist(w3.adj.min, breaks = 50, 
+  filter(pop_of_int==1 & wage.adj.min<=20)  %>% 
+    with(wtd.hist(wage.adj.min, breaks = 50, 
                   xlab = "Hourly Wage", 
                   freq = TRUE, 
                   main = "Distribution of Hourly Wages Below $20", 
@@ -1338,26 +1357,26 @@ df  %>%
                   weight =  hhwgt * gr.factor("workers", 2014, 2016),
                   add = TRUE) ) 
 
-abline(v = 7.25, col = "red")
+abline(v = c(7.25, 9, 10.10), col = "red")
 
-abline(v = 9, col = "red")
-
-abline(v = 10.10, col = "red")
-
-#TO DO: display number of workers below red bars in reactive fashion. Maybe not even a plot: only a slider with min wage and a
-#reactive box with the number of workers that would be below it.
+# TO DO: display number of workers below red bars in reactive fashion. 
+# Maybe not even a plot: only a slider with min wage and a
+# reactive box with the number of workers that would be below it.
  
-knitr::kable(table_4, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
+knitr::kable(table_8, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
 ```  
 
 
-### Imputing wage increases
-If the wage is below the proposed new minimum (10.10), we increase that wage up to 10.10 for all the eligible population. 
+## Imputing policy effects
+
+
+### Imputing wage increases  
+If the wage is below the proposed new minimum (10.10), we increase that wage up to 10.10 for all the eligible population.  
+
 NEED TO DEFINE BETTER THE ELIGIBLE POPULATION    
 
 #### Ripple effects   
-
-CBO applies an additional wage increase for wages that are in a neibourhood up to 50% of the max increase ($+-0.5(10.10 - 7.25) = +- \$1.4 $). Thus, the final imputed wage is:
+CBO applies an additional wage increase for wages that are in a neibourhood up to 50% of the max increase ($+-0.5(10.10 - 7.25) = +- \$1.4$). Thus, the final imputed wage is:
 
 
 $$
@@ -1370,46 +1389,197 @@ w \quad o/w
 $$
 
 
-```{r, eval=FALSE}
-imp.wage  <- ifelse(df$w3.adj.min<10.10 & pop_of_int==1, 10.10, df$w3.adj.min)
-gross.gain <- sum((imp.wage - df$w3.adj.min)*df$hhwgt*df$hrslyr*df$wkslyr, na.rm = TRUE)/1e9
-num.benes <- sum((imp.wage != df$w3.adj.min)*df$hhwgt, na.rm = TRUE)/1e6
-```` 
+```{r positive effects,  eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
+# Get the number of workers whos wage would bebow 10.10 in the status quo (in millions)
+N_benes <- sum(df$hhwgt[df$wage.adj.min <= 10.10 & pop_of_int==1], na.rm = TRUE)/1e6
+# Tag those workers 
+df$below_min <-with(df, ifelse(wage.adj.min <= 10.10 & pop_of_int == 1, 1, 0) )
 
+# Compute total wage increase (yearly in billions)
+wage.inc <- df %>% 
+    filter(below_min == 1)  %>% 
+      with( sum((10.10 - wage.adj.min) *  hhwgt * uhours * weeks , na.rm = TRUE) ) / 1e9 
 
-## Destroying jobs  
-The imputation above so far is applied to all workers below the minimum wage (and the ripple effects). Now we need to remove the $\widehat{\Delta E}$ workers by imputing them a wage of 0. CBO chose to not move the wage all the way to 0 but to cut it in half and apply such imputation to $2\widehat{\Delta E}$. When destroying jobs CBO argued that the effect would be heavier on teenagers and low wage adutls. We implement this in the follwogin algorithm:
+# Create new wage (after inc in min wage)
+df$new.wage <- with(df, ifelse(wage.adj.min<10.10, 
+                               10.10, 
+                               wage.adj.min) )
+# Creates the same but using dplyr
+# df <- df %>% mutate( new.wage = ifelse(wage.adj.min>10.10 & wage.adj.min<11.5, 
+#                                      10.10 + 0.5 * (10.10 - wage.adj.min), 
+#                                      new.wage) )  %>%
+#                 mutate( new.wage = ifelse(wage.adj.min>8.7 & wage.adj.min<10.10, 
+#                                      10.10 + 0.5 * (wage.adj.min - 7.25), 
+#                                      new.wage) )
+df$new.wage <- with(df, ifelse(wage.adj.min>10.10 & wage.adj.min<11.5, 
+                               10.10 + 0.5 * (10.10 - wage.adj.min)
+                               ,ifelse(wage.adj.min>8.7 & wage.adj.min<10.10,
+                                        10.10 + 0.5 * (wage.adj.min - 7.25),
+                                       new.wage
+                                        ) ) )
+
+``` 
+
+The total number of workers that are potentially eligible for a raise, before destroying jobs, is `r round(N_benes, 1)` millions.
+
+### Destroying jobs  
+The imputation above so far is applied to all workers below the minimum wage (and the ripple effects). Now we need to remove the $\widehat{\Delta E} = `r round(delta.e2, 2)`$  workers by imputing them a wage of 0. CBO chose to not move the wage all the way to 0 but to cut it in half and apply such imputation to $2\widehat{\Delta E}$. When destroying jobs CBO argued that the effect would be heavier on teenagers and low wage adutls. We implement this in the follwogin algorithm:
 
 Replace $\tilde{w} = \tilde{w}/2$ if :  
   - $w \in [7.25, 10.10)$    
   - $\frac{exp(m(x))}{1 + exp(m(x))} > Uniform[\theta]$  with $m(x) = \beta_{1} TEEN - \beta_{2} ADULT\times w$ and $\beta_{1}, \beta_2 >0$  
   - Choose $\theta$ to destroy $2\widehat{\Delta E}$ jobs.     
-  
-## Other income losses.   
+
+```{r, }  
+delta.e2 <- 0.48
+m_x <- function(beta1 , beta2) with(df, 
+                                    beta1 * ( age <= 19 ) - beta2 * ( age >= 20 ) * 
+                                      wage.adj.min - 1000 * 
+                                      (wage.adj.min> 10.10 | pop_of_int == 0) )
+
+#WOULD LIKE TO MAKE THE NEXT OPTIMIZATION MORE EFFICIENT
+num.to.del <- delta.e2*1e6*2
+
+theta <- 0.4
+cut.job <- 0
+while ( abs(sum(cut.job * df$hhwgt , na.rm = TRUE) - num.to.del) >= 1000)  { 
+  set.seed(123)
+  cut.job <- ( ( exp(m_x(.1, .01)) / (1 + exp( m_x(.1 ,.01) )  ) >= 
+                   theta + .2 * runif(dim(df)[1], min = 0, max = 1) ) )
+   sum(cut.job * df$hhwgt , na.rm = TRUE)/1e6
+  if (sum(cut.job * df$hhwgt , na.rm = TRUE) - num.to.del >= 10000) {
+    theta <- theta * 1.01 
+  } else{
+    theta <- theta * 0.99
+  }
+   #print(theta)
+} 
+teen <- df$age<20
+prop.table(with(df[pop_of_int == 1, ], table(cut.job,teen)), 2)
+
+# df$new.wage <- df %>% transmute(new.wage = ifelse(cut.job ==1 , new.wage/2, new.wage) )
+#AQUI VOY!!!
+df$cut.wage <- with(df, ifelse(cut.job == 1, wage.adj.min/2, wage.adj.min))
+df$new.wage <- with(df, ifelse(cut.job == 1, new.wage/2, new.wage))
+
+
+# Compute total wage increase after ripple effects (yearly in billions)
+wage.gain.total <- df %>% 
+      with( sum( (new.wage - wage.adj.min) *  hhwgt * hrslyr * wkslyr , na.rm = TRUE) )/ 1e9 
+
+wage.loss.total <- with(df, sum( (wage.adj.min - cut.wage) * 
+                                   hhwgt * (hrslyr * wkslyr) , na.rm = TRUE ) )/1e9
+
+
+```  
+
+### Other income losses.   
 Income losses from a reduction in profits ($\Delta^{-}\pi$) and an increase in agregate prices ($\Delta^{+}P$) is estimated[?] to be distributed as following: 1% of the losses for those below the poverty line (PL), 29% for those between 1 and 6 PL, and 70% for those above 6PL. 
 
-## Economywide income effect  
 
-CBO argues that the overall effect on the economy is positive and of \$2 billion dollars for 2016.   
+  
+```{r income, eval=TRUE }
+
+# cut.job
+
+# Family income under status quo
+
+# Family income under new min wage (incl. wage gains and employment loses)
+df$sq.wage <- with(df,wage.adj.min * (hrslyr * wkslyr))
+df <- df %>% group_by(hhid) %>% mutate(fam.sq.wage = sum(sq.wage, na.rm = TRUE))
+
+df$sq.income <- with(df, fam.sq.wage + non.wage)
+
+df$new.wage.total <- with(df,new.wage * (hrslyr * wkslyr))
+df <- df %>% group_by(hhid) %>% mutate(fam.new.wage = sum(new.wage.total, na.rm = TRUE))
+
+df$new.income <- with(df, fam.new.wage + non.wage)
+
+# get per capita
+df <- df %>% group_by(hhid)  %>% mutate(N.fam= n())
+# select one per family 
+df %>% select(new.income,sq.income,perno,N.fam, hhwgt) %>% 
+  with(sum( (new.income - sq.income) * hhwgt/N.fam , na.rm = TRUE) ) /1e9
+# Compute variation by hhld
+asd <- df %>% select(new.income,sq.income,perno,N.fam, hhwgt) %>% filter(perno == 1) %>% 
+  mutate( "variation" = (new.income - sq.income)/N.fam) 
+
+x11()
+with(asd,plot(sq.income/N.fam, variation, xlim = c(0,2e5), 
+              col = rgb(0,0,0,0.1) , pch =19, cex = .2) )
+abline(v = 11740*1:6, col = "red", lty = 2)
 
 
 
+qwe <- with(df[df$perno==1,],wtd.quantile(x = sq.income/N.fam, probs = 1:10/10, weights = hhwgt))
+abline(v = qwe, col = "blue", lty =3)
 
-## Quantifying loses  
+losses <- (wage.gain.total - wage.loss.total)*1e9
+
+asd1 <- with(df, findInterval(x = sq.income/N.fam, vec = c(-Inf,11740, 6*11740, Inf)))
+
+asd2  <- losses * c(0.30, 0.29, 0.41) / wtd.table(asd1, weights = df$hhwgt)[[2]][-1]
+
+asd3 <- asd2[with(asd, findInterval(x = sq.income/N.fam, vec = c(-Inf,11740, 6*11740, Inf) )) ]
+
+with(asd, points(sq.income/N.fam ,-asd3,  xlim = c(0,2e5), 
+              col = rgb(0,0,1,0.1) , pch =19, cex = .2) )
+
+
+#Average income per group (height of rectangle)
+asd1 <- df %>% group_by(findInterval(sq.income, c(-Inf, 11770*1:6, Inf) )) %>% summarise(log(mean(new.income)))
+
+#number of individuals per group (width of recangle)
+asd2 <- df %>%  with( wtd.table(findInterval(sq.income, c(-Inf, 11770*1:6, Inf)), weights = hhwgt/1e6) )
+
+
+#Add gains in wages 
+#Add losses in wages
+#Add losses in profit and inc prices. 
+
+widths = asd2$sum.of.weights
+heights = asd1$`log(mean(new.income))`
+
+barplot(heights, widths, space=0, 
+        col = rgb(0,0,0,.3))
+
+table_9 <- matrix(NA, ncol = 7, nrow = 4)
+colnames(table_9)  <- paste("I_", 1:7, sep = "")
+rownames(table_9)  <- c("wage gains", "wage loses", "other loses", "N_i")
+
+
+
+#Classifying by PLs and using sq.income/N.fam
+
+income.group <- with(df, findInterval(x = sq.income/N.fam, vec = c(-Inf,1:6*11740, Inf)))
+table_9["N_i", ] <- wtd.table(with(df, income.group) , weights = df$hhwgt)[[2]]/1e6
+table_9[ "wage loses", ] <- 
+
+df %>% group_by(income.group)  %>% summarise(mean(new.wage - wage.adj.min, na.rm = TRUE))  
+
+#FH: questions for Phi:
+#    - what is the precise way to define family in CPS?
+#    - what is the standard way to choose one obs per family?
+```  
+
+## Other considerations  
+
+### Economywide income effect  
+
+CBO argues that the overall effect on the economy is positive and of \$2 billion dollars for 2016. 
+### Quantifying loses  
 - Mix gains and loses. 
 - Output lost - increase in aggregate demand (!) 
 - net gain (!) of 2 billion dollars.  
 
-## Distributional effects   
+### Distributional effects   
 - Only results, no methodology at all!  This is probably the most important (and overlooked part of the report)
 
-## Interaction with other programs 
+### Interaction with other programs 
 No interactions with other programs is assumed (SNAP or EITC).     
 
 
-
-
-# What is in the 2/3  
+### What is in the 2/3  
   - CBO acknowledges uncertainty in the estimates of elasticity due to possible technological changes in the future.  
   - 
 

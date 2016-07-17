@@ -24,16 +24,75 @@ runtime: shiny
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(cache = TRUE)
+
+# Loading required libraries
+list.of.packages <- c("foreign", "dplyr", "weights", "survey", "Hmisc", "openxlsx", "rio")
+
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+lapply(list.of.packages, require, character.only = TRUE)
+# Setting working directory
+
+if (Sys.info()["sysname"] == "Darwin") {
+  setwd("/Users/fhoces/dissertation/Replication/data")
+}else{
+  setwd("C:/Users/fhocesde/Documents/data/CPS")
+}
 ```
 
 
 # Introduction  
-- Note on how the original report was made under a tight deadline. It should not be as an article to refute/confirm. The reader should approach the report as a living document to be benefited from incremental improvements.    
+This reader companion presents the key/analytic components of the CBO report on the effect of raising the minimum wage in a transparent and reproducible template. Our purpose is to describe every step/decision involved in this policy analysis such that analysts/stakeholder can understand/critize/improve from it.  
 
-PA cannot be incorrect in the same sense that a paper can be incorrect. 
+The new reproducibility practices promoted in science were used as a framework to carry out the excercise described below. However we need to highlight a crucial difference between a replication in science and a replication in policy analysis. A scientific report takes the form of a peer review publication that represent  several months or years of research, followed up by a review process that can be as lengthy as the research itself. Because of this when a scientific publication is subject to replication is expected to succedd. Policy analysis is ususally performed under tight deadlines, and is not unusual to rely on arbitrary assumptions and/or unreproducible calculations. For this reasons we do not attempt to replicate the CBO report as a way of testing the veracity of the analysis. We use reproducibility, paired with full transparency, to generate a living document that represents the best policy analysis up to date. Our expectations are that this living document will be serve as a building block to discuss and incorporate incremental improvements on the best available policy analysis. 
+
+The CBO report describes two policy estimates: the effects of minimum wage on employment and the distributional effects of minimum wage on wages and familiy income. All the policy estimates to replicate are presented in the following tables. 
+
+```{r table with output,  eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE, cache=FALSE}  
+#This is summary of all the policy estimates presented in the report
+#Aggregate effects
+output.template1 <- matrix(" ???",nrow = 7, ncol = 1)
+rownames(output.template1) <- c("wage gains", "wage losses", "Balance losses", "Net effect", "# of Wage gainers", "#of Wage losers", "Population")
+colnames(output.template1) <- "Effects/Policy Estimates"
+
+output.template1[,"Effects/Policy Estimates" ] <- c("31", "~5", "~24" , "2", "16.5", "0.5", "330/140")
 
 
-The report describes two policy estimates: the effects of minimum wage on employment and the distributional effects of minimum wage on wages and familiy income. This companion presents the details behind both policy estimates. 
+#Some distributional effects
+output.template2 <- matrix(" ???",nrow = 2, ncol = 5)
+rownames(output.template2) <- c("Balance losses", "Net effect")
+colnames(output.template2) <- c("<1PL", "[1PL, 3PL)", "[3PL, 6PL)", ">6PL", "Total")
+
+output.template2["Balance losses", ] <- c("~0.3", "~3.4", "~3.4", "~17", "~24")
+output.template2["Net effect", ] <- c("5", "12", "2", "-17", "2")
+
+
+
+knitr::kable(
+  list(
+    output.template1,
+    output.template2
+  ),
+  caption = 'Policy estimates in CBO report', booktabs = TRUE, 
+  align = 'c', booktabs = TRUE
+)
+
+
+#This is the first suggestion: change how policy estimates are reported and add information.
+mod.output.template <- matrix(" ???",nrow = 7, ncol = 5)
+rownames(mod.output.template) <- c("wage gains", "wage losses", "Balance losses", "Net effect", "# of Wage gainers", "#of Wage losers", "Population")
+colnames(mod.output.template) <- c("<1PL", "[1PL, 3PL)", "[3PL, 6PL)", ">6PL", "Total")
+
+mod.output.template[,"Total" ] <- c("31", "~5", "~24" , "2", "16.5", "0.5", "330/140")
+mod.output.template["Balance losses", ] <- c("~0.3", "~3.4", "~3.4", "~17", "~24")
+mod.output.template["Net effect", ] <- c("5", "12", "2", "-17", "2")
+
+
+#knitr::kable(mod.output.template, caption="Template for final results to replicate", digits = 1)
+```    
+
+This companion presents the details behind both policy estimates .   
 
 # Employment effects
 At a general level the effects on employment ($\widehat{\Delta E}$) will be calculated using a more detailed version of the following equation:
@@ -46,7 +105,7 @@ $$
   
 Where $N$ represents the relevant population, $\eta$ the elasticity of labor demand, $\Delta w$ the relevant percentual variation in wages, and the *Other factors* will encapsulate effects on employment throught an increase in the aggreagate demand.  
 
-To describe the methodology behind each of those four components we first describe the data used, the wage variable choosen, and the procedure used to forecast the wage ditribution of 2016 using from 2013.  
+To describe the methodology behind each of those four components we first describe the data used, the wage variable choosen, and the procedure used to forecast the wage and population distribution of 2016 using data from 2013.  
 
 
 ## Data, wages, and forecast  
@@ -54,64 +113,14 @@ To simulate the policy effects we need the distribution of wages and employment 
 
 
 ### Data
-With this information I have identified 
-three possible data sets that match this description: CPS raw files, ORG NBER, ORG CEPR. The analysis will be performed using the CPER ORG data base.
+The Current Population Survey (CPS) was used to compute the effects on employment. From the analysis in the section on distributional effects we can deduce that the data corresponds to the Outgoing Rotation Group (ORG). CPS is a monthly cross sectional suvey. The same individual is interviewed eight times over a period of 12 months. The interviews take place in the first and las 4 months of that period. By the 4th and 12th interview, individuals are asked detailed information on earnings. The CPS ORG file contains the information on this interviews for a given year. We analyze the data for 2013.   
 
-### Wage variable
-I assume no further adjustments like imputation for top coding, trimming, excluding overtime/commissions, or imputation of usual hours for ''hours vary'' respondents. The CEPR ORG data includes several wage variables ([described here](http://ceprdata.org/cps-uniform-data-extracts/cps-outgoing-rotation-group/)). The wage variable that best matches the description above is `wage3`
+Currently three versions of these data sets can be found online: [CPS raw files](http://thedataweb.rm.census.gov/ftp/cps_ftp.html#cpsbasic), [ORG NBER](http://www.nber.org/data/morg.html) and [ORG CEPR](http://ceprdata.org/cps-uniform-data-extracts/cps-outgoing-rotation-group/). The analysis will be performed using the CPER ORG data base.
 
-### Wage adjustment
-Make explicit that this only applies for the imputed hourly wages, and make explicit the characteristics and the weighs. 
- The adjustment process has not been done yet and will follow the methodology proposed in [this paper](https://www.aeaweb.org/articles?id=10.1257/aer.96.3.461)
+The weights used in our analysis will be `orgwgt/12`
 
-### Wage forecast  
-With this data-variable-adjustment we forecast the wage distribution, from 2013 to 2016 in the following way:
-
-#### Growth adjustments
-I assume that the growth forecasts were taken from the 10-Year Economic Projections from CBO ([this website](https://www.cbo.gov/about/products/budget_economic_data)). Annualized growth rates for the number of workers $g_{workers}$, and nominal wage per $g_{wages}$ worker where computed as follows:  
-
-$$
-\begin{align}
-\widehat{ g_{workers} } &= \left[ \frac{\widehat{ N_{workers}^{2016} } }{N_{workers}^{2013}} \right]^{1/3}- 1 \\
-\widehat{ g_{wages} }  &= \left[ \frac{\widehat{ Wages^{2016} } / \widehat{ N_{workers}^{2016} } }{Wages^{2013} / N_{workers}^{2013}} \right]^{1/3} - 1 
-\end{align}
-$$ 
-
-To create different rates of growth in wage, I compute different wage growth rates for each decile of wage. The increments across deciles were constant and the set to match a final lowest decile with a yearly growth rate of 2.9%.  
-
-The adjustment over number of workers was made through the weight variable `orgwgt` (multiplying it by the growth rate) whereas the `wage3` variable was multiplied by the forecasted growth rate of per worker wages.  
-
-#### ACA adjustments  
-
-[Not done yet]  
-
-#### State level minimum wage adjustments   
-
-CBO had to predict the future changes in the state level minimum wages. I use the actual values implemented by each state. The data comes from the Department of Labor ([here](https://www.dol.gov/whd/state/stateMinWageHis.htm)). 
-
-Whenever the predicted wages were below the 2016 state minimum wage they were replace by it. 
-
-**Important assumption:** when imputing state level min wages, I assume that no effects on employment where incorporated. I do this because this is my reading of what CBO did.  
-
-
-### Loading the data  
+#### Code to load the data  
 ```{r loading data, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, cache=FALSE}
-# Loading required libraries
-list.of.packages <- c("foreign", "dplyr", "weights", "survey", "Hmisc", "openxlsx", "rio")
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages)
-
-library(dplyr)
-library(foreign)
-#lapply(list.of.packages, function(x) library(x, character.only = TRUE))
-
-# Setting working directory
-
-if (Sys.info()["sysname"] == "Darwin") {
-  setwd("/Users/fhoces/dissertation/Replication/data")
-}else{
-  setwd("C:/Users/fhocesde/Documents/data/CPS")
-}
 
 data_use <- "CPER_ORG"
 
@@ -142,138 +151,47 @@ if (data_use == "NBER_ORG") {
 }
 
 df <- tbl_df(df)
-```  
-
-### Code for descriptive stats
-```{r Descript stats1, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, cache=FALSE}
-library(dplyr)
-library(foreign)
-library(weights)
-library(survey)
-library(Hmisc)
-library(openxlsx)
-
-#FH: Should I adjust any wage below the min to the min?
-
 
 # There are 1293 cases with missin values for the weigths. I delete them from the data. 
 df <- df %>% filter(!is.na(orgwgt))
-df$orgwgt <- df$orgwgt/12
+df$final_weights <- df$orgwgt/12
+```  
 
-table_1  <- df  %>% 
-   summarise("(1) Total" =
-               sum(orgwgt, na.rm = TRUE), 
-             "(2) Employed" = 
-               sum( orgwgt * (empl == 1), na.rm = TRUE), 
-             "(3) Salary (among employed)" = 
-               sum(orgwgt * (empl == 1 &             #Salary worker if 
-               (selfinc == 0 & selfemp == 0))        #not self employed or     
-                , na.rm = TRUE),                     #self incorp.
+### Wage variable
+We assume no further adjustments like imputation for top coding, trimming, excluding overtime/commissions, or imputation of usual hours for ''hours vary'' respondents. The CEPR ORG data includes several wage variables ([described here](http://ceprdata.org/cps-uniform-data-extracts/cps-outgoing-rotation-group/)). The wage variable that best matches the description above is `wage3`
 
-             "(4) Not Paid hourly (among salary)" = 
-               sum(orgwgt * (empl == 1 &              #Not paid hourly if salary and 
-               (selfinc == 0 & selfemp == 0) &        # not paid hourly
-               (paidhre == 0 | is.na(paidhre) )), na.rm = TRUE), 
-
-             "(5) Hours Vary (among not paid hourly)" =
-               sum(orgwgt * (empl == 1 &              #Hours vary if not paid hourly and 
-               (selfinc == 0 & selfemp == 0) &        #hours vary
-               (paidhre == 0 | is.na(paidhre) ) & hrsvary == 1), na.rm = TRUE),
-
-             "(6) No wage (in (3) but not in (5))" = 
-               sum(orgwgt * ( (empl == 1 & selfinc == 0 & selfemp == 0) & 
-                   (paidhre == 1 | hrsvary != 1 | is.na(hrsvary) ) & 
-                   (wage3==0 | is.na(wage3) ) ) , na.rm = TRUE), 
-             
-             "Population of Interest = (3) - (5) - (6)" = 
-              sum(orgwgt * (empl == 1 & (selfinc ==0 & selfemp == 0) & 
-                    ( (paidhre == 0 & hrsvary != 1) | paidhre ==1 )  & 
-                    wage3 != 0) , na.rm = TRUE)
-             )
-
-table_1 <- t(table_1)
-colnames(table_1) <- "N"
-table_1 <- format(table_1, big.mark = ",", digits = 0, scientific = FALSE)
+### Wage adjustment
+An adjustment was made to the wage of all the wokers that did not report an hourly wage (`wage3` is estimated as usual salary per self-reported pay-periodver usual hours per pay-period). In order to reduce the measurement error in those wages, we follow the methodology proposed in [this paper](https://www.aeaweb.org/articles?id=10.1257/aer.96.3.461) and compute the adjusted wage as a weigted average of the original wage and the average wage of workers with similar characteristics. 
 
 
-table_1_uw  <- df  %>% 
-   summarise("(1) Total" =
-               sum(!is.na(orgwgt), na.rm = TRUE), 
-             "(2) Employed" = 
-               sum( 1 * (empl == 1), na.rm = TRUE), 
-             "(3) Salary (among employed)" = 
-               sum( 1 * (empl == 1 &             #Salary worker if 
-               (selfinc == 0 & selfemp == 0))        #not self employed or     
-                , na.rm = TRUE),                     #self incorp.
-
-             "(4) Not Paid hourly (among salary)" = 
-               sum( 1 * (empl == 1 &              #Not paid hourly if salary and 
-               (selfinc == 0 & selfemp == 0) &        # not paid hourly
-               (paidhre == 0 | is.na(paidhre) )), na.rm = TRUE), 
-
-             "(5) Hours Vary (among not paid hourly)" =
-               sum( 1 * (empl == 1 &              #Hours vary if not paid hourly and 
-               (selfinc == 0 & selfemp == 0) &        #hours vary
-               (paidhre == 0 | is.na(paidhre) ) & hrsvary == 1), na.rm = TRUE),
-
-             "(6) No wage (in (3) but not in (5))" = 
-               sum( 1 * ( (empl == 1 & selfinc == 0 & selfemp == 0) & 
-                   (paidhre == 1 | hrsvary != 1 | is.na(hrsvary) ) & 
-                   (wage3==0 | is.na(wage3) ) ) , na.rm = TRUE), 
-             
-             "Population of Interest = (3) - (5) - (6)" = 
-              sum( 1 * (empl == 1 & (selfinc ==0 & selfemp == 0) & 
-                    ( (paidhre == 0 & hrsvary != 1) | paidhre ==1 )  & 
-                    wage3 != 0) , na.rm = TRUE)
-             )
-
-table_1_uw <- t(table_1_uw)
-colnames(table_1_uw) <- "N_unweighted"
-table_1_uw <- format(table_1_uw, big.mark = ",", digits = 0, scientific = FALSE)
-
-table_1 <- cbind(table_1, table_1_uw)
+$$
+\begin{align}
+w_{ig} &= \alpha w^{raw}_{ig} - (1 - \alpha)  \overline{w^{raw}_{g}} \label{samp.eq1} \\
+\text{with:    } \quad \overline{w^{raw}_{g}} &= \frac{\sum_{g} w^{raw}_{ig} }{N_{g}}  \nonumber 
+\end{align}
+$$ 
+  
+TO BE COMPLETED: Ask CBO about $\alpha$ and $G$.    
 
 
-# Tag population of interest
-pop_of_int <- with(df,
-                   (empl == 1 &
-                      (selfinc == 0 & selfemp == 0) & 
-                      ( (paidhre == 0 & ( hrsvary != 1 | is.na(hrsvary) )  )  | paidhre == 1 )  & 
-                      !(wage3 == 0 | is.na(wage3) ) )
-  )
+### Wage forecast  
+With this data-variable-adjustment we forecast the wage distribution, from 2013 to 2016 in the following way:
 
-#Summary stats of wage
-sum.stas1 <- function(x, wt) {
-   c( "mean" = weighted.mean(x,w = wt, na.rm = TRUE),
-      "sd" = sqrt( wtd.var(x, weights = wt) ) , 
-      "median" = wtd.quantile( x, weights = wt, prob = c(.5)) ,
-      wtd.quantile( x, weights = wt, prob = c(.1, .9) ) )
-} 
+#### Growth adjustments
+We assume that the growth forecasts were taken from the 10-Year Economic Projections from CBO ([this website](https://www.cbo.gov/about/products/budget_economic_data)). Annualized growth rates for the number of workers $g_{workers}$, and nominal wage per $g_{wages}$ worker where computed as follows:  
 
-table_2 <- df %>% 
-  filter(pop_of_int == 1 & !is.na(wage3)) %>% 
-    with(sum.stas1(wage3, orgwgt))
+$$
+\begin{align}
+\widehat{ g_{workers} } &= \left[ \frac{\widehat{ N_{workers}^{2016} } }{N_{workers}^{2013}} \right]^{1/3}- 1 \\
+\widehat{ g_{wages} }  &= \left[ \frac{\widehat{ Wages^{2016} } / \widehat{ N_{workers}^{2016} } }{Wages^{2013} / N_{workers}^{2013}} \right]^{1/3} - 1 
+\end{align}
+$$ 
 
-table_2 <- cbind(table_2)
-colnames(table_2) <- "Wage"
+The report assumes higher wage growth for hich wages than low wages. To create different rates of growth in wage, we compute different wage growth rates for each decile of wage. The increments across deciles were constant and the set to match a final lowest decile with a yearly growth rate of 2.9%.  
 
+The adjustment over number of workers was made through the weight variable `final_weights` (multiplying it by the growth rate) whereas the `wage3` variable was multiplied by the forecasted growth rate of per worker wages.   
 
-table_3 <- df %>% 
-  filter(pop_of_int == 1 & !is.na(wage3)) %>% 
-    summarise("> $7.5" = weighted.mean(wage3<7.5,w = orgwgt), 
-              "> $9" = weighted.mean(wage3<9,w = orgwgt), 
-              "> $10.10" = weighted.mean(wage3<10.10,w = orgwgt), 
-              "> $13" = weighted.mean(wage3<13,w = orgwgt), 
-              "> $15" = weighted.mean(wage3<15,w = orgwgt) 
-              )
-
-table_3 <- t(table_3)
-colnames(table_3) <- "Perc"
-
-``` 
-
-
-#### Code to get economic growth forecasts  
+##### Code to get economic growth forecasts    
 ```{r Getting forecast data, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
 # All projections data comes from this website: https://www.cbo.gov/about/products/budget_economic_data
 #name of the files that contain projections from CBO
@@ -345,8 +263,19 @@ gr.factor <- function(var1, init.year, last.year) {
 } 
 ``` 
 
+#### ACA adjustments  
 
-#### Code to get minimum wage values by state  
+[Not done yet]  
+
+#### State level minimum wage adjustments   
+
+CBO had to predict the future changes in the state level minimum wages. We use the actual values implemented by each state. The data comes from the Department of Labor ([here](https://www.dol.gov/whd/state/stateMinWageHis.htm)). 
+
+Whenever the predicted wages were below the 2016 state minimum wage they were replace by it. 
+
+**Important assumption:** when imputing state level min wages, we assume that no effects on employment where incorporated. 
+
+##### Code to get minimum wage values by state  
 ```{r Getting min wage data , eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
 # Minimum wage by state: 
 # Check if data is in machine and download if not.
@@ -411,15 +340,8 @@ st.minw.2016[c("AK"	, "AZ", "CA", "CT"	, "HI"	, "IL", "MA", "MI"	,
 colnames(st.minw.2016) <- "2016"
 ```
 
-
 #### Code to forecast wages and workers
 ```{r Adjusting wages to 2016 , eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
-library(dplyr)
-library(foreign)
-library(weights)
-library(survey)
-library(Hmisc)
-library(openxlsx)
 #Wage adjutsment
 
 #CBO mentions that the lowest 10th percent gets a 2.9% growth in anual wage
@@ -435,16 +357,12 @@ wage.gr.bins <- seq(0.024, wage.gr + half.gap, length.out = 10)
 
 # CAUTION: DO NOT apply 'ntile()' fn from dplry as is will split ties differently than 'cut()' and results will no
 # be comparable to STATA. 
-aux.var  <- wtd.quantile(x = df$wage3, probs = 1:9/10,weights = df$orgwgt)
+aux.var  <- wtd.quantile(x = df$wage3, probs = 1:9/10,weights = df$final_weights)
 df <- df %>%
         mutate( w3.deciles = cut(wage3, c(0, aux.var, Inf) , 
                                 right = TRUE, include.lowest = TRUE) ,  
                 w3.adj1 =  wage3 * ( 1 + wage.gr.bins[w3.deciles] )^3) 
 
-# To compute the new total of workers we multiply the original weigths by the growth rate. 
-new_total_n <- format(sum(df$orgwgt[pop_of_int==1] * 
-                            (1 + workers.gr)^3, 
-                          na.rm = TRUE), big.mark=",")
 
 # Here we adjust min wages
 df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,],
@@ -454,87 +372,21 @@ df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,],
 #to be done: adjust some states by inflation.
 ```  
 
-
-```{r desc stats2,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
-table_4 <- matrix(NA, 7, 2)
-colnames(table_4)  <- c("2013", "2016: status quo")
-rownames(table_4) <- c("Salary workers", 
-                       "Median wage", 
-                       "% < 7.5","% < 9", 
-                       "% < 10.10", "% < 13", 
-                       "% < 15" )
-
-table_4[1,1] <- table_1[7]
-table_4[1,2] <- new_total_n
-table_4[2,1] <- table_2[3]
-
-table_4[2,2] <- round( with(df[pop_of_int == 1 & !is.na(df$w3.adj.min), ], 
-                            wtd.quantile( w3.adj.min, weights = orgwgt * 
-                            (1 + workers.gr)^3, prob = c(.5) ) ), digits = 2 )
-
-table_4[3:7,1]  <- round(as.matrix(table_3), digits = 2)
-
-aux.1 <- df %>% 
-  filter(pop_of_int == 1 & !is.na(w3.adj.min)) %>% 
-    summarise("> $7.50" = weighted.mean(w3.adj.min<7.5,w = orgwgt * (1 + workers.gr)^3), 
-              "> $9" = weighted.mean(w3.adj.min<9,w = orgwgt * (1 + workers.gr)^3), 
-              "> $10.10" = weighted.mean(w3.adj.min<10.10,w = orgwgt * (1 + workers.gr)^3), 
-              "> $13" = weighted.mean(w3.adj.min<13,w = orgwgt * (1 + workers.gr)^3), 
-              "> $15" = weighted.mean(w3.adj.min<15,w = orgwgt * (1 + workers.gr)^3) 
-              )
-
-table_4[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
-
-library(dplyr)
-# Histogram of wage below $20
-df  %>% 
-  filter(pop_of_int==1 & wage3<=20)  %>% 
-    with(wtd.hist(wage3, breaks = 50, 
-                  xlab = "Hourly Wage", 
-                  freq = TRUE, 
-                  col=rgb(1,0,0,0.4),
-                  main = "Distribution of Hourly Wages Below $20",
-                  weight =  orgwgt
-                  ))
-df  %>% 
-  filter(pop_of_int==1 & w3.adj.min<=20)  %>% 
-    with(wtd.hist(w3.adj.min, breaks = 50, 
-                  xlab = "Hourly Wage", 
-                  freq = TRUE, 
-                  main = "Distribution of Hourly Wages Below $20", 
-                  col=rgb(0,0,1,0.4), 
-                  weight =  orgwgt * gr.factor("workers", 2014, 2016),
-                  add = TRUE) ) 
-
-abline(v = 7.25, col = "red")
-
-abline(v = 9, col = "red")
-
-abline(v = 10.10, col = "red")
-
-#TO DO: display number of workers below red bars in reactive fashion. Maybe not even a plot: only a slider with min wage and a
-#reactive box with the number of workers that would be below it.
- 
-knitr::kable(table_4, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
-```  
-
-
-
 ## Get the $N$   
- 
+Following the  
  
 ### Visualize the universe  
 
 ```{r Universe, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold', cache=FALSE}
 library(treemap)
 
-dev.off()
+if (!(length(dev.list()) == 0)) { dev.off() }
 x11()
 asd <- df %>% 
         mutate("teen" = ifelse(age<20, "teen", "adult"), 
                "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1)) %>%  
                   group_by(lfstat,selfemp_inc, teen)  %>% 
-            summarise("total" = sum(orgwgt, na.rm = TRUE)) 
+            summarise("total" = sum(final_weights, na.rm = TRUE)) 
 
 asd$selfemp_inc[asd$lfstat!="Employed"] = NA 
 asd$teen[asd$lfstat!="Employed"] = NA 
@@ -559,14 +411,14 @@ bg.labels = 1
 )
 
 #####################
-dev.off()
+if (!(length(dev.list()) == 0)) { dev.off() }
 x11()
 asd <- df %>% 
         mutate("teen" = ifelse(age<20, "teen", "adult"), 
                "wage_c" = cut(wage3, c(-Inf, 7:15,Inf) ), 
                "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1) ) %>% 
           group_by(lfstat,selfemp, selfemp_inc, teen, wage_c)  %>% 
-            summarise("total" = sum(orgwgt, na.rm = TRUE)) 
+            summarise("total" = sum(final_weights, na.rm = TRUE)) 
 
 asd$selfemp_inc[asd$lfstat!="Employed"] = NA
 asd$teen[asd$lfstat!="Employed"] = NA
@@ -602,9 +454,202 @@ bg.labels = 1
 
 ```   
 
+
+
+```{r desc stats2,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(foreign)
+library(weights)
+library(survey)
+library(Hmisc)
+library(openxlsx)
+
+# To compute the new total of workers we multiply the original weigths by the growth rate. 
+
+
+
+table_1  <- df  %>% 
+   summarise("(1) Total" =
+               sum(final_weights, na.rm = TRUE), 
+             "(2) Employed" = 
+               sum( final_weights * (empl == 1), na.rm = TRUE), 
+             "(3) Salary (among employed)" = 
+               sum(final_weights * (empl == 1 &             #Salary worker if 
+               (selfinc == 0 & selfemp == 0))        #not self employed or     
+                , na.rm = TRUE),                     #self incorp.
+
+             "(4) Not Paid hourly (among salary)" = 
+               sum(final_weights * (empl == 1 &              #Not paid hourly if salary and 
+               (selfinc == 0 & selfemp == 0) &        # not paid hourly
+               (paidhre == 0 | is.na(paidhre) )), na.rm = TRUE), 
+
+             "(5) Hours Vary (among not paid hourly)" =
+               sum(final_weights * (empl == 1 &              #Hours vary if not paid hourly and 
+               (selfinc == 0 & selfemp == 0) &        #hours vary
+               (paidhre == 0 | is.na(paidhre) ) & hrsvary == 1), na.rm = TRUE),
+
+             "(6) No wage (in (3) but not in (5))" = 
+               sum(final_weights * ( (empl == 1 & selfinc == 0 & selfemp == 0) & 
+                   (paidhre == 1 | hrsvary != 1 | is.na(hrsvary) ) & 
+                   (wage3==0 | is.na(wage3) ) ) , na.rm = TRUE), 
+             
+             "Population of Interest = (3) - (5) - (6)" = 
+              sum(final_weights * (empl == 1 & (selfinc ==0 & selfemp == 0) & 
+                    ( (paidhre == 0 & hrsvary != 1) | paidhre ==1 )  & 
+                    wage3 != 0) , na.rm = TRUE)
+             )
+
+table_1 <- t(table_1)
+colnames(table_1) <- "N"
+table_1 <- format(table_1, big.mark = ",", digits = 0, scientific = FALSE)
+
+
+table_1_uw  <- df  %>% 
+   summarise("(1) Total" =
+               sum(!is.na(final_weights), na.rm = TRUE), 
+             "(2) Employed" = 
+               sum( 1 * (empl == 1), na.rm = TRUE), 
+             "(3) Salary (among employed)" = 
+               sum( 1 * (empl == 1 &             #Salary worker if 
+               (selfinc == 0 & selfemp == 0))        #not self employed or     
+                , na.rm = TRUE),                     #self incorp.
+
+             "(4) Not Paid hourly (among salary)" = 
+               sum( 1 * (empl == 1 &              #Not paid hourly if salary and 
+               (selfinc == 0 & selfemp == 0) &        # not paid hourly
+               (paidhre == 0 | is.na(paidhre) )), na.rm = TRUE), 
+
+             "(5) Hours Vary (among not paid hourly)" =
+               sum( 1 * (empl == 1 &              #Hours vary if not paid hourly and 
+               (selfinc == 0 & selfemp == 0) &        #hours vary
+               (paidhre == 0 | is.na(paidhre) ) & hrsvary == 1), na.rm = TRUE),
+
+             "(6) No wage (in (3) but not in (5))" = 
+               sum( 1 * ( (empl == 1 & selfinc == 0 & selfemp == 0) & 
+                   (paidhre == 1 | hrsvary != 1 | is.na(hrsvary) ) & 
+                   (wage3==0 | is.na(wage3) ) ) , na.rm = TRUE), 
+             
+             "Population of Interest = (3) - (5) - (6)" = 
+              sum( 1 * (empl == 1 & (selfinc ==0 & selfemp == 0) & 
+                    ( (paidhre == 0 & hrsvary != 1) | paidhre ==1 )  & 
+                    wage3 != 0) , na.rm = TRUE)
+             )
+
+table_1_uw <- t(table_1_uw)
+colnames(table_1_uw) <- "N_unweighted"
+table_1_uw <- format(table_1_uw, big.mark = ",", digits = 0, scientific = FALSE)
+
+table_1 <- cbind(table_1, table_1_uw)
+
+
+# Tag population of interest
+pop_of_int <- with(df,
+                   (empl == 1 &
+                      (selfinc == 0 & selfemp == 0) & 
+                      ( (paidhre == 0 & ( hrsvary != 1 | is.na(hrsvary) )  )  | paidhre == 1 )  & 
+                      !(wage3 == 0 | is.na(wage3) ) )
+  )
+
+new_total_n <- format(sum(df$final_weights[pop_of_int==1] * 
+                            (1 + workers.gr)^3, 
+                          na.rm = TRUE), big.mark=",")
+
+#Summary stats of wage
+sum.stas1 <- function(x, wt) {
+   c( "mean" = weighted.mean(x,w = wt, na.rm = TRUE),
+      "sd" = sqrt( wtd.var(x, weights = wt) ) , 
+      "median" = wtd.quantile( x, weights = wt, prob = c(.5)) ,
+      wtd.quantile( x, weights = wt, prob = c(.1, .9) ) )
+} 
+
+table_2 <- df %>% 
+  filter(pop_of_int == 1 & !is.na(wage3)) %>% 
+    with(sum.stas1(wage3, final_weights))
+
+table_2 <- cbind(table_2)
+colnames(table_2) <- "Wage"
+
+
+table_3 <- df %>% 
+  filter(pop_of_int == 1 & !is.na(wage3)) %>% 
+    summarise("> $7.5" = weighted.mean(wage3<7.5,w = final_weights), 
+              "> $9" = weighted.mean(wage3<9,w = final_weights), 
+              "> $10.10" = weighted.mean(wage3<10.10,w = final_weights), 
+              "> $13" = weighted.mean(wage3<13,w = final_weights), 
+              "> $15" = weighted.mean(wage3<15,w = final_weights) 
+              )
+
+table_3 <- t(table_3)
+colnames(table_3) <- "Perc"
+
+
+table_4 <- matrix(NA, 7, 2)
+colnames(table_4)  <- c("2013", "2016: status quo")
+rownames(table_4) <- c("Salary workers", 
+                       "Median wage", 
+                       "% < 7.5","% < 9", 
+                       "% < 10.10", "% < 13", 
+                       "% < 15" )
+
+table_4[1,1] <- table_1[7]
+table_4[1,2] <- new_total_n
+table_4[2,1] <- table_2[3]
+
+table_4[2,2] <- round( with(df[pop_of_int == 1 & !is.na(df$w3.adj.min), ], 
+                            wtd.quantile( w3.adj.min, weights = final_weights * 
+                            (1 + workers.gr)^3, prob = c(.5) ) ), digits = 2 )
+
+table_4[3:7,1]  <- round(as.matrix(table_3), digits = 2)
+
+aux.1 <- df %>% 
+  filter(pop_of_int == 1 & !is.na(w3.adj.min)) %>% 
+    summarise("> $7.50" = weighted.mean(w3.adj.min<7.5,w = final_weights * (1 + workers.gr)^3), 
+              "> $9" = weighted.mean(w3.adj.min<9,w = final_weights * (1 + workers.gr)^3), 
+              "> $10.10" = weighted.mean(w3.adj.min<10.10,w = final_weights * (1 + workers.gr)^3), 
+              "> $13" = weighted.mean(w3.adj.min<13,w = final_weights * (1 + workers.gr)^3), 
+              "> $15" = weighted.mean(w3.adj.min<15,w = final_weights * (1 + workers.gr)^3) 
+              )
+
+table_4[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
+
+# Histogram of wage below $20
+df  %>% 
+  filter(pop_of_int==1 & wage3<=20)  %>% 
+    with(wtd.hist(wage3, breaks = 50, 
+                  xlab = "Hourly Wage", 
+                  freq = TRUE, 
+                  col=rgb(1,0,0,0.4),
+                  main = "Distribution of Hourly Wages Below $20",
+                  weight =  final_weights
+                  ))
+df  %>% 
+  filter(pop_of_int==1 & w3.adj.min<=20)  %>% 
+    with(wtd.hist(w3.adj.min, breaks = 50, 
+                  xlab = "Hourly Wage", 
+                  freq = TRUE, 
+                  main = "Distribution of Hourly Wages Below $20", 
+                  col=rgb(0,0,1,0.4), 
+                  weight =  final_weights * gr.factor("workers", 2014, 2016),
+                  add = TRUE) ) 
+
+abline(v = 7.25, col = "red")
+
+abline(v = 9, col = "red")
+
+abline(v = 10.10, col = "red")
+
+#TO DO: display number of workers below red bars in reactive fashion. Maybe not even a plot: only a slider with min wage and a
+#reactive box with the number of workers that would be below it.
+ 
+knitr::kable(table_4, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
+```  
+
+
+
+
 ### Identify population  
 
-Now we have predicted salaries and population for 2016, from the perspective of 2013 ($\widehat{w^{16|13}}$). The two relevant populations to define now are the number of low wage workers ($\widehat{ N_{lowwage} }$) and the number of workers that, under the status quo, would earn less than the new minimum wage ($\widehat{ N_{w\leq MW^{1}} }$). 
+Now we have predicted salaries and population for 2016, from the perspective of 2013 ($\widehat{w^{16|13}}$). The two relevant populations to define now are the number of low wage workers ($\widehat{ N_{lowwage} }$) and the number of workers that would earn less than the new minimum wage ($\widehat{ N_{w\leq MW^{1}} }$). 
 
 Three adjustments are applied to the population of workers with wages below the new minumum wage:    
 
@@ -614,17 +659,17 @@ Three adjustments are applied to the population of workers with wages below the 
   
 
 #### Tipped workers (TO BE COMPLETED) 
- - Apply different minimum wage to workers who receive more than \$30 in tips. This was applied to 11 occupations (such as waiter, bartender, and hairdresser ~10% if low wage workers)
+Apply different minimum wage to workers who receive more than \$30 in tips. This was applied to 11 occupations (such as waiter, bartender, and hairdresser ~10% if low wage workers)
  
-Given that I do not know which 11 categories the report makes reference to, and which variable that defines the categories, I will use the variable `peernuot` to identify tipped workers. This variable overestimates the number of tipped workers (13% as opposed to the 10% mentioned in the report) because it also contains the workers paid overtime or commissions. 
+Given that we do not know which 11 categories the report makes reference to, and which variable that defines the categories, we will use the variable `peernuot` to identify tipped workers. This variable overestimates the number of tipped workers (13% as opposed to the 10% mentioned in the report) because it also contains the workers paid overtime or commissions. 
 
 Tipped workers with wages below 7.25 is are 1% of the total tipped workers. Non-tipped workers with wages below 7.25 are 1.6% of the total. 
 
 #### Non compliance    
 
-We estimate the proportion of workers that earn less than the their state's minimum wage in 2013 as a proxy for non compliers under the new minimum wage in 2016. The orginal reports mention that it comes up to 12% of the low wage population. Given that I do not have a definition for what the low wage population is, I will estimate the number of workers below the minimum wage and reported as a percentage of the target population. 
+We estimate the *proportion of low workers that earn less than the their state's minimum wage in 2013* as a proxy for non compliers under the new minimum wage in 2016. The orginal reports mention that it comes up to 12% of the low wage population. 
 
-Following the same footnote I will consider salary workers as non compliers only if their wage is strictly less than 25 cents for non-tipped workers or 13 cents for tipped workers. 
+Following the same footnote we will consider salary workers as non compliers only if their wage is strictly less than 25 cents for non-tipped workers or 13 cents for tipped workers. 
 
 #### Not covered that might benefit (TO BE COMPLETED) 
  - Include not covered by FLSA but expected to be affected: employees of small firms, occupations generally exempt from FLSA, and teenagers in first 90 days of employment.  
@@ -636,7 +681,7 @@ I am not excluding job category yet.
 ```{r Target population, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold', cache=FALSE}
 library(treemap)
 
-dev.off()
+if (!(length(dev.list()) == 0)) { dev.off() }
 x11()
 asd <- df %>% 
         mutate("teen" = ifelse(age<20, "teen", "adult"), 
@@ -644,7 +689,7 @@ asd <- df %>%
                 "min_wage" = ifelse(w3.adj.min<10.10, "Target Pop", "Think label"), 
                "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1) ) %>% 
           group_by(lfstat,selfemp, selfemp_inc, teen, wage_c, min_wage)  %>% 
-            summarise("total" = sum(orgwgt, na.rm = TRUE)) 
+            summarise("total" = sum(final_weights, na.rm = TRUE)) 
 
 asd$selfemp_inc[asd$lfstat!="Employed"] = NA
 asd$teen[asd$lfstat!="Employed" | asd$selfemp_inc == 1] = NA
@@ -691,16 +736,16 @@ bg.labels = 1
 # variable peernuot seems to be the most appropiate variable to indicate wether or nor receives tips
 # 1=YES; 2=NO
 non.comp.stats <- df %>%
-  select(wage3, state, orgwgt, peernuot)  %>%
+  select(wage3, state, final_weights, peernuot)  %>%
     filter(pop_of_int == 1 & wage3<=11.5)  %>%
       summarise(
         "% of non compliers w/o adj" = 
           wtd.mean(wage3 < state.minw("2013")[state, ], 
-                          weights = orgwgt), 
+                          weights = final_weights), 
         "% of non compliers with adj" = 
           wtd.mean(wage3 + 0.25 * (peernuot == 2) + 
                           0.13 * (peernuot == 1)  < state.minw("2013")[state, ], 
-                          weights = orgwgt) 
+                          weights = final_weights) 
         )
 
 ```  
@@ -710,10 +755,6 @@ The estimated percentage of non-compliance is `r paste(format(100*non.comp.stats
 
 
 #### Code to compute percentage of non compliers 
-
-
-
-
 
 ```{r Sim I, echo=FALSE, eval=FALSE}
 #need to figure out how to load the data in to the shiny viz
@@ -728,7 +769,7 @@ shinyAppDir(
   
 ### Summary  
 Define $\hat{g(2016|2013)}$ as the growth factor for the population from the year 2013 to 2016 ($\hat{g(2016|2013)} = (1 + \hat{g})^3$, where $\hat{g}$ is the anual growth rate of the population). Then:  
-
+<!--
 $$ 
 \begin{align}
 \widehat{ N^{final}_{teen} } &= \hat{N_{low \, wage}} (2016|2013)  \times P(\hat{w} \leq MW^{1} | \hat{w} \leq  low \, wage) \times
@@ -738,18 +779,82 @@ $$
 &= \hat{g(2016|2013)} \times  \hat{N_{employed}} (2013) P(\hat{w} \leq MW^{1} ) \times (1 - \hat{\alpha_{1}} - \hat{\alpha_{2}}) \times P(Age \leq 19 | \hat{w} \leq MW^{1})
 \end{align}
 $$
+-->
+$$ 
+\begin{align}
+\widehat{ N^{teen}_{final} } &= \hat{N^{teen}_{\hat{w} \leq MW^{1} } } (2016|2013) \times 
+(1 - \hat{ \alpha^{teen}_{1} } - \hat{ \alpha^{teen}_{2} })\\
+&= \hat{ g(2016|2013) } \times  \hat{ N^{teen}_{employed} } (2013) \times P(\hat{w} \leq MW^{1}|teen)  \times (1 - \hat{ \alpha^{teen}_{1} } - \hat{ \alpha^{teen}_{2} })
+\end{align}
+$$
+
 
 Analogusly for the adult population: 
 
 $$ 
 \begin{align}
-\widehat{ N^{final}_{adult} } &= \hat{g(2016|2013)} \times  \hat{N_{employed}} (2013) P(\hat{w} \leq MW^{1} ) \times (1 - \hat{\alpha_{1}} - \hat{\alpha_{2}}) \times P(Age > 19 | \hat{w} \leq MW^{1})
+\widehat{ N^{adult}_{final} } &= \hat{ g(2016|2013) } \times  \hat{ N^{adult}_{employed} } (2013) \times P(\hat{w} \leq MW^{1}|adult)  \times (1 - \hat{ \alpha^{adult}_{1} } - \hat{ \alpha^{adult}_{2} })
 \end{align}
 $$
 
 
-PUT A TABLE HERE WITH THE ESTIMATES FOR EACH COMPONENT.   
+The table below presents the estimate from 2013 for all each component.
 
+```{r compute Ns, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+aux.1 <-  bind_rows( 
+  df  %>% 
+  filter(pop_of_int == 1) %>% 
+  mutate("adult" = ifelse(age>=20, "Adult", "Teen") )  %>% 
+  group_by(adult)  %>% 
+  summarise( "Salary workers ($\\hat{ N_{employed} }$) (millions)" = sum(final_weights)/1e6,
+             "Low wage workers ($w \\leq 11.5 p/h$) (millions)" = sum(final_weights * (w3.adj.min <=11.50))/1e6,
+             "% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)" = wtd.mean( 1*(w3.adj.min <=10.10), 
+                                       na.rm = TRUE, weights = final_weights) * 100),   
+  df %>% 
+  filter(pop_of_int == 1) %>% 
+  summarise( "Salary workers ($\\hat{ N_{employed} }$) (millions)" = sum(final_weights)/1e6,
+              "Low wage workers ($w \\leq 11.5 p/h$) (millions)" = sum(final_weights * (w3.adj.min <=11.50))/1e6,
+              "% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)" = wtd.mean( 1*(w3.adj.min <=10.10), 
+                                      na.rm = TRUE, weights = final_weights) * 100) %>% 
+  mutate(adult = "Total" )
+)
+
+#Non compliance (starting from a different denominator: 'pop_of_int == 1 & wage3 < 11.5')
+aux.2 <- bind_rows(
+  df %>%
+  select(wage3, age, state, final_weights, peernuot)  %>%
+  filter(pop_of_int == 1 & wage3 <= 11.5) %>% 
+  mutate("adult" = ifelse(age>=20, "Adult", "Teen") )  %>% 
+  group_by(adult)  %>% 
+      summarise(
+          "% of non compliers ($\\alpha_{1}$)" = 
+          wtd.mean(1 * (wage3 + 0.25 * (peernuot == 2) + 
+                          0.13 * (peernuot == 1)  < state.minw("2013")[state, ] ), 
+                          weights = final_weights)*100 ),  
+  df %>%
+  select(wage3, age, state, final_weights, peernuot)  %>%
+  filter(pop_of_int == 1 & wage3 <= 11.5) %>% 
+      summarise(
+          "% of non compliers ($\\alpha_{1}$)" = 
+          wtd.mean(1 * (wage3 + 0.25 * (peernuot == 2) + 
+                          0.13 * (peernuot == 1)  < state.minw("2013")[state, ] ), 
+                          weights = final_weights)*100 ) %>% 
+          mutate("adult" = "Total")
+)
+stats2 <- rbind(t(aux.1[,-1 ]), t(aux.2[, -1]) ) 
+colnames(stats2) <- t(aux.1[,1])
+stats2 <- rbind(stats2, "$\\hat{ g(2016|2013) }$" = gr.factor("workers", 2014, 2016) )
+aux.total <- apply(stats2, 2, function(x) x[5] * x[1] * (x[3]/100) * (1 - x[4]/100)  )
+stats2 <- rbind(stats2, "$\\widehat{ N_{final} }$ (millions)" = aux.total)
+knitr::kable(stats2, caption="Characteristics of target population", digits = 2)
+
+
+# FH: There a small difference in the overall total and the sum of Teens and Adults:
+# stats2[6,3] - sum( (stats2[6, 1:2])  )
+# I have pinned down the source of the problem to differences in the way % is calculated (for groups relative to the total):
+# (stats2[4,3]) - sum( (stats2[4, 1:2])*(stats2[2, 1:2]/sum(stats2[2, 1:2]))  )
+
+``` 
 
 
 ## Get the $\eta \times \Delta w$  
@@ -859,24 +964,24 @@ $$
 ```{r employment effect, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
 stats2 <-  df  %>% 
   filter(pop_of_int == 1) %>% 
-  mutate("adult" = ifelse(age>20, "Adult", "Teen") )  %>% 
+  mutate("adult" = ifelse(age>=20, "Adult", "Teen") )  %>% 
   group_by(adult)  %>% 
-  summarise( "N" = sum(orgwgt)/1e6,
+  summarise( "N" = sum(final_weights)/1e6,
              "% Empl Below MW" = mean( 1*(w3.adj.min <=10.10), na.rm = TRUE) * 100 , 
              "% Mean Wage Inc" = mean( ifelse(w3.adj.min <=10.10,
                                             (10.10 - w3.adj.min)/w3.adj.min, NA) , 
                                      na.rm = TRUE) * 100 ) 
 
 aux1 <- df %>%
-  select(wage3, age, state, orgwgt, peernuot)  %>%
+  select(wage3, age, state, final_weights, peernuot)  %>%
   filter(pop_of_int == 1 & wage3 < 11.5) %>% 
-  mutate("adult" = ifelse(age>20, "Adult", "Teen") )  %>% 
+  mutate("adult" = ifelse(age>=20, "Adult", "Teen") )  %>% 
   group_by(adult)  %>% 
       summarise(
           "% of non compliers with adj" = 
           wtd.mean(wage3 + 0.25 * (peernuot == 2) + 
                           0.13 * (peernuot == 1)  < state.minw("2013")[state, ], 
-                          weights = orgwgt)*100 
+                          weights = final_weights)*100 
 
         ) 
 
@@ -922,13 +1027,7 @@ $$
 Using all the components descbribed above we get $\widehat{ \Delta^{-} E } =$ `r round(delta.e1*1000)` thousand jobs. The report however computes $F_{adjs}$ in a different fashion and gets a value of 4.5[^2]. Plugging this value into the equation above one gets $\widehat{ \Delta^{-} E } =$ `r round(delta.e2*1000)` thousand jobs. [FH: let's not get super excited yet. I suspect that several components of my estimation are different from the ones in the CBO report (e.g. non-compliance rate)]
 
 # Distributional effects  
- - 16.5 million workers would receive a salary increase. 
- - Distributional effects: 
-    - below poverty line (PL) +\$5billion [show gains and losses within bins] 
-    - between one and three PL +\$12billion 
-    - between three and six PL +\$2billion 
-    - above six PL -\$17billion    
-    
+
 ## Computing Family income
 
 ### Computing wages in CPS ASEC 2013  
@@ -1458,14 +1557,13 @@ teen <- df$age<20
 prop.table(with(df[pop_of_int == 1, ], table(cut.job,teen)), 2)
 
 # df$new.wage <- df %>% transmute(new.wage = ifelse(cut.job ==1 , new.wage/2, new.wage) )
-#AQUI VOY!!!
 df$cut.wage <- with(df, ifelse(cut.job == 1, wage.adj.min/2, wage.adj.min))
-df$new.wage <- with(df, ifelse(cut.job == 1, new.wage/2, new.wage))
+df$new.wage <- with(df, ifelse(cut.job == 1, wage.adj.min/2, new.wage))
 
 
 # Compute total wage increase after ripple effects (yearly in billions)
 wage.gain.total <- df %>% 
-      with( sum( (new.wage - wage.adj.min) *  hhwgt * hrslyr * wkslyr , na.rm = TRUE) )/ 1e9 
+      with( sum( (new.wage - wage.adj.min) * hhwgt * hrslyr * wkslyr , na.rm = TRUE) )/ 1e9 
 
 wage.loss.total <- with(df, sum( (wage.adj.min - cut.wage) * 
                                    hhwgt * (hrslyr * wkslyr) , na.rm = TRUE ) )/1e9
@@ -1480,16 +1578,17 @@ Income losses from a reduction in profits ($\Delta^{-}\pi$) and an increase in a
   
 ```{r income, eval=TRUE }
 
-# cut.job
-
-# Family income under status quo
-
-# Family income under new min wage (incl. wage gains and employment loses)
+# Family income under status quo and with wage loss
 df$sq.wage <- with(df,wage.adj.min * (hrslyr * wkslyr))
 df <- df %>% group_by(hhid) %>% mutate(fam.sq.wage = sum(sq.wage, na.rm = TRUE))
 
-df$sq.income <- with(df, fam.sq.wage + non.wage)
+df$cut.wage.total <- with(df,cut.wage * (hrslyr * wkslyr))
+df <- df %>% group_by(hhid) %>% mutate(fam.cut.wage = sum(cut.wage.total, na.rm = TRUE))
 
+df$sq.income <- with(df, fam.sq.wage + non.wage)
+df$income.cut.wage <- with(df, fam.cut.wage + non.wage)
+
+# Family income under new min wage (incl. wage gains and employment loses)
 df$new.wage.total <- with(df,new.wage * (hrslyr * wkslyr))
 df <- df %>% group_by(hhid) %>% mutate(fam.new.wage = sum(new.wage.total, na.rm = TRUE))
 
@@ -1497,9 +1596,11 @@ df$new.income <- with(df, fam.new.wage + non.wage)
 
 # get per capita
 df <- df %>% group_by(hhid)  %>% mutate(N.fam= n())
-# select one per family 
+
+# Computing differences in income 
 df %>% select(new.income,sq.income,perno,N.fam, hhwgt) %>% 
   with(sum( (new.income - sq.income) * hhwgt/N.fam , na.rm = TRUE) ) /1e9
+
 # Compute variation by hhld
 asd <- df %>% select(new.income,sq.income,perno,N.fam, hhwgt) %>% filter(perno == 1) %>% 
   mutate( "variation" = (new.income - sq.income)/N.fam) 
@@ -1507,18 +1608,16 @@ asd <- df %>% select(new.income,sq.income,perno,N.fam, hhwgt) %>% filter(perno =
 x11()
 with(asd,plot(sq.income/N.fam, variation, xlim = c(0,2e5), 
               col = rgb(0,0,0,0.1) , pch =19, cex = .2) )
-abline(v = 11740*1:6, col = "red", lty = 2)
+abline(v = 11740*1:6, col = "red", lty = 1, cex=1.3)
 
-
-
-qwe <- with(df[df$perno==1,],wtd.quantile(x = sq.income/N.fam, probs = 1:10/10, weights = hhwgt))
-abline(v = qwe, col = "blue", lty =3)
+inc.quartiles <- with(df[df$perno==1,],wtd.quantile(x = sq.income/N.fam, probs = c(.25, .5, .75), weights = hhwgt*N.fam))
+abline(v = inc.quartiles, col = "blue", lty =3)
 
 losses <- (wage.gain.total - wage.loss.total)*1e9
 
 asd1 <- with(df, findInterval(x = sq.income/N.fam, vec = c(-Inf,11740, 6*11740, Inf)))
 
-asd2  <- losses * c(0.30, 0.29, 0.41) / wtd.table(asd1, weights = df$hhwgt)[[2]][-1]
+asd2  <- losses * c(0.30, 0.29, 0.41) / wtd.table(asd1, weights = df$hhwgt)[[2]]
 
 asd3 <- asd2[with(asd, findInterval(x = sq.income/N.fam, vec = c(-Inf,11740, 6*11740, Inf) )) ]
 
@@ -1532,32 +1631,44 @@ asd1 <- df %>% group_by(findInterval(sq.income, c(-Inf, 11770*1:6, Inf) )) %>% s
 #number of individuals per group (width of recangle)
 asd2 <- df %>%  with( wtd.table(findInterval(sq.income, c(-Inf, 11770*1:6, Inf)), weights = hhwgt/1e6) )
 
+#Create here a kick-ass viz
+if (FALSE) {
+  widths = asd2$sum.of.weights
+  heights = asd1$`log(mean(new.income))`
+  
+  barplot(heights, widths, space=0, 
+          col = rgb(0,0,0,.3))
+}
 
-#Add gains in wages 
-#Add losses in wages
-#Add losses in profit and inc prices. 
-
-widths = asd2$sum.of.weights
-heights = asd1$`log(mean(new.income))`
-
-barplot(heights, widths, space=0, 
-        col = rgb(0,0,0,.3))
-
-table_9 <- matrix(NA, ncol = 7, nrow = 4)
-colnames(table_9)  <- paste("I_", 1:7, sep = "")
+table_9 <- matrix(NA, ncol = 4, nrow = 4)
+colnames(table_9)  <- c("<1PL", "[1PL, 3PL)", "[3PL, 6PL)", ">6PL")
 rownames(table_9)  <- c("wage gains", "wage loses", "other loses", "N_i")
 
 
 
 #Classifying by PLs and using sq.income/N.fam
+deciles <- with(df[df$perno==1,],wtd.quantile(x = sq.income/N.fam, probs = 1:9/10, weights = hhwgt*N.fam))
 
-income.group <- with(df, findInterval(x = sq.income/N.fam, vec = c(-Inf,1:6*11740, Inf)))
+df$income.group <- with(df, findInterval(x = sq.income/N.fam, vec = c(-Inf,c(1,3,6)*11740, Inf)))
+
 table_9["N_i", ] <- wtd.table(with(df, income.group) , weights = df$hhwgt)[[2]]/1e6
-table_9[ "wage loses", ] <- 
+  
+aux.1 <- df %>% group_by(income.group)  %>% summarise(mean((new.income - sq.income)/N.fam, na.rm = TRUE))
+table_9[ "wage gains", ] <- t(as.data.frame(aux.1[,2]) )
+  
+  
+#Wage loses: compared to SQ
+aux.1 <- df %>% group_by(income.group)  %>% summarise(mean((sq.income - income.cut.wage)/N.fam, na.rm = TRUE))  
+table_9[ "wage loses", ] <- t(as.data.frame(aux.1[,2]) )
 
-df %>% group_by(income.group)  %>% summarise(mean(new.wage - wage.adj.min, na.rm = TRUE))  
+#Imputing the balnce of the losses
+table_9[ "other loses", ] <- losses * c(0.01, rep(.29/2, 2), 0.70)/(table_9[ "N_i", ]*1e6)
 
-#FH: questions for Phi:
+#FH: Need to modify/add table that shows number of people affected on each section
+
+
+
+#FH: questions for Phil:
 #    - what is the precise way to define family in CPS?
 #    - what is the standard way to choose one obs per family?
 ```  
@@ -1566,7 +1677,8 @@ df %>% group_by(income.group)  %>% summarise(mean(new.wage - wage.adj.min, na.rm
 
 ### Economywide income effect  
 
-CBO argues that the overall effect on the economy is positive and of \$2 billion dollars for 2016. 
+CBO argues that the overall effect on the economy is positive and of \$2 billion dollars for 2016.  
+
 ### Quantifying loses  
 - Mix gains and loses. 
 - Output lost - increase in aggregate demand (!) 
@@ -1582,6 +1694,15 @@ No interactions with other programs is assumed (SNAP or EITC).
 ### What is in the 2/3  
   - CBO acknowledges uncertainty in the estimates of elasticity due to possible technological changes in the future.  
   - 
+
+# Results 
+
+```{r final results,}
+knitr::kable(round(table_9), caption="Summary of effect of raising the minimum wage", digits = 1)
+
+```  
+
+
 
 [^1]: The report presents smaller estimates for the \$9.00 dollar option (-0.075). The rationale is that a smaller increase (in magnitude but also not indexed by inflation, and with later implementation than the 10.10 option)   will allow firms to adjust other margins before reducing employment. 
 

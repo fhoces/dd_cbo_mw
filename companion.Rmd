@@ -372,102 +372,16 @@ df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,],
 #to be done: adjust some states by inflation.
 ```  
 
-## Get the $N$   
-Following the  
- 
-### Visualize the universe  
+## Get the $N$    
+According to the CPS data the population of working age in 2013 was `r round( sum(df$final_weights, na.rm = TRUE)/1e6, 1)` million*. Of those, `r round( sum( df$final_weights * (df$lfstat == "Employed"), na.rm = TRUE)/1e6, 1)` million were working, `r round( sum( df$final_weights * (df$lfstat == "Unemployed"), na.rm = TRUE)/1e6, 1)` and `r round( sum( df$final_weights * (df$lfstat == "NILF"), na.rm = TRUE)/1e6, 1)` where not in the labor force (NILF). 
 
-```{r Universe, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold', cache=FALSE}
-library(treemap)
+Among those employed,
 
-if (!(length(dev.list()) == 0)) { dev.off() }
-x11()
-asd <- df %>% 
-        mutate("teen" = ifelse(age<20, "teen", "adult"), 
-               "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1)) %>%  
-                  group_by(lfstat,selfemp_inc, teen)  %>% 
-            summarise("total" = sum(final_weights, na.rm = TRUE)) 
-
-asd$selfemp_inc[asd$lfstat!="Employed"] = NA 
-asd$teen[asd$lfstat!="Employed"] = NA 
-
-asd$selfemp_inc[asd$selfemp_inc==0]  <- "salary"
-asd$selfemp_inc[asd$selfemp_inc==1]  <- "self employed or self incorporated"
-
-treemap(asd,
- index=c("lfstat", "selfemp_inc", "teen"),
- vSize=c("total"),
- range = c(7, 15),
- type="index",
- algorithm="pivotSize",
- fontsize.labels = c(12:8),
- border.col = c("#FFFFFF", "#000000","#000000"), 
- aspRatio= 1.5, 
- palette = c("#D3D3D3"), 
-title.legend="number of employees",
-fontface.labels  = c(3,2,1,1), 
-align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom") ), 
-bg.labels = 1
-)
-
-#####################
-if (!(length(dev.list()) == 0)) { dev.off() }
-x11()
-asd <- df %>% 
-        mutate("teen" = ifelse(age<20, "teen", "adult"), 
-               "wage_c" = cut(wage3, c(-Inf, 7:15,Inf) ), 
-               "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1) ) %>% 
-          group_by(lfstat,selfemp, selfemp_inc, teen, wage_c)  %>% 
-            summarise("total" = sum(final_weights, na.rm = TRUE)) 
-
-asd$selfemp_inc[asd$lfstat!="Employed"] = NA
-asd$teen[asd$lfstat!="Employed"] = NA
-asd$wage_c[asd$lfstat!="Employed"] = NA
-
-
-asd$selfemp_inc[asd$selfemp_inc==0]  <- "salary"
-asd$selfemp_inc[asd$selfemp_inc==1]  <- "self employed or self incorporated"
-
-asd$wage_n <- as.numeric(asd$wage_c)
-
-asd$color <-heat.colors( nlevels(asd$wage_c) )[asd$wage_c]
-asd$color[is.na(asd$color)] <- "#D3D3D3"
-
-treemap(asd,
- index=c("lfstat", "selfemp_inc", "teen", "wage_c"),
- vSize=c("total"),
- vColor = c("color"),
- range = c(7, 15),
- type="color",
-  aspRatio= 1.5, 
- algorithm="pivotSize",
-  border.col = c("#FFFFFF", "#000000","#000000","#000000"), 
- sortID="-wage_n", 
- fontsize.labels = c(12:8),
- #aspRatio= c(4,3), 
- palette = c(rev(heat.colors( nlevels(asd$wage_c) )),"#D3D3D3"), 
-title.legend="number of employees",
-align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom"), c("center", "center")), 
-fontface.labels  = c(3,2,1,1), 
-bg.labels = 1
-)
-
-```   
-
+*[FH: why are some indiv with age >65?]  
 
 
 ```{r desc stats2,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
-library(dplyr)
-library(foreign)
-library(weights)
-library(survey)
-library(Hmisc)
-library(openxlsx)
-
 # To compute the new total of workers we multiply the original weigths by the growth rate. 
-
-
-
 table_1  <- df  %>% 
    summarise("(1) Total" =
                sum(final_weights, na.rm = TRUE), 
@@ -643,6 +557,86 @@ abline(v = 10.10, col = "red")
  
 knitr::kable(table_4, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
 ```  
+
+
+### Visualize the universe  
+
+```{r Universe, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold', cache=FALSE}
+library(treemap)
+
+if (!(length(dev.list()) == 0)) { dev.off() }
+x11()
+asd <- df %>% 
+        mutate("teen" = ifelse(age<20, "teen", "adult"), 
+               "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1)) %>%  
+                  group_by(lfstat,selfemp_inc, teen)  %>% 
+            summarise("total" = sum(final_weights, na.rm = TRUE)) 
+
+asd$selfemp_inc[asd$lfstat!="Employed"] = NA 
+asd$teen[asd$lfstat!="Employed"] = NA 
+
+asd$selfemp_inc[asd$selfemp_inc==0]  <- "salary"
+asd$selfemp_inc[asd$selfemp_inc==1]  <- "self employed or self incorporated"
+
+treemap(asd,
+ index=c("lfstat", "selfemp_inc", "teen"),
+ vSize=c("total"),
+ range = c(7, 15),
+ type="index",
+ algorithm="pivotSize",
+ fontsize.labels = c(12:8),
+ border.col = c("#FFFFFF", "#000000","#000000"), 
+ aspRatio= 1.5, 
+ palette = c("#D3D3D3"), 
+title.legend="number of employees",
+fontface.labels  = c(3,2,1,1), 
+align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom") ), 
+bg.labels = 1
+)
+
+#####################
+if (!(length(dev.list()) == 0)) { dev.off() }
+x11()
+asd <- df %>% 
+        mutate("teen" = ifelse(age<20, "teen", "adult"), 
+               "wage_c" = cut(wage3, c(-Inf, 7:15,Inf) ), 
+               "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1) ) %>% 
+          group_by(lfstat,selfemp, selfemp_inc, teen, wage_c)  %>% 
+            summarise("total" = sum(final_weights, na.rm = TRUE)) 
+
+asd$selfemp_inc[asd$lfstat!="Employed"] = NA
+asd$teen[asd$lfstat!="Employed"] = NA
+asd$wage_c[asd$lfstat!="Employed"] = NA
+
+
+asd$selfemp_inc[asd$selfemp_inc==0]  <- "salary"
+asd$selfemp_inc[asd$selfemp_inc==1]  <- "self employed or self incorporated"
+
+asd$wage_n <- as.numeric(asd$wage_c)
+
+asd$color <-heat.colors( nlevels(asd$wage_c) )[asd$wage_c]
+asd$color[is.na(asd$color)] <- "#D3D3D3"
+
+treemap(asd,
+ index=c("lfstat", "selfemp_inc", "teen", "wage_c"),
+ vSize=c("total"),
+ vColor = c("color"),
+ range = c(7, 15),
+ type="color",
+  aspRatio= 1.5, 
+ algorithm="pivotSize",
+  border.col = c("#FFFFFF", "#000000","#000000","#000000"), 
+ sortID="-wage_n", 
+ fontsize.labels = c(12:8),
+ #aspRatio= c(4,3), 
+ palette = c(rev(heat.colors( nlevels(asd$wage_c) )),"#D3D3D3"), 
+title.legend="number of employees",
+align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom"), c("center", "center")), 
+fontface.labels  = c(3,2,1,1), 
+bg.labels = 1
+)
+
+```   
 
 
 

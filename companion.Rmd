@@ -372,15 +372,35 @@ df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,],
 #to be done: adjust some states by inflation.
 ```  
 
-## Get the $N$    
-According to the CPS data the population of working age in 2013 was `r round( sum(df$final_weights, na.rm = TRUE)/1e6, 1)` million*. Of those, `r round( sum( df$final_weights * (df$lfstat == "Employed"), na.rm = TRUE)/1e6, 1)` million were working, `r round( sum( df$final_weights * (df$lfstat == "Unemployed"), na.rm = TRUE)/1e6, 1)` and `r round( sum( df$final_weights * (df$lfstat == "NILF"), na.rm = TRUE)/1e6, 1)` where not in the labor force (NILF). 
+## Get the $N$   
 
-Among those employed,
+
+```{r, echo=FALSE, }
+temp.working.age.pop <- round( sum(df$final_weights, na.rm = TRUE)/1e6, 1)
+temp.employed.pop <- round( sum( df$final_weights * (df$lfstat == "Employed"), na.rm = TRUE)/1e6, 1)
+temp.unemployed.pop <- round( sum( df$final_weights * (df$lfstat == "Unemployed"), na.rm = TRUE)/1e6, 1)
+temp.nilf.pop <-  round( sum( df$final_weights * (df$lfstat == "NILF"), na.rm = TRUE)/1e6, 1)
+temp.salary <- round( with(df, sum(final_weights * (empl == 1 &  (selfinc == 0 & selfemp == 0)), na.rm = TRUE))/1e6 , 1)
+temp.salary.g1 <- round(with(df, sum(final_weights * ( (empl == 1 & selfinc == 0 & selfemp == 0) & (paidhre == 1 | hrsvary != 1 | is.na(hrsvary) ) & (wage3==0 | is.na(wage3) ) ) , na.rm = TRUE))/1e6, 1)
+temp.nohour <- round(with(df,  sum(final_weights * (empl == 1 & (selfinc == 0 & selfemp == 0) & (paidhre == 0 |is.na(paidhre))), na.rm = TRUE))/1e6, 1)
+temp.nohour.hours.vary <- round(with(df, sum( final_weights * (empl == 1 & (selfinc == 0 & selfemp == 0) & (paidhre == 0 | is.na(paidhre) ) & hrsvary == 1), na.rm = TRUE))/1e6, 1)
+temp.pop.of.interest <- round(with(df, sum(final_weights * (empl == 1 & (selfinc ==0 & selfemp == 0) & ( (paidhre == 0 & hrsvary != 1) | paidhre ==1 )  & wage3 != 0) , na.rm = TRUE))/1e6, 1)
+```
+
+According to the CPS data the population of working age in 2013 was `r temp.working.age.pop` million*. Of those, `r temp.employed.pop` million were working, `r temp.unemployed.pop`, were unemployed and `r temp.nilf.pop` were not in the labor force (NILF). 
+
+Among those employed, `r temp.salary` million workers receive a salary (not self employed or self incorporated).  A small number of salary workers (`r temp.salary.g1` million) did not reported any wages and were excluded from the sample. Of the employed salary workers `r temp.nohour` million did not report an hourly wage and their wage was extrapolated from their reported paid period in to a per-hour basis. However, `r temp.nohour.hours.vary` million workers from this group reported having varying hours. Their wages were not calculated and were also excluded from the sample.  As a result the final number of workers where a rise in the minimum wage can have a direct effect is `r temp.pop.of.interest` million (= `r temp.salary` - `r temp.salary.g1` -  `r temp.nohour.hours.vary`). 
 
 *[FH: why are some indiv with age >65?]  
-
-
 ```{r desc stats2,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+# Tag population of interest
+pop_of_int <- with(df,
+                   (empl == 1 &
+                      (selfinc == 0 & selfemp == 0) & 
+                      ( (paidhre == 0 & ( hrsvary != 1 | is.na(hrsvary) )  )  | paidhre == 1 )  & 
+                      !(wage3 == 0 | is.na(wage3) ) )
+  )
+
 # To compute the new total of workers we multiply the original weigths by the growth rate. 
 table_1  <- df  %>% 
    summarise("(1) Total" =
@@ -388,17 +408,17 @@ table_1  <- df  %>%
              "(2) Employed" = 
                sum( final_weights * (empl == 1), na.rm = TRUE), 
              "(3) Salary (among employed)" = 
-               sum(final_weights * (empl == 1 &             #Salary worker if 
+               sum(final_weights * (empl == 1 &      #Salary worker if 
                (selfinc == 0 & selfemp == 0))        #not self employed or     
                 , na.rm = TRUE),                     #self incorp.
 
              "(4) Not Paid hourly (among salary)" = 
-               sum(final_weights * (empl == 1 &              #Not paid hourly if salary and 
+               sum(final_weights * (empl == 1 &       # Not paid hourly if salary and 
                (selfinc == 0 & selfemp == 0) &        # not paid hourly
                (paidhre == 0 | is.na(paidhre) )), na.rm = TRUE), 
 
              "(5) Hours Vary (among not paid hourly)" =
-               sum(final_weights * (empl == 1 &              #Hours vary if not paid hourly and 
+               sum(final_weights * (empl == 1 &       #Hours vary if not paid hourly and 
                (selfinc == 0 & selfemp == 0) &        #hours vary
                (paidhre == 0 | is.na(paidhre) ) & hrsvary == 1), na.rm = TRUE),
 
@@ -454,15 +474,6 @@ colnames(table_1_uw) <- "N_unweighted"
 table_1_uw <- format(table_1_uw, big.mark = ",", digits = 0, scientific = FALSE)
 
 table_1 <- cbind(table_1, table_1_uw)
-
-
-# Tag population of interest
-pop_of_int <- with(df,
-                   (empl == 1 &
-                      (selfinc == 0 & selfemp == 0) & 
-                      ( (paidhre == 0 & ( hrsvary != 1 | is.na(hrsvary) )  )  | paidhre == 1 )  & 
-                      !(wage3 == 0 | is.na(wage3) ) )
-  )
 
 new_total_n <- format(sum(df$final_weights[pop_of_int==1] * 
                             (1 + workers.gr)^3, 
@@ -525,6 +536,117 @@ aux.1 <- df %>%
               )
 
 table_4[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
+```  
+
+
+### Visualize the universe  
+
+```{r Universe, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold', cache=FALSE}
+library(treemap)
+
+if (!(length(dev.list()) == 0)) { dev.off() }
+x11()
+universe.1 <- df %>% 
+        mutate("teen" = ifelse(age<20, "teen", "adult"), 
+               "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1)) %>%  
+        group_by(lfstat,selfemp_inc, teen)  %>% 
+        summarise("total" = sum(final_weights, na.rm = TRUE)) %>% 
+        filter
+
+universe.1$selfemp_inc[universe.1$lfstat!="Employed"] = NA 
+universe.1$teen[universe.1$lfstat!="Employed" | universe.1$selfemp_inc==1] = NA 
+universe.1$selfemp_inc[universe.1$selfemp_inc==0]  <- "salary"
+universe.1$selfemp_inc[universe.1$selfemp_inc==1]  <- "self employed or self incorporated"
+
+treemap(universe.1,
+ index=c("lfstat", "selfemp_inc", "teen"),
+ vSize=c("total"),
+ range = c(7, 15),
+ type="index",
+ algorithm="pivotSize",
+ fontsize.labels = c(12:8),
+ border.col = c("#FFFFFF", "#000000","#000000"), 
+ aspRatio= 1.5, 
+ palette = c("#D3D3D3"), 
+title.legend="number of employees",
+fontface.labels  = c(3,2,1,1), 
+align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom") ), 
+bg.labels = 1
+)
+
+#####################
+if (!(length(dev.list()) == 0)) { dev.off() }
+x11()
+universe.1 <- df %>% 
+        mutate("teen" = ifelse(age<20, "teen", "adult"), 
+               "wage_c" = cut(wage3, c(-Inf, 7:15,Inf) ), 
+               "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1) ) %>% 
+          group_by(lfstat,selfemp, selfemp_inc, teen, wage_c)  %>% 
+            summarise("total" = sum(final_weights, na.rm = TRUE)) 
+
+universe.1$selfemp_inc[universe.1$lfstat!="Employed"] = NA
+universe.1$teen[universe.1$lfstat!="Employed"] = NA
+universe.1$wage_c[universe.1$lfstat!="Employed"] = NA
+
+
+universe.1$selfemp_inc[universe.1$selfemp_inc==0]  <- "salary"
+universe.1$selfemp_inc[universe.1$selfemp_inc==1]  <- "self employed or self incorporated"
+
+universe.1$wage_n <- as.numeric(universe.1$wage_c)
+
+universe.1$color <-heat.colors( nlevels(universe.1$wage_c) )[universe.1$wage_c]
+universe.1$color[is.na(universe.1$color)] <- "#D3D3D3"
+
+treemap(universe.1,
+ index=c("lfstat", "selfemp_inc", "teen", "wage_c"),
+ vSize=c("total"),
+ vColor = c("color"),
+ range = c(7, 15),
+ type="color",
+  aspRatio= 1.5, 
+ algorithm="pivotSize",
+  border.col = c("#FFFFFF", "#000000","#000000","#000000"), 
+ sortID="-wage_n", 
+ fontsize.labels = c(12:8),
+ #aspRatio= c(4,3), 
+ palette = c(rev(heat.colors( nlevels(universe.1$wage_c) )),"#D3D3D3"), 
+title.legend="number of employees",
+align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom"), c("center", "center")), 
+fontface.labels  = c(3,2,1,1), 
+bg.labels = 1
+)
+
+```   
+
+
+```{r hist and table, }
+
+
+if (FALSE) {
+    df  %>% 
+    filter(pop_of_int==1 & wage3<=200)  %>% 
+      select(wage3, w3.adj.min) %>% 
+      melt() %>%  
+  ggplot(aes(value)) + 
+    coord_cartesian(xlim = c(0,30), ylim = c(0 , 1e7)) +
+    geom_density(aes(weights=final_weights,color=variable, fill=variable, ), bw = 1) +
+ggplot(aes(w3.adj.min)) + 
+  coord_cartesian(xlim = c(0,20), ylim = c(0 , 1e7)) +
+  geom_density(aes(weights=final_weights),
+                color="red", fill="red") 
+
+
+  
+      with( plot(density(w3.adj.min, 
+                  weight =  final_weights
+                  ),                  col=rgb(1,0,0,0.4),
+                  main = "Distribution of Hourly Wages Below $20",                  xlab = "Hourly Wage", 
+
+ xlim = c(0, 20))
+          )
+}
+
+
 
 # Histogram of wage below $20
 df  %>% 
@@ -557,89 +679,6 @@ abline(v = 10.10, col = "red")
  
 knitr::kable(table_4, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
 ```  
-
-
-### Visualize the universe  
-
-```{r Universe, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold', cache=FALSE}
-library(treemap)
-
-if (!(length(dev.list()) == 0)) { dev.off() }
-x11()
-asd <- df %>% 
-        mutate("teen" = ifelse(age<20, "teen", "adult"), 
-               "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1)) %>%  
-                  group_by(lfstat,selfemp_inc, teen)  %>% 
-            summarise("total" = sum(final_weights, na.rm = TRUE)) 
-
-asd$selfemp_inc[asd$lfstat!="Employed"] = NA 
-asd$teen[asd$lfstat!="Employed"] = NA 
-
-asd$selfemp_inc[asd$selfemp_inc==0]  <- "salary"
-asd$selfemp_inc[asd$selfemp_inc==1]  <- "self employed or self incorporated"
-
-treemap(asd,
- index=c("lfstat", "selfemp_inc", "teen"),
- vSize=c("total"),
- range = c(7, 15),
- type="index",
- algorithm="pivotSize",
- fontsize.labels = c(12:8),
- border.col = c("#FFFFFF", "#000000","#000000"), 
- aspRatio= 1.5, 
- palette = c("#D3D3D3"), 
-title.legend="number of employees",
-fontface.labels  = c(3,2,1,1), 
-align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom") ), 
-bg.labels = 1
-)
-
-#####################
-if (!(length(dev.list()) == 0)) { dev.off() }
-x11()
-asd <- df %>% 
-        mutate("teen" = ifelse(age<20, "teen", "adult"), 
-               "wage_c" = cut(wage3, c(-Inf, 7:15,Inf) ), 
-               "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1) ) %>% 
-          group_by(lfstat,selfemp, selfemp_inc, teen, wage_c)  %>% 
-            summarise("total" = sum(final_weights, na.rm = TRUE)) 
-
-asd$selfemp_inc[asd$lfstat!="Employed"] = NA
-asd$teen[asd$lfstat!="Employed"] = NA
-asd$wage_c[asd$lfstat!="Employed"] = NA
-
-
-asd$selfemp_inc[asd$selfemp_inc==0]  <- "salary"
-asd$selfemp_inc[asd$selfemp_inc==1]  <- "self employed or self incorporated"
-
-asd$wage_n <- as.numeric(asd$wage_c)
-
-asd$color <-heat.colors( nlevels(asd$wage_c) )[asd$wage_c]
-asd$color[is.na(asd$color)] <- "#D3D3D3"
-
-treemap(asd,
- index=c("lfstat", "selfemp_inc", "teen", "wage_c"),
- vSize=c("total"),
- vColor = c("color"),
- range = c(7, 15),
- type="color",
-  aspRatio= 1.5, 
- algorithm="pivotSize",
-  border.col = c("#FFFFFF", "#000000","#000000","#000000"), 
- sortID="-wage_n", 
- fontsize.labels = c(12:8),
- #aspRatio= c(4,3), 
- palette = c(rev(heat.colors( nlevels(asd$wage_c) )),"#D3D3D3"), 
-title.legend="number of employees",
-align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom"), c("center", "center")), 
-fontface.labels  = c(3,2,1,1), 
-bg.labels = 1
-)
-
-```   
-
-
-
 
 ### Identify population  
 
@@ -1150,9 +1189,8 @@ Unlike the case wages, where the adjustments was over a small fractions of the p
 The adjustments follows the following formula: 
 $$
 \begin{align}
-w_{ig} &= \alpha w^{raw}_{ig} - (1 - \alpha)  \overline{w^{raw}_{g}} \label{samp.eq1} \\
-\text{with:    } \quad \overline{w^{raw}_{g}} &= \frac{\sum_{g} w^{raw}_{ig} }{N_{g}}  \nonumber 
-\end{align}
+w_{ig} &= \alpha w^{raw}_{ig} - (1 - \alpha)  \overline{w^{raw}_{g}} \label{samp.eq1_1} \\
+\text{with:    } \quad \overline{w^{raw}_{g}} &= \frac{\sum_{g} w^{raw}_{ig} }{N_{g}} \nonumber \end{align}
 $$ 
   
 NEED TO COMPLETE.  

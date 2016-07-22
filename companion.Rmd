@@ -1038,38 +1038,39 @@ $$
 
 Looking at historical trends in the CPS, CBO estimates that $F_{adjs}$ is 4.5 for both populations.  In the following table we summarize all the elemnts required to compute $\widetilde{ \eta^{g}_{w\leq MW} }$ 
 ```{r employment effect, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+eta.lit <- - 0.1
+factor.extrap <- 1/3
+
 stats3 <-  df  %>% 
   filter(pop_of_int == 1) %>% 
   mutate("adult" = ifelse(age>=20, "Adult", "Teen") )  %>% 
   group_by(adult)  %>% 
-  summarise( "N" = sum(final_weights)/1e6,
-             "% Empl Below MW" = mean( 1*(w3.adj.min <=10.10), na.rm = TRUE) * 100 , 
-             "% Mean Wage Inc" = mean( ifelse(w3.adj.min <=10.10,
+  summarise("% Mean Wage Inc" = wtd.mean( ifelse(w3.adj.min <=10.10,
                                             (10.10 - w3.adj.min)/w3.adj.min, NA) , 
-                                     na.rm = TRUE) * 100 ) 
+                                     na.rm = TRUE, weights = final_weights) * 100 ) 
 
-aux1 <- df %>%
-  select(wage3, age, state, final_weights, peernuot)  %>%
-  filter(pop_of_int == 1 & wage3 < 11.5) %>% 
-  mutate("adult" = ifelse(age>=20, "Adult", "Teen") )  %>% 
-  group_by(adult)  %>% 
-      summarise(
-          "% of non compliers with adj" = 
-          wtd.mean(wage3 + 0.25 * (peernuot == 2) + 
-                          0.13 * (peernuot == 1)  < state.minw("2013")[state, ], 
-                          weights = final_weights)*100 
+stats3 <- rbind("$\\eta_{lit}$" = c( eta.lit * factor.extrap , eta.lit ), 
+                "$\\eta_{w \\leq MW'}$" = c( eta.lit * factor.extrap , eta.lit ) / 
+                  (stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",1:2]/100),
+                "$F_{adj}$" = c( 4.5, 4.5 ),
+                t(stats3[,-1]) )
 
-        ) 
+aux.1 <- apply(stats3, 2, function(x) x[1]) #AQUI VOY
+stats3 <- rbind(stats3, "$\\widehat{\\eta_{final}}$"= aux.1)
 
-stats3 <- cbind(stats3, aux1[,2])
+colnames(stats3) <- c("Adult", "Teen")  
+stats3 
 
-t(stats3)
+
+
+knitr::kable(stats3, caption="Components of Elasticities", digits = 2) 
+
 
 # As it should have been computed according to doc
 delta.e1 <- sum( stats3$N * stats3$`% Empl Below MW`/100 * ( 1 - stats3$`% of non compliers with adj`/100 - 0) *
        stats3$`% Mean Wage Inc`/100 * 0.1/(stats3$`% Empl Below MW`/100) *
        ((stats3$`% Mean Wage Inc`/100)/0.37) * c(1/3, 1) 
-) - 0.05 * 0.9
+) - 0.05 * 0.9 
 # As described in doc
 delta.e2 <- sum( stats3$N * stats3$`% Empl Below MW`/100 * ( 1 - stats3$`% of non compliers with adj`/100 - 0) *
        stats3$`% Mean Wage Inc`/100 * 0.1 * 4.5 * c(1/3, 1) ) - 0.05 * 0.9 

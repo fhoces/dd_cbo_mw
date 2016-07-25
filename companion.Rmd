@@ -1511,7 +1511,7 @@ while ( abs(sum(cut.job * df$hhwgt , na.rm = TRUE) - num.to.del) >= 1e5)  {
   } else{
     theta <- theta * 0.999
   }
-   print(theta)
+   #print(theta)
 } 
 teen <- df$age<20
 prop.table(with(df[pop_of_int == 1, ], table(cut.job,teen)), 2)
@@ -1554,7 +1554,7 @@ df <- df %>%
   group_by(hhseq) %>% 
   mutate(fam.new.wage = sum(new.wage.total, na.rm = TRUE))
 
-# Income
+# Income 
 df$fam.sq.income <- with(df, fam.sq.wage + non.wage.adj1)
 df$fam.cut.income <- with(df, fam.cut.wage + non.wage.adj1)
 df$fam.new.income <- with(df, fam.new.wage + non.wage.adj1)
@@ -1573,7 +1573,7 @@ df %>% select(fam.new.income,fam.sq.income, perno,hhwgt, N.fam) %>%
   filter(perno == 1) %>% 
   with(sum( (fam.new.income - fam.sq.income) * hhwgt, na.rm = TRUE) ) /1e9
 
-#AQUI VOY
+#AQUI VOY UNDERSTAN INCOME WELL!!!!!
 
 # Compute variation by hhld
 asd <- df %>% select(new.income,sq.income,perno,N.fam, hhwgt) %>% filter(perno == 1) %>% 

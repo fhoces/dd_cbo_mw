@@ -1408,10 +1408,8 @@ knitr::kable(table_8, caption="Comparison of 2013 and 2016 under the status quo"
 
 ## Imputing policy effects
 
-### Imputing wage increases  
+### Imputing wage gains  
 If the wage is below the proposed new minimum (10.10), we increase that wage up to 10.10 for all the eligible population.  
-
-NEED TO DEFINE BETTER THE ELIGIBLE POPULATION    
 
 #### Ripple effects   
 CBO applies an additional wage increase for wages that are in a neibourhood up to 50% of the max increase ($+-0.5(10.10 - 7.25) = +- \$1.4$). Thus, the final imputed wage is:
@@ -1419,21 +1417,27 @@ CBO applies an additional wage increase for wages that are in a neibourhood up t
 $$
 \tilde{w} =
 \begin{cases}
-w + 0.5(w - 7.25) \quad if \quad  w \in [8.7, 10.10) \\
-w + 0.5(11.5 - w) \quad if \quad  w \in [10.10, 11.5) \\
-w \quad o/w
+MW' + 0.5(w - 7.25) \quad if \quad  w \in [8.7, 10.10) \\
+MW' + 0.5(11.5 - w) \quad if \quad  w \in [10.10, 11.5) \\
+MW' \quad o/w
 \end{cases}
 $$
 
 ```{r positive effects,  eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
-# Get the number of workers whos wage would bebow 10.10 in the status quo (in millions)
-N_benes <- sum(df$hhwgt[df$wage.adj.min <= 10.10 & pop_of_int==1], na.rm = TRUE)/1e6
-# Tag those workers 
-df$below_min <-with(df, ifelse(wage.adj.min <= 10.10 & pop_of_int == 1, 1, 0) )
+#Increase population size (apply workers growth rate to all pop)
+df$hhwgt.2016 <- df$hhwgt * gr.factor("workers", 2013, 2016)
 
-# Compute total wage increase (yearly in billions) -without ripple effects-
+# Get the number of workers whos wage would bebow 10.10 in the status quo (in millions)
+N_benes <- sum(df$hhwgt.2016[df$wage.adj.min <= 10.10 & pop_of_int==1], na.rm = TRUE)/1e6
+# Tag those workers 
+df$below_min <-with(df, ifelse(wage.adj.min <= 10.10 & pop_of_int == 1,
+                               1, 0) )
+
+df$below_min[is.na(df$below_min)] <- 0
+
+# Compute total wage increase (yearly, in billions) -without ripple effects and before destroying jobs-
 wage.inc <- with(df[df$below_min == 1 & pop_of_int==1, ], 
-      sum((10.10 - wage.adj.min) *  hhwgt * hrslyr * wkslyr , na.rm = TRUE) ) / 1e9 
+      sum((10.10 - wage.adj.min) *  hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) ) / 1e9 
 
 # Create new wage (after inc in min wage)
 df$new.wage <- with(df, ifelse(wage.adj.min<10.10 & pop_of_int==1, 
@@ -1446,31 +1450,72 @@ df$new.wage <- with(df, ifelse(wage.adj.min<10.10 & pop_of_int==1,
 #                 mutate( new.wage = ifelse(wage.adj.min>8.7 & wage.adj.min<10.10, 
 #                                      10.10 + 0.5 * (wage.adj.min - 7.25), 
 #                                      new.wage) )
+
+# Apply ripple effects
 df$new.wage <- with(df, ifelse(wage.adj.min>10.10 & wage.adj.min<11.5 & pop_of_int==1, 
                                10.10 + 0.5 * (11.5 - wage.adj.min),
-                               ifelse(wage.adj.min>8.7 & wage.adj.min<10.10 & pop_of_int==1,
+                               ifelse(wage.adj.min>8.7 & wage.adj.min<=10.10 & pop_of_int==1,
                                         10.10 + 0.5 * (wage.adj.min - 7.25),
                                        new.wage
                                         ) ) )
 # Total gain with ripple effects but without destroying any jobs  
 wage.inc.with.ripple <- df %>% 
     #filter(below_min == 0)  %>% 
-      with( sum((new.wage - wage.adj.min) *  hhwgt * hrslyr * wkslyr , na.rm = TRUE) ) / 1e9 
+      with( sum((new.wage - wage.adj.min) *  hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) ) / 1e9 
+```  
 
 
+#### Substracting non compliers  
+In section 2.2 we estimate that `r paste(round(stats2["% of non compliers ($\\alpha_{1}$)", "Total"], 1),"%", sep="")` of workers eligible for a rise would not receive such benefit. To account for this fraction of non compliers replace the same fraction of new wages with what would have receive under the status quo.  
+
+```{r non compliesrs in asec, }
+#AQUI VOY
+# Apply ripple effects
+alpha.1 <- stats2["% of non compliers ($\\alpha_{1}$)", "Total"]/100
+# df$new.wage[df$below_min==1 & pop_of_int==1] <- with(df[df$below_min==1 & pop_of_int==1,], 
+#                                                      ifelse(runif( length(new.wage) )< alpha.1, 
+#                                                             wage.adj.min, 
+#                                                             new.wage) )
+
+set.seed(123)
+df <- df %>% mutate("no.comply" = ifelse( pop_of_int==1,   
+                    ifelse(runif( length(new.wage) )< alpha.1, 
+                           "Not comply", "comply"),
+                    NA), 
+                    "new.wage" = ifelse(no.comply == "Not comply", 
+                                        wage.adj.min, 
+                                        new.wage) 
+) 
+
+# Total gain with ripple effects but without destroying any jobs and accounting for non-compliance
+wage.inc.with.ripple.non.comp <- df %>% 
+    #filter(below_min == 0)  %>% 
+      with( sum((new.wage - wage.adj.min) *  hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) ) / 1e9 
+
+# Number of workers with wages below new min, that are eligible to receive wage inc (before job loses)
+N_benes_compliance_below_min <-  sum(df$hhwgt.2016[(df$wage.adj.min != df$new.wage) & df$below_min==1], na.rm = TRUE)/1e6
+N_benes_compliance_above_min <-  sum(df$hhwgt.2016[(df$wage.adj.min != df$new.wage) & df$below_min==0], na.rm = TRUE)/1e6
+N_benes_compliance<- sum(df$hhwgt.2016[(df$wage.adj.min != df$new.wage)], na.rm = TRUE)/1e6
+
+pt <- function(x) round(x, 1)
 
 ``` 
 
-The total number of workers that are potentially eligible for a raise, before destroying jobs, is `r round(N_benes, 1)` millions.
 
-### Destroying jobs  
-The imputation above so far is applied to all workers below the minimum wage (and the ripple effects). Now we need to remove the $\widehat{\Delta E} = `r round(delta.e2, 2)`$  workers by imputing them a wage of 0. CBO chose to not move the wage all the way to 0 but to cut it in half and apply such imputation to $2\widehat{\Delta E}$. When destroying jobs CBO argued that the effect would be heavier on teenagers and low wage adutls. We implement this in the follwogin algorithm:
+After accounting for non compliance, the total number of workers that are potentially eligible for a raise is `r pt(N_benes_compliance)` million. Of that number `r pt(N_benes_compliance_below_min)` would have had a wage below the new minimum and `r pt(N_benes_compliance_above_min)` would have had a wage above 10.10, but receives a wage increase through ripple effects. We now impute job losses in order to obtain the final number of workers who benefit and lost from a raise in the minimum wage. 
+
+
+### Imputing job losses  
+
+The imputation above so far is applied to all workers below the minimum wage (and the ripple effects). Now we need to remove the $\widehat{\Delta E} = `r round(delta.e1, 2)`$ million workers by imputing them a wage of 0. CBO chose to not move the wage all the way to 0 but to cut it in half and apply such imputation to $2\widehat{\Delta E}$. When destroying jobs CBO argued that the effect would be heavier on teenagers and low wage adutls. We implement this in the follwogin algorithm:
 
 Replace $\tilde{w} = \tilde{w}/2$ if :  
   - $w \in [7.25, 10.10)$    
   - $\frac{exp(m(x))}{1 + exp(m(x))} > Uniform[\theta]$  with $m(x) = \beta_{1} TEEN - \beta_{2} ADULT\times w$ and $\beta_{1}, \beta_2 >0$  
-  - Choose $\theta$ to destroy $2\widehat{\Delta E}$ jobs.     
-[TO COMPLETE] Check with CBO. So far I am destroying jobs uniformly across workers earning less than 10.10
+  - Choose $\theta$ to destroy $2\widehat{\Delta E}$ jobs.   
+  
+[TO COMPLETE] Check with CBO. So far I am destroying jobs uniformly across workers earning less than 10.10  
+
 ```{r job destruction, }  
 #NOT USING THIS FOR NOW
 m_x <- function(beta1 , beta2) with(df, 
@@ -1481,15 +1526,16 @@ m_x <- function(beta1 , beta2) with(df,
 #WOULD LIKE TO MAKE THE NEXT OPTIMIZATION MORE EFFICIENT
 num.to.del <- - delta.e1*1e6*2
 
-theta <- 7
+theta <- 3
 cut.job <- 0
-while ( abs(sum(cut.job * df$hhwgt , na.rm = TRUE) - num.to.del) >= 1e5)  { 
+while ( abs(sum(cut.job * df$hhwgt.2016 , na.rm = TRUE) - num.to.del) >= 1e5)  { 
   set.seed(123)
-  cut.job <- 1* ( df$wage.adj.min<=10.10 & pop_of_int==1 & (theta*runif(dim(df)[1], min = 0, max = 1) < 0.5) )
-  # sum(cut.job * df$hhwgt , na.rm = TRUE)/1e6
-  if (sum(cut.job * df$hhwgt , na.rm = TRUE) - num.to.del >= 10000) {
+  cut.job <- 1* ( df$wage.adj.min<=10.10 & pop_of_int==1 & df$no.comply=="comply" &
+                    (theta*runif(dim(df)[1], min = 0, max = 1) < 0.5) )
+  # sum(cut.job * df$hhwgt.2016 , na.rm = TRUE)/1e6
+  if (sum(cut.job * df$hhwgt.2016 , na.rm = TRUE) - num.to.del >= 10000) {
     theta <- theta * 1.001 
-  } else{
+  } else {
     theta <- theta * 0.999
   }
    #print(theta)
@@ -1505,16 +1551,13 @@ df$new.wage <- with(df, ifelse(cut.job == 1, wage.adj.min/2, new.wage))
 # Compute total wage increase after ripple effects (yearly in billions)
 wage.gain.total <- df %>% 
       with( sum( (new.wage - wage.adj.min) * 
-                   hhwgt * hrslyr * wkslyr , na.rm = TRUE) )/ 1e9 
+                   hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) )/ 1e9 
 
 wage.loss.total <- with(df, 
                         sum( (wage.adj.min - cut.wage) * 
-                                   hhwgt * (hrslyr * wkslyr) , na.rm = TRUE ) )/1e9
+                              hhwgt.2016 * (hrslyr * wkslyr) , na.rm = TRUE ) 
+                        )/1e9
 ```  
-
-### Other income losses.   
-Income losses from a reduction in profits ($\Delta^{-}\pi$) and an increase in agregate prices ($\Delta^{+}P$) is estimated[?] to be distributed as following: 1% of the losses for those below the poverty line (PL), 29% for those between 1 and 6 PL, and 70% for those above 6PL. 
-
 
 ## Computing family income under status quo and minimum wage increase  
 
@@ -1574,18 +1617,18 @@ df <- df %>%
          "new.income.pc" = fam.new.income/N.fam,
          "sq.income.pc" = fam.sq.income/N.fam, 
          "cut.income.pc" = fam.cut.income/N.fam, 
-         "fam.wgt" = sum(hhwgt, na.rm = TRUE) )
+         "fam.wgt" = sum(hhwgt.2016, na.rm = TRUE) )
 
 
 # Computing differences in income 
-df %>% select(fam.new.income,fam.sq.income, perno,hhwgt, N.fam) %>% 
+df %>% select(fam.new.income,fam.sq.income, perno,hhwgt.2016, N.fam) %>% 
   filter(perno == 1) %>% 
-  with(sum( (fam.new.income - fam.sq.income) * hhwgt, na.rm = TRUE) ) /1e9
+  with(sum( (fam.new.income - fam.sq.income) * hhwgt.2016, na.rm = TRUE) ) /1e9
 
 #AQUI VOY - UNDERSTAN INCOME WELL!!!!!
 
 # Compute variation by hhld
-asd <- df %>% select(new.income.pc,sq.income.pc,perno,N.fam, hhwgt) %>% filter(perno == 1) %>% 
+asd <- df %>% select(new.income.pc,sq.income.pc,perno,N.fam, hhwgt.2016) %>% filter(perno == 1) %>% 
   mutate( "variation" = new.income.pc - sq.income.pc ) %>% select(variation, sq.income.pc)
 
 #x11()
@@ -1594,7 +1637,7 @@ with(asd,plot(sq.income.pc, variation, xlim = c(0,2e5),
 abline(v = 11740*1:6, col = "red", lty = 1, cex=1.3)
 
 inc.quartiles <- with(df[df$perno==1,],
-                      wtd.quantile(x = fam.sq.income, probs = c(.25, .5, .75), weights = hhwgt*N.fam))
+                      wtd.quantile(x = fam.sq.income, probs = c(.25, .5, .75), weights = hhwgt.2016*N.fam))
 
 
 abline(v = inc.quartiles, col = "blue", lty =3)
@@ -1603,7 +1646,7 @@ losses <- (wage.gain.total - wage.loss.total)*1e9
 
 asd1 <- with(df, findInterval(x = sq.income.pc, vec = c(-Inf,11740, 6*11740, Inf)))
 
-asd2  <- losses * c(0.30, 0.29, 0.41) / wtd.table(asd1, weights = df$hhwgt)[[2]]
+asd2  <- losses * c(0.30, 0.29, 0.41) / wtd.table(asd1, weights = df$hhwgt.2016)[[2]]
 
 asd3 <- asd2[with(asd, findInterval(x = sq.income.pc, vec = c(-Inf,11740, 6*11740, Inf) )) ]
 
@@ -1615,7 +1658,7 @@ with(asd, points(sq.income.pc ,-asd3,  xlim = c(0,2e5),
 asd1 <- df %>% group_by(findInterval(sq.income.pc, c(-Inf, 11770*1:6, Inf) )) %>% summarise(log(mean(new.income.pc)))
 
 #number of individuals per group (width of recangle)
-asd2 <- df %>%  with( wtd.table(findInterval(sq.income.pc, c(-Inf, 11770*1:6, Inf)), weights = hhwgt/1e6) )
+asd2 <- df %>%  with( wtd.table(findInterval(sq.income.pc, c(-Inf, 11770*1:6, Inf)), weights = hhwgt.2016/1e6) )
 
 #Create here a kick-ass viz
 if (FALSE) {
@@ -1633,11 +1676,11 @@ rownames(table_9)  <- c("wage gains", "wage loses", "other loses", "N_i")
 
 
 #Classifying by PLs and using sq.income/N.fam
-deciles <- with(df[df$perno==1,],wtd.quantile(x = sq.income.pc, probs = 1:9/10, weights = hhwgt*N.fam))
+deciles <- with(df[df$perno==1,],wtd.quantile(x = sq.income.pc, probs = 1:9/10, weights = hhwgt.2016*N.fam))
 
 df$income.group <- with(df, findInterval(x = sq.income.pc, vec = c(-Inf,c(1,3,6)*11740, Inf)))
 
-table_9["N_i", ] <- wtd.table(with(df, income.group) , weights = df$hhwgt)[[2]]/1e6
+table_9["N_i", ] <- wtd.table(with(df, income.group) , weights = df$hhwgt.2016)[[2]]/1e6
   
 aux.1 <- df %>% group_by(income.group)  %>% summarise(mean((new.income.pc - sq.income.pc)/N.fam, na.rm = TRUE))
 table_9[ "wage gains", ] <- t(as.data.frame(aux.1[,2]) )
@@ -1658,6 +1701,12 @@ table_9[ "other loses", ] <- losses * c(0.01, rep(.29/2, 2), 0.70)/(table_9[ "N_
 #    - what is the precise way to define family in CPS?
 #    - what is the standard way to choose one obs per family?
 ```  
+
+
+### Other income losses.   
+Income losses from a reduction in profits ($\Delta^{-}\pi$) and an increase in agregate prices ($\Delta^{+}P$) is estimated[?] to be distributed as following: 1% of the losses for those below the poverty line (PL), 29% for those between 1 and 6 PL, and 70% for those above 6PL. 
+
+
 
 ## Other considerations  
 
@@ -1688,7 +1737,6 @@ No interactions with other programs is assumed (SNAP or EITC).
 output.template1 <- cbind(output.template1, "Replication" = rep(NA, 7))
 output.template2 <- cbind(t(output.template2), "Replication" = rep(NA, 5), "Replication" = rep(NA, 5))
 
-knitr::kable(round(table_9), caption="Summary of effect of raising the minimum wage", digits = 1)
 knitr::kable(
   list(
     output.template1,
@@ -1701,6 +1749,15 @@ mod.output.template
 
 ```  
 
+
+<!-- 
+# Extensions 
+
+```{r extensions, }
+knitr::kable(round(table_9), caption="Summary of effect of raising the minimum wage", digits = 1)
+```  
+
+--> 
 
 
 [^1]: The report presents smaller estimates for the \$9.00 dollar option (-0.075). The rationale is that a smaller increase (in magnitude but also not indexed by inflation, and with later implementation than the 10.10 option)   will allow firms to adjust other margins before reducing employment. 

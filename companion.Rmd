@@ -35,7 +35,8 @@ if (TRUE) {
 
 # Loading required libraries
 list.of.packages <- c("knitr","foreign", "dplyr", "weights", "survey", "Hmisc", 
-                      "openxlsx", "rio", "highr", "XML", "RCurl", "treemap", "reshape2")
+                      "openxlsx", "rio", "highr", "XML", "RCurl", "treemap", 
+                      "reshape2", "tidyr")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, repos= "http://cran.cnr.berkeley.edu/") 
@@ -1299,22 +1300,12 @@ $$
 
 [TO COMPLETE] Ask CBO about this adjustment.  
 
-#### Forecasting wage and income   
+#### Forecasting wage
+The wage forecast is the same methodology as in section 2.  This methodology is applied to a different data set (CPS ASEC) and for one additional year (forcasting from 2012 to 2016) than with the CPS ORG data
 
-The family income forecast was computed as the sum of forecasted wages and non-wage income:
-$$
-\begin{align}
-\widehat{Y_{h}(2016|2013)} &= \sum_{i \in h} \left( g_{w}\hat{w} + \sum_{l}(g_{nw_{l}}\hat{nw_{l}}) \right) 
-\end{align}
-$$ 
 
-The wage forecast is the same process as in section 2, the key difference is that is applied to a different data set (CPS ASEC). The other components of family income were forecasted as follows: when a growth rate was available for the subcomponent it was applied (the only one mentioned is interest and dividends), otherwise the growth rate was equal to the change in the price index for personal consumption (TO BE COMPLETED)
-
-#### Growth of non working population  
-Forecasts of population growth were the same for working population (NEED TO ALSO APPLY FOR ALL WORKERS). For non working population, the growth rate was matched to CBO forecasts for that group. 
- 
-#### Code to forecast wages, workers and non-wage income
-```{r Adjusting income to 2016 , eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
+##### Code to forecast wages, workers
+```{r forecasting cps asec wage, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
 #Wage adjutsment
 #CBO mentions that the lowest 10th percent gets a 2.9% growth in anual wage
 #I compute the anualized growth rate of wages and creat 10 bins of wage growth
@@ -1322,8 +1313,6 @@ Forecasts of population growth were the same for working population (NEED TO ALS
 #growth of 2.9% for the lowest decile. 
 wage.gr <- ( gr.factor("wages per worker", 2013, 2016) )^(1/4) - 1
 workers.gr <- ( gr.factor("workers", 2013, 2016) )^(1/4) - 1
-#FH:again, I would rather use the non wage growth
-non.wage.gr <- ( gr.factor("Price Index, Personal Consumption", 2013, 2016) )^(1/4) - 1
 
 
 half.gap <- wage.gr - 0.024
@@ -1347,15 +1336,10 @@ df$wage.adj.min <- with( df, ifelse(wage.adj1> st.minw.2016[state,],
                               wage.adj1,
                               st.minw.2016[state,]) )
 #FROM NOW ON 'wage.adj.min' is the variable that contains the forecasted wage in 2016 under the status quo
-
-#Adjust non-wage income  
-#1.1Separate HH income in to wage and non-wage
-df$non.wage <- (df$incp_ern - df$incp_wag) 
-df$non.wage.adj1 <- df$non.wage * gr.factor("Price Index, Personal Consumption", 2013, 2016)
 ```  
 
 
-```{r desc stats2 in income,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r desc stats2 in forcast asec wage,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 # WHY TABLE 4?
 table_8 <- matrix(NA, 7, 2)
 colnames(table_8)  <- c("2013", "2016: status quo")
@@ -1368,6 +1352,7 @@ rownames(table_8) <- c("Salary workers",
 table_8[1,1] <- table_5[3]
 # projected total in 2016
 table_8[1,2] <- new_total_n
+
 # Median wage before projections
 table_8[2,1] <- round( with(df[pop_of_int == 1 & !is.na(df$wage), ], 
                             wtd.quantile( wage, weights = hhwgt
@@ -1375,7 +1360,7 @@ table_8[2,1] <- round( with(df[pop_of_int == 1 & !is.na(df$wage), ],
 # Median wage after projections
 table_8[2,2] <- round( with(df[pop_of_int == 1 & !is.na(df$wage.adj.min), ], 
                             wtd.quantile( wage.adj.min, weights = hhwgt * 
-                            (1 + workers.gr)^3, prob = c(.5) ) ), digits = 2 )
+                            (1 + workers.gr)^4, prob = c(.5) ) ), digits = 2 )
 # Wage distribution in 2013
 table_8[3:7,1]  <- round(as.matrix(table_7[-1]), digits = 2)
 
@@ -1393,11 +1378,11 @@ table_8[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
 # Histogram of wage below $20
 p2 <-    df  %>% 
   filter(pop_of_int==1 & wage<=200)  %>% 
-  select(wage.2013, wage.adj.min, hhwgt) %>%
-  melt(value.variables=c("wage.2013", "wage.adj.min") , id="hhwgt") %>% 
+  select(wage.2013, wage.adj.min, hhwgt, hhwgt.2013) %>%
+  gather(key = variable, value = value, -c(hhwgt.2013, hhwgt) ) %>% 
   mutate("hhwgt" = ifelse(variable=="wage.adj.min", 
                                   hhwgt * gr.factor("workers", 2013, 2016) , 
-                                  hhwgt) ) %>% 
+                                  hhwgt.2013 ) ) %>% 
   ggplot() + 
     geom_density(aes(x = value, 
                      fill=variable, 
@@ -1416,14 +1401,12 @@ p2 <-    df  %>%
           legend.background = element_rect(fill = "transparent", 
                                            colour = "transparent") )+
     scale_fill_discrete(name=NULL,
-                         labels=c("2013", "2016 (Forecast)"))
+                         labels=c("2013 (Forecast)", "2016 (Forecast)"))
   print(p2) 
 knitr::kable(table_8, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
 ```  
 
-
 ## Imputing policy effects
-
 
 ### Imputing wage increases  
 If the wage is below the proposed new minimum (10.10), we increase that wage up to 10.10 for all the eligible population.  
@@ -1433,7 +1416,6 @@ NEED TO DEFINE BETTER THE ELIGIBLE POPULATION
 #### Ripple effects   
 CBO applies an additional wage increase for wages that are in a neibourhood up to 50% of the max increase ($+-0.5(10.10 - 7.25) = +- \$1.4$). Thus, the final imputed wage is:
 
-
 $$
 \tilde{w} =
 \begin{cases}
@@ -1442,7 +1424,6 @@ w + 0.5(11.5 - w) \quad if \quad  w \in [10.10, 11.5) \\
 w \quad o/w
 \end{cases}
 $$
-
 
 ```{r positive effects,  eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
 # Get the number of workers whos wage would bebow 10.10 in the status quo (in millions)
@@ -1535,10 +1516,37 @@ wage.loss.total <- with(df,
 Income losses from a reduction in profits ($\Delta^{-}\pi$) and an increase in agregate prices ($\Delta^{+}P$) is estimated[?] to be distributed as following: 1% of the losses for those below the poverty line (PL), 29% for those between 1 and 6 PL, and 70% for those above 6PL. 
 
 
-  
+## Computing family income under status quo and minimum wage increase  
+
+The family income forecast was computed as the sum of forecasted wages and non-wage income:
+$$
+\begin{align}
+\widehat{Y_{h}(2016|2013)} &= \sum_{i \in h} \left( g_{w}\hat{w} + \sum_{l}(g_{nw_{l}}\hat{nw_{l}}) \right) 
+\end{align}
+$$ 
+
+ The other components of family income were forecasted as follows: when a growth rate was available for the subcomponent it was applied (the only one mentioned is interest and dividends), otherwise the growth rate was equal to the change in the price index for personal consumption 
+ 
+ [TO BE COMPLETED] Ask CBO how do they decompose the income. 
+
+### Growth of non working population  
+Forecasts of population growth were the same for working population (NEED TO ALSO APPLY FOR ALL WORKERS). For non working population, the growth rate was matched to CBO forecasts for that group. 
+
 ```{r income, eval=TRUE }
+#FOR THE FIRST TIME WE NOW LOOK AT OVERALL INCOME AND THE WHOLE POPULATION
+
+#FH:again, I would rather use the non wage growth
+non.wage.gr <- ( gr.factor("Price Index, Personal Consumption", 2013, 2016) )^(1/4) - 1
+
+
+#Adjust non-wage income  
+#Separate HH income in to wage and non-wage
+df$non.wage <- (df$incp_ern - df$incp_wag) 
+df$non.wage.adj1 <- df$non.wage * gr.factor("Price Index, Personal Consumption", 2013, 2016)
+
+
 # Family wages under status quo 
-df$sq.wage <- with(df,wage.adj.min * (hrslyr * wkslyr))
+df$sq.wage <- with(df, wage.adj.min * (hrslyr * wkslyr))
 df <- df %>% 
   group_by(hhseq) %>% 
   mutate(fam.sq.wage = sum(sq.wage, na.rm = TRUE))
@@ -1565,6 +1573,7 @@ df <- df %>%
   mutate("N.fam"= n(), 
          "new.income.pc" = fam.new.income/N.fam,
          "sq.income.pc" = fam.sq.income/N.fam, 
+         "cut.income.pc" = fam.cut.income/N.fam, 
          "fam.wgt" = sum(hhwgt, na.rm = TRUE) )
 
 
@@ -1573,37 +1582,40 @@ df %>% select(fam.new.income,fam.sq.income, perno,hhwgt, N.fam) %>%
   filter(perno == 1) %>% 
   with(sum( (fam.new.income - fam.sq.income) * hhwgt, na.rm = TRUE) ) /1e9
 
-#AQUI VOY UNDERSTAN INCOME WELL!!!!!
+#AQUI VOY - UNDERSTAN INCOME WELL!!!!!
 
 # Compute variation by hhld
-asd <- df %>% select(new.income,sq.income,perno,N.fam, hhwgt) %>% filter(perno == 1) %>% 
-  mutate( "variation" = new.income.pc - sq.income.pc ) 
+asd <- df %>% select(new.income.pc,sq.income.pc,perno,N.fam, hhwgt) %>% filter(perno == 1) %>% 
+  mutate( "variation" = new.income.pc - sq.income.pc ) %>% select(variation, sq.income.pc)
 
 #x11()
 with(asd,plot(sq.income.pc, variation, xlim = c(0,2e5), 
               col = rgb(0,0,0,0.1) , pch =19, cex = .2) )
 abline(v = 11740*1:6, col = "red", lty = 1, cex=1.3)
 
-inc.quartiles <- with(df[df$perno==1,],wtd.quantile(x = sq.income/N.fam, probs = c(.25, .5, .75), weights = hhwgt*N.fam))
+inc.quartiles <- with(df[df$perno==1,],
+                      wtd.quantile(x = fam.sq.income, probs = c(.25, .5, .75), weights = hhwgt*N.fam))
+
+
 abline(v = inc.quartiles, col = "blue", lty =3)
 
 losses <- (wage.gain.total - wage.loss.total)*1e9
 
-asd1 <- with(df, findInterval(x = sq.income/N.fam, vec = c(-Inf,11740, 6*11740, Inf)))
+asd1 <- with(df, findInterval(x = sq.income.pc, vec = c(-Inf,11740, 6*11740, Inf)))
 
 asd2  <- losses * c(0.30, 0.29, 0.41) / wtd.table(asd1, weights = df$hhwgt)[[2]]
 
-asd3 <- asd2[with(asd, findInterval(x = sq.income/N.fam, vec = c(-Inf,11740, 6*11740, Inf) )) ]
+asd3 <- asd2[with(asd, findInterval(x = sq.income.pc, vec = c(-Inf,11740, 6*11740, Inf) )) ]
 
-with(asd, points(sq.income/N.fam ,-asd3,  xlim = c(0,2e5), 
+with(asd, points(sq.income.pc ,-asd3,  xlim = c(0,2e5), 
               col = rgb(0,0,1,0.1) , pch =19, cex = .2) )
 
 
 #Average income per group (height of rectangle)
-asd1 <- df %>% group_by(findInterval(sq.income, c(-Inf, 11770*1:6, Inf) )) %>% summarise(log(mean(new.income)))
+asd1 <- df %>% group_by(findInterval(sq.income.pc, c(-Inf, 11770*1:6, Inf) )) %>% summarise(log(mean(new.income.pc)))
 
 #number of individuals per group (width of recangle)
-asd2 <- df %>%  with( wtd.table(findInterval(sq.income, c(-Inf, 11770*1:6, Inf)), weights = hhwgt/1e6) )
+asd2 <- df %>%  with( wtd.table(findInterval(sq.income.pc, c(-Inf, 11770*1:6, Inf)), weights = hhwgt/1e6) )
 
 #Create here a kick-ass viz
 if (FALSE) {
@@ -1621,18 +1633,18 @@ rownames(table_9)  <- c("wage gains", "wage loses", "other loses", "N_i")
 
 
 #Classifying by PLs and using sq.income/N.fam
-deciles <- with(df[df$perno==1,],wtd.quantile(x = sq.income/N.fam, probs = 1:9/10, weights = hhwgt*N.fam))
+deciles <- with(df[df$perno==1,],wtd.quantile(x = sq.income.pc, probs = 1:9/10, weights = hhwgt*N.fam))
 
-df$income.group <- with(df, findInterval(x = sq.income/N.fam, vec = c(-Inf,c(1,3,6)*11740, Inf)))
+df$income.group <- with(df, findInterval(x = sq.income.pc, vec = c(-Inf,c(1,3,6)*11740, Inf)))
 
 table_9["N_i", ] <- wtd.table(with(df, income.group) , weights = df$hhwgt)[[2]]/1e6
   
-aux.1 <- df %>% group_by(income.group)  %>% summarise(mean((new.income - sq.income)/N.fam, na.rm = TRUE))
+aux.1 <- df %>% group_by(income.group)  %>% summarise(mean((new.income.pc - sq.income.pc)/N.fam, na.rm = TRUE))
 table_9[ "wage gains", ] <- t(as.data.frame(aux.1[,2]) )
   
   
 #Wage loses: compared to SQ
-aux.1 <- df %>% group_by(income.group)  %>% summarise(mean((sq.income - income.cut.wage)/N.fam, na.rm = TRUE))  
+aux.1 <- df %>% group_by(income.group)  %>% summarise(mean((sq.income.pc - cut.income.pc), na.rm = TRUE))  
 table_9[ "wage loses", ] <- t(as.data.frame(aux.1[,2]) )
 
 #Imputing the balnce of the losses
@@ -1672,7 +1684,20 @@ No interactions with other programs is assumed (SNAP or EITC).
 # Results 
 
 ```{r final results,}
+
+output.template1 <- cbind(output.template1, "Replication" = rep(NA, 7))
+output.template2 <- cbind(t(output.template2), "Replication" = rep(NA, 5), "Replication" = rep(NA, 5))
+
 knitr::kable(round(table_9), caption="Summary of effect of raising the minimum wage", digits = 1)
+knitr::kable(
+  list(
+    output.template1,
+    output.template2
+  ),
+  caption = 'Policy estimates in CBO report and Replication Results', booktabs = TRUE, 
+  align = 'c'
+)
+mod.output.template
 
 ```  
 

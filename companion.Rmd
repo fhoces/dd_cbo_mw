@@ -3,6 +3,9 @@ title: "Reader Companion for CBO report on Min Wage"
 author: "Fernando Hoces de la Guardia"
 date: '`r Sys.Date()`'
 output:
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
   html_document:
     code_folding: hide
     collapsed: no
@@ -12,9 +15,6 @@ output:
     toc: yes
     toc_depth: 2
     toc_float: no
-  pdf_document:
-    toc: yes
-    toc_depth: '2'
 ---
 
 
@@ -50,31 +50,30 @@ knitr::opts_chunk$set(cache = TRUE)
 
 
 # Introduction  
-This reader companion presents the key/analytic components of the CBO report on the effect of raising the minimum wage in a transparent and reproducible template. Our purpose is to describe every step/decision involved in this policy analysis such that analysts/stakeholder can understand/critize/improve from it.  
+This reader companion presents the key/analytic components of the CBO report on the effect of raising the minimum wage in a transparent and reproducible template. Our purpose is to describe every step/decision involved in this policy analysis such that analysts/stakeholder can understand/criticize/improve from it.  
 
-The new reproducibility practices promoted in science were used as a framework to carry out the excercise described below. However we need to highlight a crucial difference between a replication in science and a replication in policy analysis. A scientific report takes the form of a peer review publication that represent  several months or years of research, followed up by a review process that can be as lengthy as the research itself. Because of this when a scientific publication is subject to replication is expected to succedd. Policy analysis is ususally performed under tight deadlines, and is not unusual to rely on arbitrary assumptions and/or unreproducible calculations. For this reasons we do not attempt to replicate the CBO report as a way of testing the veracity of the analysis. We use reproducibility, paired with full transparency, to generate a living document that represents the best policy analysis up to date. Our expectations are that this living document will be serve as a building block to discuss and incorporate incremental improvements on the best available policy analysis. 
+The new reproducibility practices promoted in science were used as a framework to carry out the exercise described below. However we need to highlight a crucial difference between a replication in science and a replication in policy analysis. A scientific report takes the form of a peer review publication that represent  several months or years of research, followed up by a review process that can be as lengthy as the research itself. Because of this when a scientific publication is subject to replication is expected to succeed. Policy analysis is usually performed under tight deadlines, and is not unusual to rely on arbitrary assumptions and/or unreproducible calculations. For this reasons we do not attempt to replicate the CBO report as a way of testing the veracity of the analysis. We use reproducibility, paired with full transparency, to generate a living document that represents the best policy analysis up to date. Our expectations are that this living document will be serve as a building block to discuss and incorporate incremental improvements on the best available policy analysis. 
 
-The CBO report describes two policy estimates: the effects of minimum wage on employment and the distributional effects of minimum wage on wages and familiy income. All the policy estimates to replicate are presented in the following tables. 
+The CBO report describes two policy estimates: the effects of minimum wage on employment and the distributional effects of minimum wage on wages and family income. All the policy estimates to replicate are presented in the following tables. 
 
 ```{r table with output,  eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}  
 # This is summary of all the policy estimates presented in the report
 # Aggregate effects
-output.template1 <- matrix(" ???",nrow = 7, ncol = 1)
+output.template1 <- matrix(" ???",nrow = 6, ncol = 1)
 rownames(output.template1) <- c("wage gains", "wage losses", "Balance losses", 
-                                "Net effect", "# of Wage gainers", "#of Wage losers", 
-                                "Population")
+                                "Net effect", "# of Wage gainers", "#of Wage losers")
 colnames(output.template1) <- "Effects/Policy Estimates"
 
-output.template1[,"Effects/Policy Estimates" ] <- c("31", "~5", "~24" , "2", "16.5", "0.5", "330/140")
+output.template1[,"Effects/Policy Estimates" ] <- c("31", "~5", "~24" , "2", "16.5", "0.5")
 
 
 #Some distributional effects
-output.template2 <- matrix(" ???",nrow = 2, ncol = 5)
+output.template2 <- matrix(" ???",nrow = 2, ncol = 4)
 rownames(output.template2) <- c("Balance losses", "Net effect")
-colnames(output.template2) <- c("<1PL", "[1PL, 3PL)", "[3PL, 6PL)", ">6PL", "Total")
+colnames(output.template2) <- c("<1PL", "[1PL, 3PL)", "[3PL, 6PL)", ">6PL")
 
-output.template2["Balance losses", ] <- c("~0.3", "~3.4", "~3.4", "~17", "~24")
-output.template2["Net effect", ] <- c("5", "12", "2", "-17", "2")
+output.template2["Balance losses", ] <- c("~0.3", "~3.4", "~3.4", "~17")
+output.template2["Net effect", ] <- c("5", "12", "2", "-17")
 
 
 
@@ -112,9 +111,9 @@ $$
 \end{align}
 $$
   
-Where $N$ represents the relevant population, $\eta$ the elasticity of labor demand, $\Delta w$ the relevant percentual variation in wages, and the *Other factors* will encapsulate effects on employment throught an increase in the aggreagate demand.  
+Where $N$ represents the relevant population, $\eta$ the elasticity of labor demand, $\Delta w$ the relevant percentual variation in wages, and the *Other factors* will encapsulate effects on employment through an increase in the aggregate demand.  
 
-To describe the methodology behind each of those four components we first describe the data used, the wage variable choosen, and the procedure used to forecast the wage and population distribution of 2016 using data from 2013.  
+To describe the methodology behind each of those four components we first describe the data used, the wage variable choose, and the procedure used to forecast the wage and population distribution of 2016 using data from 2013.  
 
 
 ## Data, wages, and forecast  
@@ -122,7 +121,7 @@ To simulate the policy effects we need the distribution of wages and employment 
 
 
 ### Data
-The Current Population Survey (CPS) was used to compute the effects on employment. From the analysis in the section on distributional effects we can deduce that the data corresponds to the Outgoing Rotation Group (ORG). CPS is a monthly cross sectional suvey. The same individual is interviewed eight times over a period of 12 months. The interviews take place in the first and las 4 months of that period. By the 4th and 12th interview, individuals are asked detailed information on earnings. The CPS ORG file contains the information on this interviews for a given year. We analyze the data for 2013.   
+The Current Population Survey (CPS) was used to compute the effects on employment. From the analysis in the section on distributional effects we can deduce that the data corresponds to the Outgoing Rotation Group (ORG). CPS is a monthly cross sectional survey. The same individual is interviewed eight times over a period of 12 months. The interviews take place in the first and last 4 months of that period. By the 4th and 12th interview, individuals are asked detailed information on earnings. The CPS ORG file contains the information on this interviews for a given year. We analyze the data for 2013.   
 
 Currently three versions of these data sets can be found online: [CPS raw files](http://thedataweb.rm.census.gov/ftp/cps_ftp.html#cpsbasic), [ORG NBER](http://www.nber.org/data/morg.html) and [ORG CEPR](http://ceprdata.org/cps-uniform-data-extracts/cps-outgoing-rotation-group/). The analysis will be performed using the CPER ORG data base.
 
@@ -170,7 +169,7 @@ df$final_weights <- df$orgwgt/12
 We assume no further adjustments like imputation for top coding, trimming, excluding overtime/commissions, or imputation of usual hours for ''hours vary'' respondents. The CEPR ORG data includes several wage variables ([described here](http://ceprdata.org/cps-uniform-data-extracts/cps-outgoing-rotation-group/)). The wage variable that best matches the description above is `wage3`
 
 ### Wage adjustment
-An adjustment was made to the wage of all the wokers that did not report an hourly wage (`wage3` is estimated as usual salary per self-reported pay-periodver usual hours per pay-period). In order to reduce the measurement error in those wages, we follow the methodology proposed in [this paper](https://www.aeaweb.org/articles?id=10.1257/aer.96.3.461) and compute the adjusted wage as a weigted average of the original wage and the average wage of workers with similar characteristics. 
+An adjustment was made to the wage of all the workers that did not report an hourly wage (`wage3` is estimated as usual salary per self-reported pay-period over usual hours per pay-period). In order to reduce the measurement error in those wages, we follow the methodology proposed in [this paper](https://www.aeaweb.org/articles?id=10.1257/aer.96.3.461) and compute the adjusted wage as a weighted average of the original wage and the average wage of workers with similar characteristics. 
 
 
 $$
@@ -196,9 +195,9 @@ $$
 \end{align}
 $$ 
 
-The report assumes higher wage growth for hich wages than low wages. To create different rates of growth in wage, we compute different wage growth rates for each decile of wage. The increments across deciles were constant and the set to match a final lowest decile with a yearly growth rate of 2.9%.  
+The report assumes higher wage growth for high wages than low wages. To create different rates of growth in wage, we compute different wage growth rates for each decile of wage. The increments across deciles were constant and the set to match a final lowest decile with a yearly growth rate of 2.9%.  
 
-The adjustment over number of workers was made through the weight variable `final_weights` (multiplying it by the growth rate) whereas the `wage3` variable was multiplied by the forecasted growth rate of per worker wages.   
+The adjustment over number of workers was made through the weight variable `final_weights` (multiplying it by the growth rate) whereas the `wage3` variable was multiplied by the forecast growth rate of per worker wages.   
 
 ##### Code to get economic growth forecasts    
 
@@ -605,7 +604,7 @@ title = "Figure 1: Distribution of population of working age in 2013"
 
 ```
 
-For the universe of interest, we describe the distribution of hourly wages in 2013 and the forecasted values for 2016. Figure 2.    
+For the universe of interest, we describe the distribution of hourly wages in 2013 and the forecast values for 2016. Figure 2.    
   
 ```{r Dist wage, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold'}
 p <-    df  %>% 
@@ -637,7 +636,7 @@ p <-    df  %>%
   print(p)
 ```
 
-Table 1 below presents more detail statistics for the wage distributions for 2013 and for the forecasted wages of 2016.  
+Table 1 below presents more detail statistics for the wage distributions for 2013 and for the forecast wages of 2016.  
   
 ```{r, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, collapse=TRUE, fig.show='hold'}
 knitr::kable(table_4, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
@@ -645,7 +644,7 @@ knitr::kable(table_4, caption="Comparison of 2013 and 2016 under the status quo"
 ```  
 
   
-Among the population of interest, the employement effects of the minimum wage will be computed separatedley for adults ($age\geq 20$) and teenagers ($16 \leq age < 20$). For this purpose we present the wage distribution for both groups. Figure 3. 
+Among the population of interest, the employment effects of the minimum wage will be computed separatedley for adults ($age\geq 20$) and teenagers ($16 \leq age < 20$). For this purpose we present the wage distribution for both groups. Figure 3. 
 
 ```{r Dist wage by age group, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold'}
 #####################
@@ -775,15 +774,15 @@ title = "Figure 3: Distribution of wages among  adults and teenagers"
 
 Given our universe, the next step is to identify the population that would be actually affected if a raise in the minimum wage takes place.  The two relevant populations to define now are the number of low wage workers ($\widehat{ N_{lowwage} }$) and the number of workers that would earn less than the new minimum wage ($\widehat{ N_{w\leq MW^{1}} }$). CBO defines a low wage as one below \$11.5 dollars per hour in 2016, and the proposed value used for the minimum wage is \$10.10 dollars per hour. From now on we separate each of this group among adults and teenagers following CBO's convention. 
 
-Three adjustments are applied to the population of workers with wages below the new minumum wage:    
+Three adjustments are applied to the population of workers with wages below the new minimum wage:    
   1 - Workers whose earnings are mainly from tips are tagged and a different minimum wage is apply to them (\$2.13).  
   2 - A fraction $\alpha_{1}$ of $\widehat{ N_{w\leq MW^{1}} }$ is deleted to account for non compliers.  
   3 - A fraction $\alpha_{2}$ of $\widehat{ N_{w\leq MW^{1}} }$ is deleted to account for workers not subject to the Fair Labor Standards Act.  
 
-After this three adjustments, perform over the relevant population forecasted for the year 2016, we obtain the final population.  
+After this three adjustments, perform over the relevant population forecast for the year 2016, we obtain the final population.  
 
 #### Tipped workers   
-[TO BE COMPLETED] Ask CBO which ocupations they used to identify tiped workers and clarify the conceptual need to adjust for this population.    
+[TO BE COMPLETED] Ask CBO which occupations they used to identify tipped workers and clarify the conceptual need to adjust for this population.    
 
 Apply different minimum wage to workers who receive more than \$30 in tips. This was applied to 11 occupations (such as waiter, bartender, and hairdresser ~10% if low wage workers)
  
@@ -793,7 +792,7 @@ Tipped workers with wages below 7.25 is are 1% of the total tipped workers. Non-
 
 #### Non compliance    
 
-We estimate the *proportion of low workers that earn less than the their state's minimum wage in 2013* as a proxy for non compliers under the new minimum wage in 2016. The orginal reports mention that it comes up to 12% of the low wage population. 
+We estimate the *proportion of low workers that earn less than the their state's minimum wage in 2013* as a proxy for non compliers under the new minimum wage in 2016. The original reports mention that it comes up to 12% of the low wage population. 
 
 Following the same footnote we will consider salary workers as non compliers only if their wage is strictly less than 25 cents for non-tipped workers or 13 cents for tipped workers. 
 
@@ -895,7 +894,7 @@ shinyAppDir(
 ```  
   
 ### Summary  
-Define $\hat{g(2016|2013)}$ as the growth factor for the population from the year 2013 to 2016 ($\hat{g(2016|2013)} = (1 + \hat{g})^3$, where $\hat{g}$ is the anual growth rate of the population). Then:  
+Define $\hat{g(2016|2013)}$ as the growth factor for the population from the year 2013 to 2016 ($\hat{g(2016|2013)} = (1 + \hat{g})^3$, where $\hat{g}$ is the annual growth rate of the population). Then:  
 <!--
 $$ 
 \begin{align}
@@ -915,7 +914,7 @@ $$
 \end{align}
 $$
 
-Analogusly for the adult population: 
+Analogously for the adult population: 
 
 $$ 
 \begin{align}
@@ -991,11 +990,11 @@ In order to get the elasticity of labor demand that best fits the context analys
 
 It is unclear the precise mechanism used by CBO to choose the estimates for the labor demand elasticity. Later I will assume that it came from a meta-analysis and calibrate the weights of some of the meta-analysis cited in the report to reflect that choice.  
 
-For now we take their estimate as given: -0.1 for the teenager population, with a "likely range" a range from 0 to -0.2 ("likely range" is used throughout the report to estimate the expert judgment that the elasticity will be in that range 2/3 of the time)[^1]. The reasons provided in the report for choosing this figure can be summarize by the folllowing three points:  
+For now we take their estimate as given: -0.1 for the teenager population, with a "likely range" a range from 0 to -0.2 ("likely range" is used throughout the report to estimate the expert judgment that the elasticity will be in that range 2/3 of the time)[^1]. The reasons provided in the report for choosing this figure can be summarize by the following three points:  
   - More weight was given to studies that exploit across state variation (as opposed to over time country level variation).    
   - The final estimate takes in to account publication bias towards highly negative estimates.  
   - The magnitude of the increase (%39) and the fact that would be indexed to inflation going forward, makes it an unusually large increase in the minimum wage.    
-With this elements we can write the chosen elasticy from the literature ($\eta_{lit}$) as the product of the original assesment of the literature ($\eta_{lit}^{0}$), a reduction factor for publication bias ($F_{pub.bias}<1$) and a amplification factor for a larger variation in minimum wage ($F_{large.variation}>1$):
+With this elements we can write the chosen elasticity from the literature ($\eta_{lit}$) as the product of the original assessment of the literature ($\eta_{lit}^{0}$), a reduction factor for publication bias ($F_{pub.bias}<1$) and a amplification factor for a larger variation in minimum wage ($F_{large.variation}>1$):
 
 $$ 
 \begin{align} 
@@ -1004,11 +1003,11 @@ $$
 $$ 
   
 Additionally, CBO provides two additional caveats that could be added to the analysis:  
- - Ripple effects on employment were assume to be null as the result of two opposing effects: (i) "ripple-wages" would increase unemployment but (ii) substitution of marginally more productive workers for layed off workers below the new minimum wage would decrease unemploytment. CBO assumes these effects roughlty cancel each other.       
- - CBO acknowledges that effects could be larger (in abs value) during recessions but does not predict a recession for 2016. No estimaton is provided of how much larger those effects would be in case of a recession.  
+ - Ripple effects on employment were assume to be null as the result of two opposing effects: (i) "ripple-wages" would increase unemployment but (ii) substitution of marginally more productive workers for layed off workers below the new minimum wage would decrease unemployment. CBO assumes these effects roughly cancel each other.       
+ - CBO acknowledges that effects could be larger (in abs value) during recessions but does not predict a recession for 2016. No estimation is provided of how much larger those effects would be in case of a recession.  
  
 ### Extrapolating research estimate to current context  
-Three adjustments are proposed: (i) extrapolate elasticity estimates for teenager to adults; (ii) rescale elasticy to population affected by the new minimum wage; (iii) adjust elasticities to relflect average wage variation from and increase in the minimum wage.  
+Three adjustments are proposed: (i) extrapolate elasticity estimates for teenager to adults; (ii) re-scale elasticity to population affected by the new minimum wage; (iii) adjust elasticities to reflect average wage variation from and increase in the minimum wage.  
 
 #### Extrapolate from teenagers to adult population  
 
@@ -1019,7 +1018,7 @@ $$
 \end{align}
 $$  
 
-Where a value $F_{extrapolation} = 1/3$ is choosen to reflect that the demand for adult labor is suspected to be more inelastic than the demand for teen labor. 
+Where a value $F_{extrapolation} = 1/3$ is chosen to reflect that the demand for adult labor is suspected to be more inelastic than the demand for teen labor. 
 
 #### Re-escale elasticities to the population affected by the minimum wage  
 
@@ -1039,7 +1038,7 @@ $$
 \end{align}
 $$ 
 
-The fraction of the population with a forecasted income below the new minimum wage ($p^{g}_{w\leq MW}$) is `r paste(round(stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",2], 1),"%", sep="")` for teenagers and `r paste(round(stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",1], 1),"%", sep="")` for adults.  
+The fraction of the population with a forecast income below the new minimum wage ($p^{g}_{w\leq MW}$) is `r paste(round(stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",2], 1),"%", sep="")` for teenagers and `r paste(round(stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",1], 1),"%", sep="")` for adults.  
 
 #### Adjust elasticities to average wage variation  
 
@@ -1047,7 +1046,7 @@ Given that the percentual variation from the old wage to the new minimum wage va
 
 The report approximates this calculation by computing the employment effect for average wage variation across the total population, in age group $g$, affected by the minimum wage:  $\overline{\%\Delta w^{g}} \times \eta^{g}_{w\leq MW} \times \widehat{ N^{final}_{g} }$.  
 
-Finally CBO argues that as the variation changes the elasticity should be rescaled to reflect such variation. With the elasticity resulting in:
+Finally CBO argues that as the variation changes the elasticity should be re-scaled to reflect such variation. With the elasticity resulting in:
 
 $$
 \begin{align}
@@ -1055,7 +1054,7 @@ $$
 \end{align}
 $$
 
-Looking at historical trends in the CPS, CBO estimates that $F_{adjs}$ is 4.5 for both populations[^2].  In the following table we summarize all the elemnts required to compute $\widetilde{ \eta^{g}_{w\leq MW} }$ 
+Looking at historical trends in the CPS, CBO estimates that $F_{adjs}$ is 4.5 for both populations[^2].  In the following table we summarize all the elements required to compute $\widetilde{ \eta^{g}_{w\leq MW} }$ 
 
 ## Other factors  
 CBO reasons that a rise in the minimum wage would have effects in aggregate consumption and this in turn would have effects on employment. The overall effect is estimated as an increase in employment between 30,000 and 50,000 jobs ("a few tens of thousands of jobs"). A narrative argument is provided for the mechanisms behind this effect.
@@ -1157,11 +1156,11 @@ knitr::kable(stats3, caption="Components of Elasticities", digits = 2)
 
 ```    
 
-Using all the components descbribed above we get $\widehat{ \Delta^{-} E } =$ `r round(delta.e1*1000)` thousand jobs. The report however computes $F_{adjs}$ in a different fashion and gets a value of 4.5 (when computing the values of $F_{adjs}$  from the table below - as oppose to using historical values - we get $\widehat{ \Delta^{-} E } =$ `r round(delta.e2*1000)` thousand jobs). 
+Using all the components described above we get $\widehat{ \Delta^{-} E } =$ `r round(delta.e1*1000)` thousand jobs. The report however computes $F_{adjs}$ in a different fashion and gets a value of 4.5 (when computing the values of $F_{adjs}$  from the table below - as oppose to using historical values - we get $\widehat{ \Delta^{-} E } =$ `r round(delta.e2*1000)` thousand jobs). 
 
 # Distributional effects   
 
-In the first step towards obtainting the policy estimates presented in the [introduction](#introduction) we concluded with a figure of $\widehat{ \Delta^{-} E } =$ `r round(delta.e1*1000)` thousand jobs lost.  We now two additional key quantities: the wage gain among those who get a rise do to the new minimum wage, and the distribution of the losses that pay for that raise. The effect of both quantities is estimated at the level of family income.  
+In the first step towards obtaining the policy estimates presented in the [introduction](#introduction) we concluded with a figure of $\widehat{ \Delta^{-} E } =$ `r round(delta.e1*1000)` thousand jobs lost.  We now two additional key quantities: the wage gain among those who get a rise do to the new minimum wage, and the distribution of the losses that pay for that raise. The effect of both quantities is estimated at the level of family income.  
 
 ## Computing Family income    
 
@@ -1170,7 +1169,7 @@ As the unit of interest now is the family and detailed information on income is 
 
 ### Computing wages in CPS ASEC 2013  
 
-The hourly wage ($w$) was computed as the ratio of yearly earnings ($y$) and the product of usual number of hours worked in a week ($Hour.per.Week$) and the number of weeks worked in a year ($Weeks.per.Year$). The CPS ASEC data set contains three variables for yearly earnings: `incp_all` `incp_ern` `incp_wag` corresponing to all income, earnings and wages respectively. We choose `incp_wag`. 
+The hourly wage ($w$) was computed as the ratio of yearly earnings ($y$) and the product of usual number of hours worked in a week ($Hour.per.Week$) and the number of weeks worked in a year ($Weeks.per.Year$). The CPS ASEC data set contains three variables for yearly earnings: `incp_all` `incp_ern` `incp_wag` corresponding to all income, earnings and wages respectively. We choose `incp_wag`. 
 
 For this data set, the weights used in our analysis will be `hhwgt`.  
 
@@ -1275,7 +1274,7 @@ colnames(table_7) <- "Perc (2013)"
 ``` 
 
 #### Adjusting wages 1 
-As with the CPS ORG, an adjusment for wages is applied. Unlike the previuos modification, where the adjustments was over a fraction of the population (those who did not report an hourly wage), our understanding is that CBO adjust the wages of all the population in this case.   
+As with the CPS ORG, an adjustment for wages is applied. Unlike the previous modification, where the adjustments was over a fraction of the population (those who did not report an hourly wage), our understanding is that CBO adjust the wages of all the population in this case.   
 
 The adjustments follows the following formula: 
 $$
@@ -1301,7 +1300,7 @@ $$
 [TO COMPLETE] Ask CBO about this adjustment.  
 
 #### Forecasting wage
-The wage forecast is the same methodology as in section 2.  This methodology is applied to a different data set (CPS ASEC) and for one additional year (forcasting from 2012 to 2016) than with the CPS ORG data
+The wage forecast is the same methodology as in section 2.  This methodology is applied to a different data set (CPS ASEC) and for one additional year (forecasting from 2012 to 2016) than with the CPS ORG data
 
 
 ##### Code to forecast wages, workers
@@ -1412,7 +1411,7 @@ knitr::kable(table_8, caption="Comparison of 2013 and 2016 under the status quo"
 If the wage is below the proposed new minimum (10.10), we increase that wage up to 10.10 for all the eligible population.  
 
 #### Ripple effects   
-CBO applies an additional wage increase for wages that are in a neibourhood up to 50% of the max increase ($+-0.5(10.10 - 7.25) = +- \$1.4$). Thus, the final imputed wage is:
+CBO applies an additional wage increase for wages that are in a neighborhood up to 50% of the max increase ($+-0.5(10.10 - 7.25) = +- \$1.4$). Thus, the final imputed wage is:
 
 $$
 \tilde{w} =
@@ -1509,7 +1508,7 @@ After accounting for non compliance, the total number of workers that are potent
 
 ### Imputing job losses  
 
-The imputation above so far is applied to all workers below the minimum wage (and the ripple effects). Now we need to remove the $\widehat{\Delta E} = `r round(delta.e1, 2)`$ million workers by imputing them a wage of 0. CBO chose to not move the wage all the way to 0 but to cut it in half and apply such imputation to $2\widehat{\Delta E}$. When destroying jobs CBO argued that the effect would be heavier on teenagers and low wage adutls. We implement this in the follwogin algorithm:
+The imputation above so far is applied to all workers below the minimum wage (and the ripple effects). Now we need to remove the $\widehat{\Delta E} = `r round(delta.e1, 2)`$ million workers by imputing them a wage of 0. CBO chose to not move the wage all the way to 0 but to cut it in half and apply such imputation to $2\widehat{\Delta E}$. When destroying jobs CBO argued that the effect would be heavier on teenagers and low wage adults. We implement this in the following algorithm:
 
 Replace $\tilde{w} = \tilde{w}/2$ if :  
   - $w \in [7.25, 10.10)$    
@@ -1565,118 +1564,112 @@ wage.gain.total <-  df %>%
                 "Total gain before JD" =  sum( (new.wage.final - cut.wage) * 
                    hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) / 1e9
                 )  
-
+#with(df, hist(new.wage.final - wage.adj.min, xlim = c(-10,10) , ylim=c(0,3e3) , breaks = 50) )
+     
+     
 ```  
 
 
 So far we get a total wage gain (accounting for job losses) of `r pt(wage.gain.total["Total wage gain"])`
-billion dollars (in 2016) and a total wage loss of `r pt(wage.gain.total["Total wage loss"])` due to workers loosing their jobs. The funds that cover the wage gains, -XXXXXXX (or XXXXXXX - alpha*YYYYYY), have to come from either less profits for business or higher prices for consumers. In the next section we review the distribution of wage gains, wage losses and balance losses across the income distribution. 
+billion dollars (in 2016) and a total wage loss of `r pt(wage.gain.total["Total wage loss"])` billions due to workers loosing their jobs. The funds that cover the wage gains have to come from either less profits for business or higher prices for consumers. In the next section we review the distribution of wage gains, wage losses and balance losses across the income distribution. 
 
 ## Computing family income under status quo and minimum wage increase  
 
-The family income forecast was computed as the sum of forecasted wages and non-wage income:
+The family income forecast was computed as the sum of forecast wages and non-wage income:
 $$
 \begin{align}
 \widehat{Y_{h}(2016|2013)} &= \sum_{i \in h} \left( g_{w}\hat{w} + \sum_{l}(g_{nw_{l}}\hat{nw_{l}}) \right) 
 \end{align}
 $$ 
 
- The other components of family income were forecasted as follows: when a growth rate was available for the subcomponent it was applied (the only one mentioned is interest and dividends), otherwise the growth rate was equal to the change in the price index for personal consumption 
+The other components of family income were forecast as follows: when a growth rate was available for the sub component it was applied (the only one mentioned is interest and dividends), otherwise the growth rate was equal to the change in the price index for personal consumption 
  
- [TO BE COMPLETED] Ask CBO how do they decompose the income. 
+[TO BE COMPLETED] Ask CBO how do they decompose the income. 
 
 ### Growth of non working population  
-Forecasts of population growth were the same for working population (NEED TO ALSO APPLY FOR ALL WORKERS). For non working population, the growth rate was matched to CBO forecasts for that group. 
+Forecasts of population growth were the same for working population. For non working population, the growth rate was matched to CBO forecasts for that group. 
 
-```{r income,  eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
+```{r income,  eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results='hide'}
 #FOR THE FIRST TIME WE NOW LOOK AT OVERALL INCOME AND THE WHOLE POPULATION
 
 #FH:again, I would rather use the non wage growth
 non.wage.gr <- ( gr.factor("Price Index, Personal Consumption", 2013, 2016) )^(1/4) - 1
 
-
 #Adjust non-wage income  
 #Separate HH income in to wage and non-wage
 df$non.wage <- (df$incp_ern - df$incp_wag) 
-df$non.wage.adj1 <- df$non.wage * gr.factor("Price Index, Personal Consumption", 2013, 2016)
+df$non.wage.2016 <- df$non.wage * gr.factor("Price Index, Personal Consumption", 2013, 2016)
 
+# The following function takes hourly, individual wages (already forecasted to 2016) and does the folowing:
+# 1 - transform hourly wages in to yearly earnings
+# 2 - aggregate earnings at the hhld level
+# 3 - adds the hhld level wages to non wages earnings (hhld level) to generate overall income
+# 4 - generates income per capita
 
-# Family wages under status quo 
-df$sq.wage <- with(df, wage.adj.min * (hrslyr * wkslyr))
-df <- df %>% 
-  group_by(hhseq) %>% 
-  mutate(fam.sq.wage = sum(sq.wage, na.rm = TRUE))
-# Famility wages with wage loss
-df$cut.wage.total <- with(df,cut.wage * (hrslyr * wkslyr))
-df <- df %>% 
-  group_by(hhseq) %>% 
-  mutate(fam.cut.wage = sum(cut.wage.total, na.rm = TRUE))
-
-# Family wages under new min wage (incl. wage gains and employment loses)
-df$new.wage.total <- with(df,new.wage * (hrslyr * wkslyr))
-df <- df %>% 
-  group_by(hhseq) %>% 
-  mutate(fam.new.wage = sum(new.wage.total, na.rm = TRUE))
-
-# Income 
-df$fam.sq.income <- with(df, fam.sq.wage + non.wage.adj1)
-df$fam.cut.income <- with(df, fam.cut.wage + non.wage.adj1)
-df$fam.new.income <- with(df, fam.new.wage + non.wage.adj1)
-
-# get per capita
-df <- df %>% 
-  group_by(hhseq)  %>% 
-  mutate("N.fam"= n(), 
-         "new.income.pc" = fam.new.income/N.fam,
-         "sq.income.pc" = fam.sq.income/N.fam, 
-         "cut.income.pc" = fam.cut.income/N.fam, 
-         "fam.wgt" = sum(hhwgt.2016, na.rm = TRUE) )
-
+df <- df %>% mutate("year.wage" = new.wage.final * (hrslyr * wkslyr) ) %>% 
+      group_by(hhseq) %>% mutate("hhld.wage" = sum(year.wage, na.rm = TRUE),
+                                 "hhld.non.wage" = sum(non.wage.2016, na.rm = TRUE), 
+                                 "hhld.income" = hhld.wage + hhld.non.wage, 
+                                 "N.fam"= n(), 
+                                  "new.inc.pc" = hhld.income/N.fam) %>% 
+                                  select(-(hhld.wage:N.fam) )
+  
+df <- df %>% mutate("year.wage" = wage.adj.min * (hrslyr * wkslyr) ) %>% 
+      group_by(hhseq) %>% mutate("hhld.wage" = sum(year.wage, na.rm = TRUE),
+                                 "hhld.non.wage" = sum(non.wage.2016, na.rm = TRUE), 
+                                 "hhld.income" = hhld.wage + hhld.non.wage, 
+                                 "N.fam"= n(), 
+                                  "sq.inc.pc" = hhld.income/N.fam) %>% 
+                                  select(-(hhld.wage:N.fam) )
 
 # Computing differences in income 
-df %>% select(fam.new.income,fam.sq.income, perno,hhwgt.2016, N.fam) %>% 
-  filter(perno == 1) %>% 
-  with(sum( (fam.new.income - fam.sq.income) * hhwgt.2016, na.rm = TRUE) ) /1e9
-
-#AQUI VOY - UNDERSTAN INCOME WELL!!!!!
+df %>% 
+  with(sum( (new.inc.pc - sq.inc.pc) * hhwgt.2016, na.rm = TRUE) ) /1e9
+# Per capita agregate income has slightly less gains, probably due to hhld with winners and losers. 
+wage.gain.total["Total wage gain"]
 
 # Compute variation by hhld
-asd <- df %>% select(new.income.pc,sq.income.pc,perno,N.fam, hhwgt.2016) %>% filter(perno == 1) %>% 
-  mutate( "variation" = new.income.pc - sq.income.pc ) %>% select(variation, sq.income.pc)
+asd <- df %>% select(new.inc.pc,sq.inc.pc, hhwgt.2016)  %>% 
+  mutate( "variation" = new.inc.pc - sq.inc.pc ) %>% select(variation, sq.inc.pc)
 
 #x11()
-with(asd,plot(sq.income.pc, variation, xlim = c(0,2e5), 
-              col = rgb(0,0,0,0.1) , pch =19, cex = .2) )
+with(asd,plot(sq.inc.pc, variation, xlim = c(0,2e5), ylim = c(-5e3, 5e3), 
+              col = rgb(0,0,0,0.1) , pch =19, cex = .2, 
+              main = "Distribution of gains and loses across per capita income", 
+              xlab = "Per capita income", 
+              ylab = "Change relative to no raise in min wage") )
 abline(v = 11740*1:6, col = "red", lty = 1, cex=1.3)
 
-inc.quartiles <- with(df[df$perno==1,],
-                      wtd.quantile(x = fam.sq.income, probs = c(.25, .5, .75), weights = hhwgt.2016*N.fam))
+inc.quartiles <- with(df,
+                      wtd.quantile(x = sq.inc.pc, probs = c(.25, .5, .75, .90), weights = hhwgt.2016))
 
 
-abline(v = inc.quartiles, col = "blue", lty =3)
+#abline(v = inc.quartiles, col = "blue", lty =1, cex=3)
 
-losses <- (wage.gain.total["Total wage gain"])*1e9 
+#Substract 2billion dollars from the losses 
+losses <- (wage.gain.total["Total wage gain"])*1e9  - 2e9
 
-asd1 <- with(df, findInterval(x = sq.income.pc, vec = c(-Inf,11740, 6*11740, Inf)))
+asd1 <- with(df, findInterval(x = sq.inc.pc, vec = c(-Inf,11740, 6*11740, Inf)))
 
-asd2  <- losses * c(0.30, 0.29, 0.41) / wtd.table(asd1, weights = df$hhwgt.2016)[[2]]
+asd2  <- as.numeric(losses) * c(0.01, 0.29, 0.70) / wtd.table(asd1, weights = df$hhwgt.2016)[[2]]
 
-asd3 <- asd2[with(asd, findInterval(x = sq.income.pc, vec = c(-Inf,11740, 6*11740, Inf) )) ]
+asd3 <- asd2[with(asd, findInterval(x = sq.inc.pc, vec = c(-Inf,11740, 6*11740, Inf) )) ] 
 
-with(asd, points(sq.income.pc ,-asd3,  xlim = c(0,2e5), 
+with(asd, points(sq.inc.pc ,-asd3,  xlim = c(0,2e5), 
               col = rgb(0,0,1,0.1) , pch =19, cex = .2) )
 
 
 #Average income per group (height of rectangle)
-asd1 <- df %>% group_by(findInterval(sq.income.pc, c(-Inf, 11770*1:6, Inf) )) %>% summarise(log(mean(new.income.pc)))
+asd1 <- df %>% group_by(findInterval(sq.inc.pc, c(-Inf, 11770*1:6, Inf) )) %>% 
+  summarise(log(mean(new.inc.pc)))
 
 #number of individuals per group (width of recangle)
-asd2 <- df %>%  with( wtd.table(findInterval(sq.income.pc, c(-Inf, 11770*1:6, Inf)), weights = hhwgt.2016/1e6) )
+asd2 <- df %>%  with( wtd.table(findInterval(sq.inc.pc, c(-Inf, 11770*1:6, Inf)), weights = hhwgt.2016/1e6) )
 
 #Create here a kick-ass viz
 if (FALSE) {
   widths = asd2$sum.of.weights
-  heights = asd1$`log(mean(new.income))`
+  heights = asd1$`log(mean(new.inc.pc))`
   
   barplot(heights, widths, space=0, 
           col = rgb(0,0,0,.3))
@@ -1686,25 +1679,23 @@ table_9 <- matrix(NA, ncol = 4, nrow = 4)
 colnames(table_9)  <- c("<1PL", "[1PL, 3PL)", "[3PL, 6PL)", ">6PL")
 rownames(table_9)  <- c("wage gains", "wage loses", "other loses", "N_i")
 
-
-
 #Classifying by PLs and using sq.income/N.fam
-deciles <- with(df[df$perno==1,],wtd.quantile(x = sq.income.pc, probs = 1:9/10, weights = hhwgt.2016*N.fam))
+deciles <- with(df,wtd.quantile(x = sq.inc.pc, probs = 1:9/10, weights = hhwgt.2016))
 
-df$income.group <- with(df, findInterval(x = sq.income.pc, vec = c(-Inf,c(1,3,6)*11740, Inf)))
+df$income.group <- with(df, findInterval(x = sq.inc.pc, vec = c(-Inf,c(1,3,6)*11740, Inf)))
 
 table_9["N_i", ] <- wtd.table(with(df, income.group) , weights = df$hhwgt.2016)[[2]]/1e6
   
-aux.1 <- df %>% group_by(income.group)  %>% summarise(mean((new.income.pc - sq.income.pc)/N.fam, na.rm = TRUE))
+aux.1 <- df %>% group_by(income.group)  %>% summarise(sum((new.inc.pc - sq.inc.pc) * hhwgt.2016, na.rm = TRUE)/1e9)
 table_9[ "wage gains", ] <- t(as.data.frame(aux.1[,2]) )
   
   
 #Wage loses: compared to SQ
-aux.1 <- df %>% group_by(income.group)  %>% summarise(mean((sq.income.pc - cut.income.pc), na.rm = TRUE))  
-table_9[ "wage loses", ] <- t(as.data.frame(aux.1[,2]) )
+#aux.1 <- df %>% group_by(income.group)  %>% summarise(mean((sq.inc.pc - cut.income.pc), na.rm = TRUE))  
+#table_9[ "wage loses", ] <- t(as.data.frame(aux.1[,2]) )
 
 #Imputing the balnce of the losses
-table_9[ "other loses", ] <- losses * c(0.01, rep(.29/2, 2), 0.70)/(table_9[ "N_i", ]*1e6)
+table_9[ "other loses", ] <- as.numeric(losses) * c(0.01, rep(.29/2, 2), 0.70)/1e9
 
 #FH: Need to modify/add table that shows number of people affected on each section
 
@@ -1717,7 +1708,7 @@ table_9[ "other loses", ] <- losses * c(0.01, rep(.29/2, 2), 0.70)/(table_9[ "N_
 
 
 ### Other income losses.   
-Income losses from a reduction in profits ($\Delta^{-}\pi$) and an increase in agregate prices ($\Delta^{+}P$) is estimated[?] to be distributed as following: 1% of the losses for those below the poverty line (PL), 29% for those between 1 and 6 PL, and 70% for those above 6PL. 
+Income losses from a reduction in profits ($\Delta^{-}\pi$) and an increase in aggregate prices ($\Delta^{+}P$) is estimated[?] to be distributed as following: 1% of the losses for those below the poverty line (PL), 29% for those between 1 and 6 PL, and 70% for those above 6PL. 
 
 
 
@@ -1747,8 +1738,30 @@ No interactions with other programs is assumed (SNAP or EITC).
 
 ```{r final results, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
 
-output.template1 <- cbind(output.template1, "Replication" = rep(NA, 7))
-output.template2 <- cbind(t(output.template2), "Replication" = rep(NA, 5), "Replication" = rep(NA, 5))
+output.template1 <- cbind(output.template1, "Replication" = c(
+  round(as.numeric(wage.gain.total["Total wage gain"]), 1),  
+  round(as.numeric(wage.gain.total["Total wage loss"]), 1), 
+  round(as.numeric(wage.gain.total["Total wage gain"]), 1) - 2,  
+  2,  
+  paste(round(N_benes_compliance, 1),round(N_benes_compliance_below_min, 1), sep = "/"  ), 
+  round(-delta.e1,1) )
+  )  
+
+
+
+table_9[ "wage gains", ] <- t(as.data.frame(aux.1[,2]) )
+  
+  
+#Wage loses: compared to SQ
+#aux.1 <- df %>% group_by(income.group)  %>% summarise(mean((sq.inc.pc - cut.income.pc), na.rm = TRUE))  
+#table_9[ "wage loses", ] <- t(as.data.frame(aux.1[,2]) )
+
+#Imputing the balnce of the losses
+table_9[ "other loses", ] <- as.numeric(losses) * c(0.01, rep(.29/2, 2), 0.70)/1e9
+
+
+output.template2 <- cbind(t(output.template2), "Replication loses" =  -round((table_9[ "other loses", ]), 1) 
+                          ,"Replication NE" = round(table_9[ "wage gains", ], 1) )
 
 knitr::kable(
   list(
@@ -1758,7 +1771,8 @@ knitr::kable(
   caption = 'Policy estimates in CBO report and Replication Results', booktabs = TRUE, 
   align = 'c'
 )
-mod.output.template
+
+#mod.output.template
 
 ```  
 
@@ -1768,6 +1782,7 @@ mod.output.template
 
 ```{r extensions, }
 knitr::kable(round(table_9), caption="Summary of effect of raising the minimum wage", digits = 1)
+mod.output.template
 ```  
 
 --> 

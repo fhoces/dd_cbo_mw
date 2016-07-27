@@ -3,9 +3,6 @@ title: "Reader Companion for CBO report on Min Wage"
 author: "Fernando Hoces de la Guardia"
 date: '`r Sys.Date()`'
 output:
-  pdf_document:
-    toc: yes
-    toc_depth: '2'
   html_document:
     code_folding: hide
     collapsed: no
@@ -15,6 +12,9 @@ output:
     toc: yes
     toc_depth: 2
     toc_float: no
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
 ---
 
 

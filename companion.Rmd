@@ -102,6 +102,8 @@ mod.output.template["Net effect", ] <- c("5", "12", "2", "-17", "2")
 
 This companion presents the details behind both policy estimates .   
 
+SAMPLE EDIT
+
 # Employment effects
 At a general level the effects on employment ($\widehat{\Delta E}$) will be calculated using a more detailed version of the following equation:
 

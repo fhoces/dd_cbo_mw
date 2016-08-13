@@ -1805,7 +1805,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 
 
 gconnect("any25996@gmail.com", "paratodos")
-#gconnect("fhoces", "Benja2014")
+#gconnect("fhoces", "XXXXXXX")
 
 
 res <- gtrends(c("minimum wage"))

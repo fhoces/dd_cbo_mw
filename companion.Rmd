@@ -106,9 +106,9 @@ This companion presents the details behind both policy estimates .
 At a general level the effects on employment ($\widehat{\Delta E}$) will be calculated using a more detailed version of the following equation:
 
 $$
-\begin{align}
+\begin{aligned}
 \widehat{\Delta E} &= N \times \eta \times \% \Delta w  + \text{Other factors}
-\end{align}
+\end{aligned}
 $$
   
 Where $N$ represents the relevant population, $\eta$ the elasticity of labor demand, $\Delta w$ the relevant percentual variation in wages, and the *Other factors* will encapsulate effects on employment through an increase in the aggregate demand.  
@@ -173,10 +173,10 @@ An adjustment was made to the wage of all the workers that did not report an hou
 
 
 $$
-\begin{align}
+\begin{aligned}
 w_{ig} &= \alpha w^{raw}_{ig} - (1 - \alpha)  \overline{w^{raw}_{g}} \label{samp.eq1} \\
 \text{with:    } \quad \overline{w^{raw}_{g}} &= \frac{\sum_{g} w^{raw}_{ig} }{N_{g}}  \nonumber 
-\end{align}
+\end{aligned}
 $$ 
   
 TO BE COMPLETED: Ask CBO about $\alpha$ and $G$.    
@@ -189,10 +189,10 @@ With this data-variable-adjustment we forecast the wage distribution, from 2013 
 We assume that the growth forecasts were taken from the 10-Year Economic Projections from CBO ([this website](https://www.cbo.gov/about/products/budget_economic_data)). Annualized growth rates for the number of workers $g_{workers}$, and nominal wage per $g_{wages}$ worker where computed as follows:  
 
 $$
-\begin{align}
+\begin{aligned}
 \widehat{ g_{workers} } &= \left[ \frac{\widehat{ N_{workers}^{2016} } }{N_{workers}^{2013}} \right]^{1/3}- 1 \\
 \widehat{ g_{wages} }  &= \left[ \frac{\widehat{ Wages^{2016} } / \widehat{ N_{workers}^{2016} } }{Wages^{2013} / N_{workers}^{2013}} \right]^{1/3} - 1 
-\end{align}
+\end{aligned}
 $$ 
 
 The report assumes higher wage growth for high wages than low wages. To create different rates of growth in wage, we compute different wage growth rates for each decile of wage. The increments across deciles were constant and the set to match a final lowest decile with a yearly growth rate of 2.9%.  
@@ -897,29 +897,29 @@ shinyAppDir(
 Define $\hat{g(2016|2013)}$ as the growth factor for the population from the year 2013 to 2016 ($\hat{g(2016|2013)} = (1 + \hat{g})^3$, where $\hat{g}$ is the annual growth rate of the population). Then:  
 <!--
 $$ 
-\begin{align}
+\begin{aligned}
 \widehat{ N^{final}_{teen} } &= \hat{N_{low \, wage}} (2016|2013)  \times P(\hat{w} \leq MW^{1} | \hat{w} \leq  low \, wage) \times
 (1 - \hat{\alpha_{1}} - \hat{\alpha_{2}}) \times P(Age \leq 19 | \hat{w} \leq MW^{1}) \\
 &= \hat{g(2016|2013)} \times  \hat{N_{employed}} (2013) \times P(\hat{w} \leq low\,wage)  \times P(\hat{w} \leq MW^{1} | \hat{w} \leq  low \, wage) \times \\
 &\quad (1 - \hat{\alpha_{1}} - \hat{\alpha_{2}}) \times P(Age \leq 19 | \hat{w} \leq MW^{1}) \\
 &= \hat{g(2016|2013)} \times  \hat{N_{employed}} (2013) P(\hat{w} \leq MW^{1} ) \times (1 - \hat{\alpha_{1}} - \hat{\alpha_{2}}) \times P(Age \leq 19 | \hat{w} \leq MW^{1})
-\end{align}
+\end{aligned}
 $$
 -->
 $$ 
-\begin{align}
+\begin{aligned}
 \widehat{ N^{teen}_{final} } &= \hat{N^{teen}_{\hat{w} \leq MW^{1} } } (2016|2013) \times 
 (1 - \hat{ \alpha^{teen}_{1} } - \hat{ \alpha^{teen}_{2} })\\
 &= \hat{ g(2016|2013) } \times  \hat{ N^{teen}_{employed} } (2013) \times P(\hat{w} \leq MW^{1}|teen)  \times (1 - \hat{ \alpha^{teen}_{1} } - \hat{ \alpha^{teen}_{2} })
-\end{align}
+\end{aligned}
 $$
 
 Analogously for the adult population: 
 
 $$ 
-\begin{align}
+\begin{aligned}
 \widehat{ N^{adult}_{final} } &= \hat{ g(2016|2013) } \times  \hat{ N^{adult}_{employed} } (2013) \times P(\hat{w} \leq MW^{1}|adult)  \times (1 - \hat{ \alpha^{adult}_{1} } - \hat{ \alpha^{adult}_{2} })
-\end{align}
+\end{aligned}
 $$
 
 
@@ -997,9 +997,9 @@ For now we take their estimate as given: -0.1 for the teenager population, with 
 With this elements we can write the chosen elasticity from the literature ($\eta_{lit}$) as the product of the original assessment of the literature ($\eta_{lit}^{0}$), a reduction factor for publication bias ($F_{pub.bias}<1$) and a amplification factor for a larger variation in minimum wage ($F_{large.variation}>1$):
 
 $$ 
-\begin{align} 
+\begin{aligned} 
 \eta^{teen}_{lit} &= \eta_{lit}^{0} \times F_{pub.bias} \times F_{large.variation} = -0.1
-\end{align}
+\end{aligned}
 $$ 
   
 Additionally, CBO provides two additional caveats that could be added to the analysis:  
@@ -1013,9 +1013,9 @@ Three adjustments are proposed: (i) extrapolate elasticity estimates for teenage
 
 Most of the estimates from the literate are for teenage population. CBO proposes to extrapolate this estimates to the adult population in the following fashion:
 $$
-\begin{align}
+\begin{aligned}
 \eta^{adults}_{lit} = \eta^{teens}_{lit} \times F_{extrapolation}
-\end{align}
+\end{aligned}
 $$  
 
 Where a value $F_{extrapolation} = 1/3$ is chosen to reflect that the demand for adult labor is suspected to be more inelastic than the demand for teen labor. 
@@ -1025,17 +1025,17 @@ Where a value $F_{extrapolation} = 1/3$ is chosen to reflect that the demand for
 The literature reports the estimated effect for a given population $\eta_{lit}$. This estimate can be seen as the weighted average between the demand elasticities for the directly affected population ($\eta_{w\leq MW}$), with wages below the new minimum, and the non affected ($\eta_{w > MW}$) populations, with wages above the new minimum: 
 
 $$
-\begin{align}
+\begin{aligned}
 \eta^{g}_{lit} =& p^{g}_{w\leq MW} \eta^{g}_{w\leq MW} + (1 - p^{g}_{w\leq MW})\eta^{g}_{w > MW}  \hspace{4em} g = \{teens, \, adults \}
-\end{align}
+\end{aligned}
 $$ 
 
 The underlying assumption is that $\eta_{w > MW} = 0$. With this the first proposed adjustment becomes: 
 
 $$
-\begin{align}
+\begin{aligned}
 \eta^{g}_{w\leq MW} =& \frac{\eta^{g}_{lit}}{p^{g}_{w\leq MW}}  \hspace{4em} g = \{teens, \, adults \}
-\end{align}
+\end{aligned}
 $$ 
 
 The fraction of the population with a forecast income below the new minimum wage ($p^{g}_{w\leq MW}$) is `r paste(round(stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",2], 1),"%", sep="")` for teenagers and `r paste(round(stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",1], 1),"%", sep="")` for adults.  
@@ -1049,9 +1049,9 @@ The report approximates this calculation by computing the employment effect for 
 Finally CBO argues that as the variation changes the elasticity should be re-scaled to reflect such variation. With the elasticity resulting in:
 
 $$
-\begin{align}
+\begin{aligned}
 \widetilde{ \eta^{g}_{w\leq MW} } &=  \frac{\eta^{g}_{lit}}{p^{g}_{w\leq MW}} \times \frac{\%\Delta MW}{\overline{\%\Delta w^{g}}} = \eta^{g}_{lit} \times F_{adjs}  \hspace{4em} g = \{teens, \, adults \}
-\end{align}
+\end{aligned}
 $$
 
 Looking at historical trends in the CPS, CBO estimates that $F_{adjs}$ is 4.5 for both populations[^2].  In the following table we summarize all the elements required to compute $\widetilde{ \eta^{g}_{w\leq MW} }$ 
@@ -1082,18 +1082,18 @@ CBO estimates [?] that the net effect on consumption would be positive and that 
 The estimated elasticities in the literature already account for approximately 10% of the effects through consumption, so the final effect of consumption here is multiplied by 0.9 to prevent double counting.   
 
 $$
-\begin{align}
+\begin{aligned}
 \widehat{OF} &=  40,000 \times 0.9
-\end{align}
+\end{aligned}
 $$
 
 ## Computing effects on employment  
 
 Putting all elements together we get: 
 $$
-\begin{align}
+\begin{aligned}
  \widehat{ \Delta E } &= \sum_{g\in\{A,T\}} \left( \widehat{ N^{final}_{g} } \times \widetilde{ \eta^{g}_{w\leq MW} }\times \overline{\%\Delta w^{g}}  \right) - \widehat{OF}
-\end{align}
+\end{aligned}
 $$  
 
 
@@ -1174,9 +1174,9 @@ The hourly wage ($w$) was computed as the ratio of yearly earnings ($y$) and the
 For this data set, the weights used in our analysis will be `hhwgt`.  
 
 $$
-\begin{align}
+\begin{aligned}
 \hat{w} = \frac{\hat{y}}{\hat{Hours \, per \, Week} \times \hat{Weeks\,per\,Year}}
-\end{align}
+\end{aligned}
 $$
 
 
@@ -1278,9 +1278,10 @@ As with the CPS ORG, an adjustment for wages is applied. Unlike the previous mod
 
 The adjustments follows the following formula: 
 $$
-\begin{align}
+\begin{aligned}
 w_{ig} &= \alpha w^{raw}_{ig} - (1 - \alpha)  \overline{w^{raw}_{g}} \label{samp.eq1_1} \\
-\text{with:    } \quad \overline{w^{raw}_{g}} &= \frac{\sum_{g} w^{raw}_{ig} }{N_{g}} \nonumber \end{align}
+\text{with:    } \quad \overline{w^{raw}_{g}} &= \frac{\sum_{g} w^{raw}_{ig} }{N_{g}} \nonumber 
+\end{aligned}
 $$ 
   
 [TO COMPLETE]] Ask CBO about $\alpha$ and $G$ in this case.   
@@ -1291,10 +1292,10 @@ CBO mentions that the "it found far fewer workers who would be directly affected
 
 We assume that this second adjustment are a linear transformation ("mostly by adjusting some workers’ wages up to the minimum wage projected to apply to them in 2016 under current law"):
 $$
-\begin{align}
+\begin{aligned}
 \widetilde{w_{ig}} &= (1  + I(U \geq 0) \times F_{1}) w_{ig}I(g \in G_{1}) + \\
 &\quad w_{ig}( 1- I(g \in G_{1}))  \quad \text{with:  } U\sim Uniform(a,b) 
-\end{align}
+\end{aligned}
 $$ 
 
 [TO COMPLETE] Ask CBO about this adjustment.  
@@ -1577,9 +1578,9 @@ billion dollars (in 2016) and a total wage loss of `r pt(wage.gain.total["Total 
 
 The family income forecast was computed as the sum of forecast wages and non-wage income:
 $$
-\begin{align}
+\begin{aligned}
 \widehat{Y_{h}(2016|2013)} &= \sum_{i \in h} \left( g_{w}\hat{w} + \sum_{l}(g_{nw_{l}}\hat{nw_{l}}) \right) 
-\end{align}
+\end{aligned}
 $$ 
 
 The other components of family income were forecast as follows: when a growth rate was available for the sub component it was applied (the only one mentioned is interest and dividends), otherwise the growth rate was equal to the change in the price index for personal consumption 
@@ -1738,7 +1739,7 @@ No interactions with other programs is assumed (SNAP or EITC).
 
 ```{r final results, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
 
-output.template1 <- cbind(output.template1, "Replication" = c(
+output.template1.f <- cbind(output.template1, "Replication" = c(
   round(as.numeric(wage.gain.total["Total wage gain"]), 1),  
   round(as.numeric(wage.gain.total["Total wage loss"]), 1), 
   round(as.numeric(wage.gain.total["Total wage gain"]), 1) - 2,  
@@ -1760,13 +1761,13 @@ table_9[ "wage gains", ] <- t(as.data.frame(aux.1[,2]) )
 table_9[ "other loses", ] <- as.numeric(losses) * c(0.01, rep(.29/2, 2), 0.70)/1e9
 
 
-output.template2 <- cbind(t(output.template2), "Replication loses" =  -round((table_9[ "other loses", ]), 1) 
+output.template2.f <- cbind(t(output.template2), "Replication loses" =  -round((table_9[ "other loses", ]), 1) 
                           ,"Replication NE" = round(table_9[ "wage gains", ], 1) )
 
 knitr::kable(
   list(
-    output.template1,
-    output.template2
+    output.template1.f,
+    t(output.template2.f)
   ),
   caption = 'Policy estimates in CBO report and Replication Results', booktabs = TRUE, 
   align = 'c'
@@ -1791,4 +1792,40 @@ mod.output.template
 [^1]: The report presents smaller estimates for the \$9.00 dollar option (-0.075). The rationale is that a smaller increase (in magnitude but also not indexed by inflation, and with later implementation than the 10.10 option)   will allow firms to adjust other margins before reducing employment. 
 
 [^2]: CBO calculated the fraction of teenagers with earnings below the minimum wage from 1979 to 2009 and the result came to about a third. Then they look at the average change in earnings for teenagers subject to the minimum wage over the same period, and compared that to the nominal change in each variation of the minimum wage. This ratio came to be about 1.5. With this the final estimates for the elasticity for teenagers came to be 4.5 ($1.5/(1/3)$) times higher than what is estimated in the literature.   
+
+
+```{r other stuff, eval=FALSE}
+list.of.packages <- c("gtrendsR", "dplyr", "ggplot2", "grid")
+
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages, repos= "http://cran.cnr.berkeley.edu/")
+lapply(list.of.packages, require, character.only = TRUE)
+
+
+gconnect("any25996@gmail.com", "paratodos")
+#gconnect("fhoces", "Benja2014")
+
+
+res <- gtrends(c("minimum wage"))
+
+res$trend %>%
+  ggplot(aes(start, minimum.wage.)) + 
+  geom_line(lwd = 1) +
+  #stat_smooth(span = .02) +
+  coord_cartesian(ylim = c(0,100), 
+                  xlim = c(as.POSIXct( c("2006-01-01 12:00:00","2016-02-01 12:00:00") ) ) ) +
+  geom_vline(xintercept = as.numeric(as.POSIXct( c("2014-01-21 14:00:00",
+                                                   "2007-07-01 12:00:00") )), 
+             col="red", size =1,  linetype=4, alpha =.5) +
+  theme_minimal() + 
+  labs(y = "Search Intensity", 
+     x = NULL , 
+     title = "Google Search for 'Minimum Wage' in the US") +
+  annotate("text", label = c("last MW raised", "CBO Report on MW")
+          , x = (as.POSIXct(c("2007-07-01 12:00:00", "2014-02-01 12:00:00"))), 
+          y = 15, size = 4, colour = "red")+
+  ggsave("min_wage_gtrend.pdf", width = 20, height = 5)
+  
+
+```
 

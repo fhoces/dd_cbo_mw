@@ -1,20 +1,23 @@
 ---
 title: "Reader Companion for CBO report on Min Wage"
-author: "Fernando Hoces de la Guardia"
-date: '`r Sys.Date()`'
+author: "Fernando Hoces de la Guardia + (hopefully) a lot of other people"
+date: '`r paste("Last edit:", Sys.Date(), sep=" ")`'
 output:
   html_document:
     code_folding: hide
-    collapsed: no
     number_sections: yes
-    smooth_scroll: no
     theme: united
     toc: yes
     toc_depth: 2
-    toc_float: no
+    toc_float: true
+    collapsed: false
+    smooth_scroll: false
   pdf_document:
     toc: yes
     toc_depth: '2'
+    header-includes:
+    - \usepackage{caption}
+    - \captionsetup{labelformat=empty}
 ---
 
 
@@ -46,22 +49,27 @@ lapply(list.of.packages, require, character.only = TRUE)
 
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(cache = TRUE)
+
+display_code <- TRUE #set false when outputing to pdf (maybe?)
 ```
 
 
 # Introduction  
-This reader companion presents the key/analytic components of the CBO report on the effect of raising the minimum wage in a transparent and reproducible template. Our purpose is to describe every step/decision involved in this policy analysis such that analysts/stakeholder can understand/criticize/improve from it.  
+This (living) document is a reader companion to the report form the Congressional Budget Office titled ["The Effects of a Minimum-Wage Increase on Employment and Family Income"](https://www.cbo.gov/publication/44995). Our purposes are twofold: (i) demonstrate how new scientific practices of transparency and reproducibilty (T & R) can be applied to policy analysis and (ii) promote the technical discussion around a recurrent policy issue (minimum wage) by making explicit and visible all the components (e.g. data, codes, methods) and key assumptions of the most up-to-date official policy analysis on the matter. We encourage readers to collaborate in this document and help develop an ever-improving version of the important policy estimates[^3] (re)produced here.
 
-The new reproducibility practices promoted in science were used as a framework to carry out the exercise described below. However we need to highlight a crucial difference between a replication in science and a replication in policy analysis. A scientific report takes the form of a peer review publication that represent  several months or years of research, followed up by a review process that can be as lengthy as the research itself. Because of this when a scientific publication is subject to replication is expected to succeed. Policy analysis is usually performed under tight deadlines, and is not unusual to rely on arbitrary assumptions and/or unreproducible calculations. For this reasons we do not attempt to replicate the CBO report as a way of testing the veracity of the analysis. We use reproducibility, paired with full transparency, to generate a living document that represents the best policy analysis up to date. Our expectations are that this living document will be serve as a building block to discuss and incorporate incremental improvements on the best available policy analysis. 
+To achieve our goal we reviewed the CBO report and extract the key components of its analysis. For our analysis we follow the guidelines propose by (Me? CITE dissertation) where the analysis achieves the highest standards of T & R when the data, methods and workflow are completly reproducible and easily readable. 
+
+CBO's report, in its original form already represents significant inprovement in T & R relative to the standard practices of policy analyses. The report contain almost all the components required for a full replication. We add the missing components, make explicit assumptions when needed, and complement the narrative explanations with some mathematical formulae and the analytical code use behind it. 
 
 The CBO report describes two policy estimates: the effects of minimum wage on employment and the distributional effects of minimum wage on wages and family income. All the policy estimates to replicate are presented in the following tables. 
+
 
 ```{r table with output,  eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}  
 # This is summary of all the policy estimates presented in the report
 # Aggregate effects
 output.template1 <- matrix(" ???",nrow = 6, ncol = 1)
-rownames(output.template1) <- c("wage gains", "wage losses", "Balance losses", 
-                                "Net effect", "# of Wage gainers", "#of Wage losers")
+rownames(output.template1) <- c("wage gains (billions of $)", "wage losses (bns of $)", "Balance losses (bns of $)", 
+                                "Net effect (bns of $)", "# of Wage gainers (millions)", "#of Wage losers (millions)")
 colnames(output.template1) <- "Effects/Policy Estimates"
 
 output.template1[,"Effects/Policy Estimates" ] <- c("31", "~5", "~24" , "2", "16.5", "0.5")
@@ -69,11 +77,11 @@ output.template1[,"Effects/Policy Estimates" ] <- c("31", "~5", "~24" , "2", "16
 
 #Some distributional effects
 output.template2 <- matrix(" ???",nrow = 2, ncol = 4)
-rownames(output.template2) <- c("Balance losses", "Net effect")
+rownames(output.template2) <- c("Balance losses (bns of $)", "Net effect (bns of $)")
 colnames(output.template2) <- c("<1PL", "[1PL, 3PL)", "[3PL, 6PL)", ">6PL")
 
-output.template2["Balance losses", ] <- c("~0.3", "~3.4", "~3.4", "~17")
-output.template2["Net effect", ] <- c("5", "12", "2", "-17")
+output.template2["Balance losses (bns of $)", ] <- c("~0.3", "~3.4", "~3.4", "~17")
+output.template2["Net effect (bns of $)", ] <- c("5", "12", "2", "-17")
 
 
 
@@ -102,7 +110,8 @@ mod.output.template["Net effect", ] <- c("5", "12", "2", "-17", "2")
 
 This companion presents the details behind both policy estimates .   
 
-SAMPLE EDIT
+The new reproducibility practices promoted in science were used as a framework to carry out the exercise described below. However we need to highlight a crucial difference between a replication in science and a replication in policy analysis. A scientific report takes the form of a peer review publication that represent  several months or years of research, followed up by a review process that can be as lengthy as the research itself. Because of this when a scientific publication is subject to replication is expected to succeed. Policy analysis is usually performed under tight deadlines, and is not unusual to rely on arbitrary assumptions and/or unreproducible calculations. For this reasons we do not attempt to replicate the CBO report as a way of testing the veracity of the analysis. We use reproducibility, paired with full transparency, to generate a living document that represents the best policy analysis up to date. Our expectations are that this living document will be serve as a building block to discuss and incorporate incremental improvements on the best available policy analysis. 
+
 
 # Employment effects
 At a general level the effects on employment ($\widehat{\Delta E}$) will be calculated using a more detailed version of the following equation:
@@ -130,7 +139,7 @@ Currently three versions of these data sets can be found online: [CPS raw files]
 The weights used in our analysis will be `orgwgt/12`
 
 #### Code to load the data  
-```{r loading data, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
+```{r loading data, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 
 data_use <- "CPER_ORG"
 
@@ -203,7 +212,7 @@ The adjustment over number of workers was made through the weight variable `fina
 
 ##### Code to get economic growth forecasts    
 
-```{r Getting forecast data, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
+```{r Getting forecast data, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results = "hide"}
 # All projections data comes from this website: https://www.cbo.gov/about/products/budget_economic_data
 # name of the files that contain projections from CBO
 early.2016  <- "51135-2016-01-Economic%20Projections.xlsx" 
@@ -303,7 +312,7 @@ Whenever the predicted wages were below the 2016 state minimum wage they were re
 **Important assumption:** when imputing state level min wages, we assume that no effects on employment where incorporated. 
 
 ##### Code to get minimum wage values by state  
-```{r Getting min wage data , eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
+```{r Getting min wage data , eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results = "hide"}
 # Minimum wage by state: 
 # Check if data is in machine and download if not.
 # To excecute the following piece of code you cannot be behind a firewall
@@ -367,7 +376,7 @@ colnames(st.minw.2016) <- "2016"
 ```
 
 #### Code to forecast wages and workers
-```{r Adjusting wages to 2016 , eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
+```{r Adjusting wages to 2016 , eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results = "hide"}
 #Wage adjutsment
 
 #CBO mentions that the lowest 10th percent gets a 2.9% growth in anual wage
@@ -569,7 +578,7 @@ table_4[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
 ```  
 
 
-```{r Universe, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold'}
+```{r Universe, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold'}
 
 #if (!(length(dev.list()) == 0)) { dev.off() }
 #x11()
@@ -800,7 +809,7 @@ Following the same footnote we will consider salary workers as non compliers onl
 
 ##### Code to compute percentage of non compliers 
 
-```{r Estimating non compliance, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+```{r Estimating non compliance, eval=TRUE, echo=display_code, warning=FALSE, message=FALSE}
 #Percentage of total workers in 2013 that earn less that their states' minimum wage. 
 
 # variable peernuot seems to be the most appropiate variable to indicate wether or nor receives tips
@@ -827,7 +836,7 @@ non.comp.stats <- df %>%
 
  - Include not covered by FLSA but expected to be affected: employees of small firms, occupations generally exempt from FLSA, and teenagers in first 90 days of employment.  
 
-```{r Target population, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE,  error=FALSE, collapse=TRUE, fig.show='hold'}
+```{r Target population, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE,  error=FALSE, collapse=TRUE, fig.show='hold'}
 library(treemap)
 
 if (!(length(dev.list()) == 0)) { dev.off() }
@@ -927,7 +936,7 @@ $$
 
 The table below presents the estimate from 2013 for all each component.
 
-```{r compute Ns, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+```{r compute Ns, eval=TRUE, echo=display_code, warning=FALSE, message=FALSE}
 aux.1 <-  bind_rows( 
   df  %>% 
   filter(pop_of_int == 1) %>% 
@@ -1100,7 +1109,7 @@ $$
 
 
 
-```{r employment effect, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+```{r employment effect, eval=TRUE, echo=display_code, warning=FALSE, message=FALSE}
 eta.lit <- - 0.1
 factor.extrap <- 1/3
 
@@ -1183,7 +1192,7 @@ $$
 
 
 #### Loading the data  
-```{r loading data cps_asec, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
+```{r loading data cps_asec, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 data_use <- "CPER_ASEC"
 
 # Using CEPR ORG data 
@@ -1208,7 +1217,7 @@ df <- tbl_df(df)
 
 #### Code for computing wages and descriptive stats  
 
-```{r Descript stats1 cps asec, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
+```{r Descript stats1 cps asec, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 # Tag population of interest FH: (1) Need to deal with 598 NA's and (2) clarify that restrictions here are not 
 # exactly the same as CPS ORG.  
 pop_of_int <- with(df,
@@ -1307,7 +1316,7 @@ The wage forecast is the same methodology as in section 2.  This methodology is 
 
 
 ##### Code to forecast wages, workers
-```{r forecasting cps asec wage, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results = "hide"}
+```{r forecasting cps asec wage, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results = "hide"}
 #Wage adjutsment
 #CBO mentions that the lowest 10th percent gets a 2.9% growth in anual wage
 #I compute the anualized growth rate of wages and creat 10 bins of wage growth
@@ -1425,7 +1434,7 @@ MW' \quad o/w
 \end{cases}
 $$
 
-```{r positive effects,  eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
+```{r positive effects,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 #Increase population size (apply workers growth rate to all pop)
 df$hhwgt.2016 <- df$hhwgt * gr.factor("workers", 2013, 2016)
 
@@ -1472,7 +1481,7 @@ wage.inc.with.ripple <- df %>%
 #### Substracting non compliers  
 In section 2.2 we estimate that `r paste(round(stats2["% of non compliers ($\\alpha_{1}$)", "Total"], 1),"%", sep="")` of workers eligible for a rise would not receive such benefit. To account for this fraction of non compliers replace the same fraction of new wages with what would have receive under the status quo.  
 
-```{r non compliesrs in asec,  eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
+```{r non compliesrs in asec,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 #AQUI VOY
 # Apply ripple effects
 alpha.1 <- stats2["% of non compliers ($\\alpha_{1}$)", "Total"]/100
@@ -1520,7 +1529,7 @@ Replace $\tilde{w} = \tilde{w}/2$ if :
   
 [TO COMPLETE] Check with CBO. So far I am destroying jobs uniformly across workers earning less than 10.10  
 
-```{r job destruction,  eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}  
+```{r job destruction,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}  
 #NOT USING THIS FOR NOW
 m_x <- function(beta1 , beta2) with(df, 
                                     beta1 * ( age <= 19 ) - beta2 * ( age >= 20 ) * 
@@ -1592,7 +1601,7 @@ The other components of family income were forecast as follows: when a growth ra
 ### Growth of non working population  
 Forecasts of population growth were the same for working population. For non working population, the growth rate was matched to CBO forecasts for that group. 
 
-```{r income,  eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE, results='hide'}
+```{r income,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results='hide'}
 #FOR THE FIRST TIME WE NOW LOOK AT OVERALL INCOME AND THE WHOLE POPULATION
 
 #FH:again, I would rather use the non wage growth
@@ -1739,7 +1748,7 @@ No interactions with other programs is assumed (SNAP or EITC).
 
 # Results 
 
-```{r final results, eval=TRUE,echo=TRUE, warning=FALSE, message=FALSE}
+```{r final results, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 
 output.template1.f <- cbind(output.template1, "Replication" = c(
   round(as.numeric(wage.gain.total["Total wage gain"]), 1),  
@@ -1795,39 +1804,4 @@ mod.output.template
 
 [^2]: CBO calculated the fraction of teenagers with earnings below the minimum wage from 1979 to 2009 and the result came to about a third. Then they look at the average change in earnings for teenagers subject to the minimum wage over the same period, and compared that to the nominal change in each variation of the minimum wage. This ratio came to be about 1.5. With this the final estimates for the elasticity for teenagers came to be 4.5 ($1.5/(1/3)$) times higher than what is estimated in the literature.   
 
-
-```{r other stuff, eval=FALSE}
-list.of.packages <- c("gtrendsR", "dplyr", "ggplot2", "grid")
-
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages, repos= "http://cran.cnr.berkeley.edu/")
-lapply(list.of.packages, require, character.only = TRUE)
-
-
-gconnect("any25996@gmail.com", "paratodos")
-#gconnect("fhoces", "XXXXXXX")
-
-
-res <- gtrends(c("minimum wage"))
-
-res$trend %>%
-  ggplot(aes(start, minimum.wage.)) + 
-  geom_line(lwd = 1) +
-  #stat_smooth(span = .02) +
-  coord_cartesian(ylim = c(0,100), 
-                  xlim = c(as.POSIXct( c("2006-01-01 12:00:00","2016-02-01 12:00:00") ) ) ) +
-  geom_vline(xintercept = as.numeric(as.POSIXct( c("2014-01-21 14:00:00",
-                                                   "2007-07-01 12:00:00") )), 
-             col="red", size =1,  linetype=4, alpha =.5) +
-  theme_minimal() + 
-  labs(y = "Search Intensity", 
-     x = NULL , 
-     title = "Google Search for 'Minimum Wage' in the US") +
-  annotate("text", label = c("last MW raised", "CBO Report on MW")
-          , x = (as.POSIXct(c("2007-07-01 12:00:00", "2014-02-01 12:00:00"))), 
-          y = 15, size = 4, colour = "red")+
-  ggsave("min_wage_gtrend.pdf", width = 20, height = 5)
-  
-
-```
-
+[^3]: Cited so far by: 

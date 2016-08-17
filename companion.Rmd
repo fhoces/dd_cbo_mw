@@ -464,12 +464,12 @@ st.minw.2016[c("AK"	, "AZ", "CA", "CT"	, "HI"	, "IL", "MA", "MI"	,
 colnames(st.minw.2016) <- "2016"
 
 # Export MW data to Stata
-write.dta(
-  as.data.frame(
-    cbind("states" = rownames(st.minw),
-          st.minw, 
-          st.minw.2016)
-    ), "state_min_w.dta")
+aux.data <- data.frame("states" = rownames(st.minw),
+           "minwage_2013" = st.minw, 
+          "minwage_2016" = st.minw.2016)
+names(aux.data) <- c("states","minwage_2013", "minwage_2016")
+
+write.dta(aux.data, "state_min_w.dta")
 ```
 
 ##### Code to get minimum wage values by state (`Stata`)  
@@ -524,37 +524,41 @@ df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,],
 <div id="toggleText4" style="display: none">  
 
 ```{r Adjusting wages to 2016 - Stata, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
-AQUI VOY: TO TRANSLATE:
-*   
-half.gap <- wage.gr - 0.024
-wage.gr.bins <- seq(0.024, wage.gr + half.gap, length.out = 10)
+* Forecast wages to 2016 : apply diff growth rates per decile (deciles of growth gen in R)
+cap drop w3_*
+xtile w3_deciles = wage3 [w =final_weight], nq(10)
+gen w3_adj1 = wage3 * (1 + 0.02400000)^3 if w3_decile == 1
 
-# CAUTION: DO NOT apply 'ntile()' fn from dplry as is will split ties differently than 'cut()' and results will no
-# be comparable to STATA. 
-aux.var  <- wtd.quantile(x = df$wage3, probs = 1:9/10,weights = df$final_weights)
-df <- df %>%
-        mutate( w3.deciles = cut(wage3, c(0, aux.var, Inf) , 
-                                right = TRUE, include.lowest = TRUE) ,  
-                w3.adj1 =  wage3 * ( 1 + wage.gr.bins[w3.deciles] )^3) 
+replace w3_adj1 = wage3 * (1 + 0.02875144)^3 if w3_decile == 2
+replace w3_adj1 = wage3 * (1 + 0.03350288)^3 if w3_decile == 3
+replace w3_adj1 = wage3 * (1 + 0.03825432)^3 if w3_decile == 4
+replace w3_adj1 = wage3 * (1 + 0.04300575)^3 if w3_decile == 5
+replace w3_adj1 = wage3 * (1 + 0.04775719)^3 if w3_decile == 6
+replace w3_adj1 = wage3 * (1 + 0.05250863)^3 if w3_decile == 7
+replace w3_adj1 = wage3 * (1 + 0.05726007)^3 if w3_decile == 8
+replace w3_adj1 = wage3 * (1 + 0.06201151)^3 if w3_decile == 9
+replace w3_adj1 = wage3 * (1 + 0.06676295)^3 if w3_decile == 10
 
+* Merge with State min data and replace wages below state min in 2016 by it.
+decode state, g(state_s)
+sort state_s
+merge state_s using `min_wage'
+* Drop Guam, PRVI, Federal
+drop if _m == 2
+drop _m
 
-# Here we adjust min wages
-df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,],
-                              w3.adj1,
-                              st.minw.2016[state,]) )
+gen w3_adj_min = w3_adj1
+replace w3_adj_min = minwage_2016 if w3_adj1 < minwage_2016
 ```  
 
 </div> 
-
-
-
 
 
 ## Get the $N$   
 
 ### Identify the relevant universe  
 
-```{r, echo=FALSE, }
+```{r temp nums for text below, echo=FALSE, }
 temp.working.age.pop <- round( sum(df$final_weights, na.rm = TRUE)/1e6, 1)
 temp.employed.pop <- round( sum( df$final_weights * (df$lfstat == "Employed"), na.rm = TRUE)/1e6, 1)
 temp.unemployed.pop <- round( sum( df$final_weights * (df$lfstat == "Unemployed"), na.rm = TRUE)/1e6, 1)
@@ -571,6 +575,8 @@ According to the CPS data the population of working age in 2013 was `r temp.work
 Among those employed, `r temp.salary` million workers receive a salary (not self employed or self incorporated).  A small number of salary workers (`r temp.salary.g1` million) did not reported any wages and were excluded from the sample. Of the employed salary workers `r temp.nohour` million did not report an hourly wage and their wage was extrapolated from their reported paid period in to a per-hour basis. However, `r temp.nohour.hours.vary` million workers from this group reported having varying hours. Their wages were not calculated and were also excluded from the sample.  As a result the final number of workers where a rise in the minimum wage can have a direct effect is `r temp.pop.of.interest` million (= `r temp.salary` - `r temp.salary.g1` -  `r temp.nohour.hours.vary`), this is our universe of interest. Figure 1 presents visual representation of all these populations. 
 
 *[FH: why are some indiv with age >65?]  
+
+AQUI VOY: make it visisble in R and translate it in to Stata
 ```{r desc stats2,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 # Tag population of interest
 pop_of_int <- with(df,
@@ -719,6 +725,8 @@ table_4[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
 
 
 ```  
+
+
 
 
 ```{r Universe, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold'}
@@ -1625,7 +1633,6 @@ wage.inc.with.ripple <- df %>%
 In section 2.2 we estimate that `r paste(round(stats2["% of non compliers ($\\alpha_{1}$)", "Total"], 1),"%", sep="")` of workers eligible for a rise would not receive such benefit. To account for this fraction of non compliers replace the same fraction of new wages with what would have receive under the status quo.  
 
 ```{r non compliesrs in asec,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
-#AQUI VOY
 # Apply ripple effects
 alpha.1 <- stats2["% of non compliers ($\\alpha_{1}$)", "Total"]/100
 # df$new.wage[df$below_min==1 & pop_of_int==1] <- with(df[df$below_min==1 & pop_of_int==1,], 

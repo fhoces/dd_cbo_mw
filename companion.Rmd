@@ -248,7 +248,7 @@ sum(orgwgt)
 </div> 
 
 ### Wage variable
-We assume no further adjustments like imputation for top coding, trimming, excluding overtime/commissions, or imputation of usual hours for ''hours vary'' respondents. The CEPR ORG data includes several wage variables ([described here](http://ceprdata.org/cps-uniform-data-extracts/cps-outgoing-rotation-group/)). The wage variable that best matches the description above is `wage3`. AQUI VOY: DESCRIBE WAGE 3. 
+We assume no further adjustments like imputation for top coding, trimming, excluding overtime/commissions, or imputation of usual hours for ''hours vary'' respondents. The CEPR ORG data includes several wage variables ([described here](http://ceprdata.org/cps-uniform-data-extracts/cps-outgoing-rotation-group/)). The wage variable that best matches the description above is `wage3`. This variable measures earnings for hourly workers (excluding overtime, tips, commissions and bonuses -otc-) and non hourly workers (including otc). According to CEPR "...attempts to match the NBER’s recommendation for the most consistent hourly wage series from 1979 to the present"
 
 ### Wage adjustment
 An adjustment was made to the wage of all the workers that did not report an hourly wage (`wage3` is estimated as usual salary per self-reported pay-period over usual hours per pay-period). In order to reduce the measurement error in those wages, we follow the methodology proposed in [this paper](https://www.aeaweb.org/articles?id=10.1257/aer.96.3.461) and compute the adjusted wage as a weighted average of the original wage and the average wage of workers with similar characteristics. 
@@ -560,31 +560,67 @@ replace w3_adj_min = minwage_2016 if w3_adj1 < minwage_2016
 
 ```{r temp nums for text below, echo=FALSE, }
 temp.working.age.pop <- round( sum(df$final_weights, na.rm = TRUE)/1e6, 1)
-temp.employed.pop <- round( sum( df$final_weights * (df$lfstat == "Employed"), na.rm = TRUE)/1e6, 1)
-temp.unemployed.pop <- round( sum( df$final_weights * (df$lfstat == "Unemployed"), na.rm = TRUE)/1e6, 1)
-temp.nilf.pop <-  round( sum( df$final_weights * (df$lfstat == "NILF"), na.rm = TRUE)/1e6, 1)
-temp.salary <- round( with(df, sum(final_weights * (empl == 1 &  (selfinc == 0 & selfemp == 0)), na.rm = TRUE))/1e6 , 1)
-temp.salary.g1 <- round(with(df, sum(final_weights * ( (empl == 1 & selfinc == 0 & selfemp == 0) & (paidhre == 1 | hrsvary != 1 | is.na(hrsvary) ) & (wage3==0 | is.na(wage3) ) ) , na.rm = TRUE))/1e6, 1)
-temp.nohour <- round(with(df,  sum(final_weights * (empl == 1 & (selfinc == 0 & selfemp == 0) & (paidhre == 0 |is.na(paidhre))), na.rm = TRUE))/1e6, 1)
-temp.nohour.hours.vary <- round(with(df, sum( final_weights * (empl == 1 & (selfinc == 0 & selfemp == 0) & (paidhre == 0 | is.na(paidhre) ) & hrsvary == 1), na.rm = TRUE))/1e6, 1)
-temp.pop.of.interest <- round(with(df, sum(final_weights * (empl == 1 & (selfinc ==0 & selfemp == 0) & ( (paidhre == 0 & hrsvary != 1) | paidhre ==1 )  & wage3 != 0) , na.rm = TRUE))/1e6, 1)
+temp.employed.pop <- round( sum( df$final_weights * 
+                                   (df$lfstat == "Employed"), 
+                                 na.rm = TRUE)/1e6, 1)
+temp.unemployed.pop <- round( sum( df$final_weights * 
+                                     (df$lfstat == "Unemployed"), 
+                                   na.rm = TRUE)/1e6, 1)
+temp.nilf.pop <-  round( sum( df$final_weights * 
+                                (df$lfstat == "NILF"), 
+                              na.rm = TRUE)/1e6, 1)
+temp.salary <- round( with(df, sum(final_weights * 
+                                     (empl == 1 &  
+                                        (selfinc == 0 & selfemp == 0)), 
+                                   na.rm = TRUE))/1e6 , 1)
+temp.salary.g1 <- round(with(df, sum(final_weights * 
+                                       ( (empl == 1 & 
+                                            selfinc == 0 & selfemp == 0) &
+                                           (paidhre == 1 | hrsvary != 1 |
+                                              is.na(hrsvary) ) &
+                                           (wage3==0 | is.na(wage3) ) ) , 
+                                     na.rm = TRUE))/1e6, 1)
+temp.nohour <- round(with(df,  sum(final_weights * 
+                                     (empl == 1 & 
+                                        (selfinc == 0 & selfemp == 0) & 
+                                        (paidhre == 0 |is.na(paidhre))), 
+                                   na.rm = TRUE))/1e6, 1)
+temp.nohour.hours.vary <- round(with(df, sum( final_weights * 
+                                                (empl == 1 & 
+                                                  (selfinc == 0 & selfemp == 0) &
+                                                   (paidhre == 0 | is.na(paidhre) ) &
+                                                   hrsvary == 1), 
+                                              na.rm = TRUE))/1e6, 1)
+temp.pop.of.interest <- round(with(df, sum(final_weights * 
+                                             (empl == 1 & 
+                                                (selfinc ==0 & selfemp == 0) &
+                                                ( (paidhre == 0 & hrsvary != 1) |
+                                                    paidhre ==1 )  & wage3 != 0),
+                                           na.rm = TRUE))/1e6, 1)
 ```
 
 According to the CPS data the population of working age in 2013 was `r temp.working.age.pop` million*. Of those, `r temp.employed.pop` million were working, `r temp.unemployed.pop`, were unemployed and `r temp.nilf.pop` were not in the labor force (NILF). 
 
-Among those employed, `r temp.salary` million workers receive a salary (not self employed or self incorporated).  A small number of salary workers (`r temp.salary.g1` million) did not reported any wages and were excluded from the sample. Of the employed salary workers `r temp.nohour` million did not report an hourly wage and their wage was extrapolated from their reported paid period in to a per-hour basis. However, `r temp.nohour.hours.vary` million workers from this group reported having varying hours. Their wages were not calculated and were also excluded from the sample.  As a result the final number of workers where a rise in the minimum wage can have a direct effect is `r temp.pop.of.interest` million (= `r temp.salary` - `r temp.salary.g1` -  `r temp.nohour.hours.vary`), this is our universe of interest. Figure 1 presents visual representation of all these populations. 
+Among those employed, `r temp.salary` million workers receive a salary (not self employed or self incorporated).  A small number of salary workers (`r temp.salary.g1` million) did not reported any wages and were excluded from the sample. Of the employed salary workers `r temp.nohour` million did not report an hourly wage and it was computed from their reported pay-period divided by the reported hours in such pay-period. However, `r temp.nohour.hours.vary` million workers from this group reported having varying hours. Their wages were not calculated and were also excluded from the sample.  As a result the final number of workers where a rise in the minimum wage can have a direct effect is `r temp.pop.of.interest` million (= `r temp.salary` - `r temp.salary.g1` -  `r temp.nohour.hours.vary`), this is our universe of interest. Figure 1 presents visual representation of all these populations. 
 
-*[FH: why are some indiv with age >65?]  
+*[FH: why are some indiv with age > 65?]  
 
-AQUI VOY: make it visisble in R and translate it in to Stata
-```{r desc stats2,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+We know compute some descriptive statistics of the labor force in 2013 and the distribution of wages of the universe of interest both in 2013 and the predicted values for 2016. 
+
+Define variable that tags population of interest
+
+#### Statistics and code behind figure 1 (`R`)
+
+```{r desc stats2,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE}
 # Tag population of interest
 pop_of_int <- with(df,
                    (empl == 1 &
                       (selfinc == 0 & selfemp == 0) & 
                       ( (paidhre == 0 & ( hrsvary != 1 | is.na(hrsvary) )  )  | paidhre == 1 )  & 
                       !(wage3 == 0 | is.na(wage3) ) )
-  )
+                  )
+
+# Tables 1 - 4 where constructed to look at the data. Only table 4 is shown in the final output 
 
 # To compute the new total of workers we multiply the original weigths by the growth rate. 
 table_1  <- df  %>% 
@@ -713,24 +749,21 @@ table_4[3:7,1]  <- round(as.matrix(table_3), digits = 2)
 
 aux.1 <- df %>% 
   filter(pop_of_int == 1 & !is.na(w3.adj.min)) %>% 
-    summarise("> $7.50" = weighted.mean(w3.adj.min<7.5,w = final_weights * (1 + workers.gr)^3), 
-              "> $9" = weighted.mean(w3.adj.min<9,w = final_weights * (1 + workers.gr)^3), 
-              "> $10.10" = weighted.mean(w3.adj.min<10.10,w = final_weights * (1 + workers.gr)^3), 
-              "> $13" = weighted.mean(w3.adj.min<13,w = final_weights * (1 + workers.gr)^3), 
-              "> $15" = weighted.mean(w3.adj.min<15,w = final_weights * (1 + workers.gr)^3) 
+    summarise("> $7.50" = weighted.mean(w3.adj.min<7.5,
+                                        w = final_weights * (1 + workers.gr)^3), 
+              "> $9" = weighted.mean(w3.adj.min<9,
+                                     w = final_weights * (1 + workers.gr)^3), 
+              "> $10.10" = weighted.mean(w3.adj.min<10.10,
+                                         w = final_weights * (1 + workers.gr)^3), 
+              "> $13" = weighted.mean(w3.adj.min<13,
+                                      w = final_weights * (1 + workers.gr)^3), 
+              "> $15" = weighted.mean(w3.adj.min<15,
+                                      w = final_weights * (1 + workers.gr)^3) 
               )
 
 table_4[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
 
-
-
-```  
-
-
-
-
-```{r Universe, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold'}
-
+###Build first treemap
 #if (!(length(dev.list()) == 0)) { dev.off() }
 #x11()
 universe.1 <- df %>% 
@@ -765,6 +798,133 @@ title = "Figure 1: Distribution of population of working age in 2013"
 )
 
 ```
+
+#### Statistics and code behind figure 1 (`Stata`)
+
+<a id="displayText" href="javascript:toggle(5);">Code</a>  
+<div id="toggleText5" style="display: none">  
+
+```{r desc stats2 STATA, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
+
+*Population of interest
+
+*Employment categories:
+global employed "empl == 1" 
+global salary	"empl == 1 & selfinc == 0 & selfemp == 0"
+global nhourly	"empl == 1 & selfinc == 0 & selfemp == 0 & (paidhre == 0 | paidhre ==.)"
+global hrs_vary "empl == 1 & selfinc == 0 & selfemp == 0 & (paidhre == 0 | paidhre ==.) & hrsvary ==1"
+
+
+*Tag poppulation of interest: Salary workers that either paid hourly or not paid by the hour but hours not vary, and have a non zero non missing wage
+cap drop pop_of
+gen pop_of_int = (empl == 1 & (selfinc ==0 & selfemp ==0) & (paidhre ==1 | (paidhre == 0 & hrsvary != 1))  & (wage3 != 0 & wage3 != .) )
+
+matrix table_1 = J(7,2,99)
+
+*1 -Total 
+sum final_weight 
+noi di "Total sample in CPS ORG"
+noi di %14.2f r(sum)
+mat table_1[1,1] = r(sum)
+
+count if final_weight!=. 
+noi di "Total sample in CPS ORG: unweighted"
+noi di %14.2f r(N)
+mat table_1[1,2] = r(N)
+
+
+*2 -Employed
+sum final_weight if $employed
+noi di "Population Employed"
+noi di %14.2f r(sum)
+mat table_1[2,1] = r(sum)
+
+
+count if $employed
+noi di "Population Employed: unweighted"
+noi di %14.2f r(N)
+mat table_1[2,2] = r(N)
+
+
+*3 -Salaried worker
+sum final_weight if $salary
+noi di "Salaried workers"
+noi di %14.2f r(sum)
+local c = r(sum)
+mat table_1[3,1] = r(sum)
+
+
+count if $salary
+noi di "Salaried workers: unweighted"
+noi di %14.2f r(N)
+local c_uw = r(N)
+mat table_1[3,2] = r(N)
+
+
+*4 -Not paid by the hour
+sum final_weight if $nhourly
+noi di "Salaried workes who are not paid by the hour"
+noi di %14.2f r(sum)
+mat table_1[4,1] = r(sum)
+
+count if $nhourly
+noi di "Salaried workes who are not paid by the hour: unweighted"
+noi di %14.2f r(N)
+mat table_1[4,2] = r(N)
+
+*5 -Among those who are not paid by the hour: hours vary
+sum final_weight if $hrs_vary
+noi di "Salaried workes who are not paid by the hour and hour vary"
+noi di %14.2f r(sum)
+local a = r(sum)
+mat table_1[5,1] = r(sum)
+
+count if $hrs_vary
+noi di "Salaried workes who are not paid by the hour and hour vary: unweighted"
+noi di %14.2f r(N)
+local a_uw = r(N)
+mat table_1[5,2] = r(N)
+
+
+*Among those in group 3 but not 5, how many has no wage
+sum final_weight if (empl == 1 & selfinc == 0 & selfemp == 0) & (paidhre == 1 | hrsvary != 1) & (wage3==0 | wage3==.)
+noi di "Among those in group 3 but not 5, how many has no wage"
+noi di %14.2f r(sum)
+local b = r(sum)  + `a'
+mat table_1[6,1] = r(sum)
+
+count if (empl == 1 & selfinc == 0 & selfemp == 0) & (paidhre == 1 | hrsvary != 1) & (wage3==0 | wage3==.)
+noi di "Among those in group 3 but not 5, how many has no wage: unweighted"
+noi di %14.2f r(N)
+local b_uw = r(N)  + `a_uw'
+mat table_1[6,2] = r(N)
+
+*Population of interest: Salary workers minus:
+* 	- those workes who are not paid by the hour and hours vary
+*	- any additional workers that doesn't have a wage. 
+noi di "Population of interest:"
+noi di %14.2f  `c' - `b'
+mat table_1[7,1] = `c' - `b'
+
+noi di "Population of interest: unweighted"
+noi di %14.2f  `c_uw' - `b_uw'
+mat table_1[7,2] = `c_uw' - `b_uw'
+
+sum final_weight if pop_of_int == 1 
+noi di "Pop. of interest: workers excluded self* and not paid by the hour whose hours vary"
+noi di %14.2f r(sum)
+
+* Table_1:
+noi di "Table 1"
+noi mat list table_1
+
+*Note: Stata cannot produce treemaps/mosaic plots, but numbers in table 1
+*should be identical.  
+
+```
+
+</div>
+
 
 For the universe of interest, we describe the distribution of hourly wages in 2013 and the forecast values for 2016. Figure 2.    
   

@@ -925,10 +925,9 @@ noi mat list table_1
 
 </div>
 
-
-For the universe of interest, we describe the distribution of hourly wages in 2013 and the forecast values for 2016. Figure 2.    
+For the universe of interest (employed, salaried, with hourly wages or non varying hours N = `r temp.pop.of.interest` millions), we describe the distribution of hourly wages in 2013 and the forecast values for 2016. Figure 2.  AQUI VOY  
   
-```{r Dist wage, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold'}
+```{r Dist wage, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold'}
 p <-    df  %>% 
   filter(pop_of_int==1 & wage3<=200)  %>% 
   select(wage3, w3.adj.min, final_weights) %>%
@@ -960,7 +959,7 @@ p <-    df  %>%
 
 Table 1 below presents more detail statistics for the wage distributions for 2013 and for the forecast wages of 2016.  
   
-```{r, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, collapse=TRUE, fig.show='hold'}
+```{r, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, error=FALSE, collapse=TRUE, fig.show='hold'}
 knitr::kable(table_4, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
 
 ```  

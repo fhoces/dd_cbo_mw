@@ -45,39 +45,13 @@ runtime: shiny
 
 
 # Introduction   
+The role of policy analysis is to connect research with policy. Due to heavy time constrains, policy analyses are typically ambigous regarding the details of how the analysis was carried out. This creates three problems: (i) its hard to understand the connection between research and policy, (ii) allows policy makers to cherry pick policy reports, and (iii) hinders systematic improvement and/or automation of parts of the analysis. In this document we demonstrate the use of a reproducible work-flow to reduce the ambiguity in a policy analysis. 
 
-1 - The role of policy analysis is to connect the research with policy.
-2 - There is a lot of bullshit in policy analysis. 
-3 - This creates three problems:
-    3.1 - Makes it hard to understand the connection between research and policy. 
-    3.2 - Allows policy makers to cherry pick policy reports. 
-    3.3 - Difficults systematic improvents or automation of analysis. 
-4 - This document is a demonstration of how to take the bullshit out of one particular policy analysis, and how doing so addresses the problems described above. 
+Here we attempt to contribute to the policy discussion of the minimum wage. The minimum wage is an contentious policy issue in the US. Increasing it has possitive and negative effects that different policy makers value differently. We aim to add claritiy on what those effects are, how much do we know about them, and how those effects vary when elements of the analysis change. We select the most up-to-date, non-partissan, policy analysis of the effects of raising the minimum wage, and build a open-source reproducible analysis on top of it. 
 
+In 2014 the Congressional Budget Office published the most up-to-date, non-partissan, policy analysis of the effects of raising the minimum wage on employment and family income. The report receive wide attention from the media and has been used extensible as an input in the debate around the minimum wage. Here we use that report as the starting point of Although there was some disagreement among experts around some technical issues, this disagrement has been mainly circunscribed around one of the many inputs used in the analysis. 
 
-
-
-
-
-
-
-Here we attempt to contribute to the policy discussion of the minimum wage. Every policy discussions has a empirical and a normative component. Policy makers should debate on the normative field. If there is much ambiguity in the empirical component, it is much harder to have a separate conversation about the normative differences across parties. When some details (or in some cases the entire process) behind the computation of policy estimates are left undescribed, policy makers can confound differences in values with differences in interpretation of the evidence. 
-  
-  
-
-Add clarity to the technical discussion of minimum wage.  
-
-There are so many pieces 
-
-I just want to reduce the space for bullshit
-
-
-
-The minimum wage is an contentious policy issue in the US. Increasing it has possitive and negative effects that different policy makers value differently. When there is claritiy on what those effects are the conversation can be focused on how the valuations vary across policy makers, and what    But what are the costs and benefits of increasing the minimum wage and who bares them? 
-
-In 2014 the Congressional Budget Office published the most up-to-date, non-partissan, policy analysis of the effects of raising the minimum wage on employment and family income. The report receive wide attention from the media and has been used extensible as an input in the debate around the minimum wage. Here we use that report as the starting point of Although there was some disagreement among experts around some technical issues, this disagrement has been mainly circunscribed around of the many inputs used in the analysis. 
-
-Opinions on the minimum wage, like almost any policy discussion, are a product of combining evidence and subjective valuations of such evidence. 
+---  
 
 This (living) document is a reader companion to the report form the Congressional Budget Office titled ["The Effects of a Minimum-Wage Increase on Employment and Family Income"](https://www.cbo.gov/publication/44995). Our purposes are twofold: (i) promote the technical discussion around a recurrent policy issue (minimum wage) by making explicit and visible all the components (e.g. data, codes, methods) and key assumptions of the most up-to-date official policy analysis on the matter and (ii) demonstrate how new scientific practices of transparency and reproducibilty (T & R) can be applied to policy analysis. We encourage readers to collaborate in this document and help develop an ever-improving version of the important policy estimates[^3] (re)produced here.
 

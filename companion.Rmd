@@ -49,7 +49,7 @@ The role of policy analysis is to connect research with policy. Due to heavy tim
 
 Here we attempt to contribute to the policy discussion of the minimum wage. The minimum wage is an contentious policy issue in the US. Increasing it has possitive and negative effects that different policy makers value differently. We aim to add claritiy on what those effects are, how much do we know about them, and how those effects vary when elements of the analysis change. We select the most up-to-date, non-partissan, policy analysis of the effects of raising the minimum wage, and build a open-source reproducible analysis on top of it. 
 
-In 2014 the Congressional Budget Office published the most up-to-date, non-partissan, policy analysis of the effects of raising the minimum wage on employment and family income. The report receive wide attention from the media and has been used extensible as an input in the debate around the minimum wage. Here we use that report as the starting point of Although there was some disagreement among experts around some technical issues, this disagrement has been mainly circunscribed around one of the many inputs used in the analysis. 
+In 2014 the Congressional Budget Office published the report titled ["The Effects of a Minimum-Wage Increase on Employment and Family Income"](https://www.cbo.gov/publication/44995). The report receive wide attention from the media and has been used extensible as an input in the debate around the minimum wage[^3]. This report represents the    AQUI VOYAlthough there was some disagreement among experts around some technical issues, this disagrement has been mainly circunscribed around one of the many inputs used in the analysis. 
 
 ---  
 

@@ -5,7 +5,6 @@ author: "Fernando Hoces de la Guardia + (hopefully) a lot more people"
 date: '`r paste("Last edit:", Sys.Date(), sep=" ")`'
 output:
   html_document:
-    code_folding: hide
     number_sections: yes
     theme: united
     toc: yes
@@ -45,26 +44,24 @@ runtime: shiny
 
 
 # Introduction   
-The role of policy analysis is to connect research with policy. Due to heavy time constrains, policy analyses are typically ambigous regarding the details of how the analysis was carried out. This creates three problems: (i) its hard to understand the connection between research and policy, (ii) allows policy makers to cherry pick policy reports, and (iii) hinders systematic improvement and/or automation of parts of the analysis. In this document we demonstrate the use of a reproducible work-flow to reduce the ambiguity in a policy analysis. 
+
+The role of policy analysis is to connect research with policy. Because of heavy time constrains, policy analyses are typically ambigous regarding the details of how the analysis was carried out. This creates three problems: (i) its hard to understand the connection between research and policy, (ii) allows policy makers to cherry pick policy reports, and (iii) hinders systematic improvement and/or automation of parts of the analysis. In this document we demonstrate the use of a reproducible work-flow to reduce the ambiguity in policy analysis. 
 
 Here we attempt to contribute to the policy discussion of the minimum wage. The minimum wage is an contentious policy issue in the US. Increasing it has possitive and negative effects that different policy makers value differently. We aim to add claritiy on what those effects are, how much do we know about them, and how those effects vary when elements of the analysis change. We select the most up-to-date, non-partissan, policy analysis of the effects of raising the minimum wage, and build a open-source reproducible analysis on top of it. 
 
-In 2014 the Congressional Budget Office published the report titled ["The Effects of a Minimum-Wage Increase on Employment and Family Income"](https://www.cbo.gov/publication/44995). The report receive wide attention from the media and has been used extensible as an input in the debate around the minimum wage[^3]. This report represents the    AQUI VOYAlthough there was some disagreement among experts around some technical issues, this disagrement has been mainly circunscribed around one of the many inputs used in the analysis. 
+In 2014 the Congressional Budget Office published the report titled ["The Effects of a Minimum-Wage Increase on Employment and Family Income"](https://www.cbo.gov/publication/44995). The report receive wide attention from the media and has been used extensible as an input in the debate around the minimum wage[^3]. To this date we consider the CBO report to be the best non-partisan estimation of the effects of raising the minimum wage at the federal. Although there was some disagreement among experts around some technical issues, this disagrement has been mainly circunscribed around one of the many inputs used in the analysis, and we can fit oposing positions in to our framework. 
 
----  
+Our purposes are twofold: (i) promote the technical discussion around a recurrent policy issue (minimum wage) by making explicit and visible all the components (e.g. data, codes, methods) and key assumptions of the most up-to-date official policy analysis on the matter and (ii) demonstrate how new scientific practices of transparency and reproducibilty (T & R) can be applied to policy analysis. We encourage readers to collaborate in this document and help develop an ever-improving version of the important policy estimates[^3] (re)produced here.
 
-This (living) document is a reader companion to the report form the Congressional Budget Office titled ["The Effects of a Minimum-Wage Increase on Employment and Family Income"](https://www.cbo.gov/publication/44995). Our purposes are twofold: (i) promote the technical discussion around a recurrent policy issue (minimum wage) by making explicit and visible all the components (e.g. data, codes, methods) and key assumptions of the most up-to-date official policy analysis on the matter and (ii) demonstrate how new scientific practices of transparency and reproducibilty (T & R) can be applied to policy analysis. We encourage readers to collaborate in this document and help develop an ever-improving version of the important policy estimates[^3] (re)produced here.
-
-To achieve our goal we reviewed the CBO report and extract the key components of its analysis. For our analysis we follow the guidelines propose by (Me? CITE dissertation) where the analysis achieves the highest standards of T & R when the data, methods and workflow are completly reproducible and every part of the analysis, and its assumptions, are easily readable. 
+To achieve our goal we reviewed the CBO report and extract the key components of its analysis. We adapt new guidelines propose by the scientific comunity ([TOP](https://cos.io/top/)) in to policy analysis. In it, the analysis achieves the highest standards of transparency and reproducibility (T & R) when the data, methods and workflow are completly reproducible and every part of the analysis, and its assumptions, are easily readable. We also benefit from hindsight and structure the this document around the costs and benefits mainly discussed in the debate. 
 
 CBO's report, in its original form already represents significant inprovement in T & R relative to the standard practices of policy analyses. The report contain almost all the components required for a full replication. We add some missing components, make explicit assumptions when needed, complement the narrative explanations with some mathematical formulae, a few visualizations, and the analytical code use behind all the replication. 
 
-
-Althoughour aim is to translate practices of T & R from Science to Policy Analysis, we need to highlight a important difference between a replication in science and a replication in policy analysis. A scientific report takes the form of a peer review publication that represent several months or years of research, followed up by a review process that can be as lengthy as the research itself. Because of this when a scientific publication is subject to replication is expected to succeed. Policy analysis is usually performed under tight deadlines, and is not unusual to rely on arbitrary assumptions and/or unreproducible calculations. For this reasons we do not attempt to replicate the CBO report as a way of testing the veracity of the analysis. We use reproducibility, paired with full transparency, to generate a living document that represents the best policy analysis up to date. Our expectations are that this living document will be serve as a building block to discuss and incorporate incremental improvements on the best available policy analysis. 
+Although our aim is to translate practices of T & R from Science to Policy Analysis, we need to highlight a important difference regarding reproducibility between the two of them. A scientific report takes the form of a peer review publication that represent several months or years of research, followed up by a review process that can be as lengthy as the research itself. Because of this when a scientific publication is subject to replication is expected to succeed. Policy analysis is usually performed under tight deadlines, and is not unusual to rely on arbitrary assumptions and/or unreproducible calculations. For this reasons we do not attempt to replicate the CBO report as a way of testing the veracity of the analysis. We use reproducibility, paired with full transparency, to generate a living document that represents the best policy analysis up to date. Our expectations are that this living document will be serve as a building block to discuss and incorporate incremental improvements on the best available policy analysis. 
 
 The CBO report describes two policy estimates: the effects of minimum wage on employment and the distributional effects of minimum wage on wages and family income. All the policy estimates to replicate are presented in the following tables. 
 
-**Note on the code languages (`R` and `Stata`): ** The analysis can be replicated using either language, but only `R` provides the one-click workflow. For `Stata` the reader has to copy and paste the scripts sequentially or excecute [this do file](link to final do file). 
+**Note on the code languages (`R` and `Stata`):** The analysis can be replicated using either language, but only `R` provides the one-click workflow. For `Stata` the reader has to copy and paste the scripts sequentially or excecute [this do file](link to final do file). 
 
 Also add link to video on how to install R. 
 
@@ -197,7 +194,11 @@ Currently three versions of these data sets can be found online: [CPS raw files]
 
 The weights used in our analysis will be `orgwgt/12`
 
-#### Code to load the data (`R`)  
+#### Code to load the data 
+
+<a id="displayText" href="javascript:toggle(1);">`R`</a>  
+<div id="toggleText1" style="display: none">  
+  
 ```{r loading data R, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 
 data_use <- "CPER_ORG"
@@ -235,10 +236,10 @@ df <- df %>% filter(!is.na(orgwgt))
 df$final_weights <- df$orgwgt/12
 ```  
 
-#### Code to load the data (`Stata`)  
+</div> 
 
-<a id="displayText" href="javascript:toggle(1);">Code</a>  
-<div id="toggleText1" style="display: none">  
+<a id="displayText" href="javascript:toggle(2);">`Stata`</a>  
+<div id="toggleText2" style="display: none">  
 
 ```{r loading data Stata SHC, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
 * How to get the data:
@@ -290,7 +291,10 @@ The report assumes higher wage growth for high wages than low wages. To create d
 
 The adjustment over number of workers was made through the weight variable `final_weights` (multiplying it by the growth rate) whereas the `wage3` variable was multiplied by the forecast growth rate of per worker wages.   
 
-##### Code to get economic growth forecasts (`R`)    
+##### Code to get economic growth forecasts
+
+<a id="displayText" href="javascript:toggle(3);">`R`</a>  
+<div id="toggleText3" style="display: none">      
 
 ```{r Getting forecast data, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results = "hide"}
 # All projections data comes from this website: https://www.cbo.gov/about/products/budget_economic_data
@@ -379,11 +383,10 @@ gr.factor <- function(var1, init.year, last.year) {
 } 
 ``` 
 
+</div>
 
-##### Code to get economic growth forecasts (`Stata`)   
-
-<a id="displayText" href="javascript:toggle(2);">Code</a>  
-<div id="toggleText2" style="display: none">  
+<a id="displayText" href="javascript:toggle(4);">`Stata`</a>  
+<div id="toggleText4" style="display: none">  
 
 ```{r Getting forecast data - Stata HC, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
 * Anual growth rates (R code to compute rates in commnets):
@@ -394,8 +397,6 @@ scalar workers_gr = 0.01550989
 ```  
 
 </div> 
-
-
 
 #### ACA adjustments  
 
@@ -409,7 +410,11 @@ Whenever the predicted wages were below the 2016 state minimum wage they were re
 
 **Important assumption:** when imputing state level min wages, we assume that no effects on employment where incorporated. 
 
-##### Code to get minimum wage values by state (`R`)  
+##### Code to get minimum wage values by state 
+
+<a id="displayText" href="javascript:toggle(5);">`R`</a>  
+<div id="toggleText5" style="display: none">    
+
 ```{r Getting min wage data , eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results = "hide"}
 # Minimum wage by state: 
 # Check if data is in machine and download if not.
@@ -481,9 +486,10 @@ names(aux.data) <- c("states","minwage_2013", "minwage_2016")
 write.dta(aux.data, "state_min_w.dta")
 ```
 
-##### Code to get minimum wage values by state (`Stata`)  
-<a id="displayText" href="javascript:toggle(3);">Code</a>  
-<div id="toggleText3" style="display: none">  
+</div>
+
+<a id="displayText" href="javascript:toggle(6);">`Stata`</a>  
+<div id="toggleText6" style="display: none">  
 
 ```{r Getting min wage data - Stata , eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
 preserve 
@@ -496,7 +502,11 @@ restore
 
 </div> 
 
-#### Code to forecast wages and workers (`R`)
+#### Code to forecast wages and workers 
+
+<a id="displayText" href="javascript:toggle(7);">`R`</a>  
+<div id="toggleText7" style="display: none">  
+
 ```{r Adjusting wages to 2016 , eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results = "hide"}
 #Wage adjutsment
 
@@ -528,9 +538,10 @@ df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,],
 #to be done: adjust some states by inflation.
 ```  
 
-#### Code to forecast wages and workers (`Stata`)
-<a id="displayText" href="javascript:toggle(4);">Code</a>  
-<div id="toggleText4" style="display: none">  
+</div>
+
+<a id="displayText" href="javascript:toggle(8);">`Stata`</a>  
+<div id="toggleText8" style="display: none">  
 
 ```{r Adjusting wages to 2016 - Stata, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
 * Forecast wages to 2016 : apply diff growth rates per decile (deciles of growth gen in R)
@@ -618,9 +629,12 @@ We know compute some descriptive statistics of the labor force in 2013 and the d
 
 Define variable that tags population of interest
 
-#### Statistics and code behind figure 1 (`R`)
+#### Statistics and code behind figure 1
 
-```{r desc stats2,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE}
+<a id="displayText" href="javascript:toggle(9);">`R`</a>  
+<div id="toggleText9" style="display: none">  
+
+```{r desc stats2,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, error=FALSE, collapse=TRUE}
 # Tag population of interest
 pop_of_int <- with(df,
                    (empl == 1 &
@@ -788,30 +802,31 @@ universe.1$selfemp_inc[universe.1$selfemp_inc==0]  <- "salary"
 universe.1$selfemp_inc[universe.1$selfemp_inc==1]  <- "self employed or self incorporated"
 #universe.1$pop_of_int <- with(universe.1, ifelse(pop_of_int==1,"included", "excluded"))
 
-
-treemap(universe.1,
- index=c("lfstat", "selfemp_inc", "teen"),
- vSize=c("total"),
- range = c(7, 15),
- type="index",
- algorithm="pivotSize",
- fontsize.labels = c(12:8),
- border.col = c("#FFFFFF", "#000000","#000000"), 
- aspRatio= 1.5, 
- palette = c("#D3D3D3"), 
-title.legend="number of employees",
-fontface.labels  = c(3,2,1), 
-align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom") ), 
-bg.labels = 1, 
-title = "Figure 1: Distribution of population of working age in 2013"
-)
-
+treemap.1 <- function(){
+  invisible(
+  treemap(universe.1,
+    index=c("lfstat", "selfemp_inc", "teen"),
+    vSize=c("total"),
+    range = c(7, 15),
+    type="index",
+    algorithm="pivotSize",
+    fontsize.labels = c(12:8),
+    border.col = c("#FFFFFF", "#000000","#000000"), 
+    aspRatio= 1.5, 
+    palette = c("#D3D3D3"), 
+    title.legend="number of employees",
+    fontface.labels  = c(3,2,1), 
+    align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom") ), 
+    bg.labels = 1, 
+    title = "Figure 1: Distribution of population of working age in 2013"
+  ))
+}
 ```
 
-#### Statistics and code behind figure 1 (`Stata`)
+</div>
 
-<a id="displayText" href="javascript:toggle(5);"><h4>Statistics and code behind figure 1 (`Stata`)</h4></a>  
-<div id="toggleText5" style="display: none">  
+<a id="displayText" href="javascript:toggle(10);">`Stata`</a>  
+<div id="toggleText10" style="display: none">  
 
 ```{r desc stats2 STATA, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
 
@@ -934,8 +949,18 @@ noi mat list table_1
 
 </div>
 
+```{r print fig1, echo=FALSE} 
+aux.1 <- treemap.1()
+```
+
 For the universe of interest (employed, salaried, with hourly wages or non varying hours N = `r temp.pop.of.interest` millions), we describe the distribution of hourly wages in 2013 and the forecast values for 2016. Figure 2.  AQUI VOY  
 
+
+#### Statistics and code behind figure 1
+
+
+<a id="displayText" href="javascript:toggle(11);">`R`</a>  
+<div id="toggleText11" style="display: none">  
   
 ```{r Dist wage, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold'}
 p <-    df  %>% 
@@ -954,6 +979,7 @@ p <-    df  %>%
     geom_vline(xintercept = c(7.25, 10.10, 11.5), col="blue") +
     coord_cartesian(xlim = c(0,20)) +   
     guides(alpha = "none", colour="none") + 
+    scale_x_discrete(limits = c(0,7.5, 10.10, 11.5, 20)) +
     labs(y = NULL, 
          x = "Wage" , 
          title = "Figure 2: Distribution of wages in 2013 and 2016(forecast)")+
@@ -964,20 +990,55 @@ p <-    df  %>%
                                            colour = "transparent") )+
     scale_fill_discrete(name=NULL,
                          labels=c("2013", "2016 (Forecast)"))
-  print(p)
 ```
+
+</div> 
+
+<a id="displayText" href="javascript:toggle(12);">`Stata`</a>  
+<div id="toggleText12" style="display: none">  
+  
+```{r Dist wage - Stata, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
+*Figure 2
+cap drop *_weight_2016
+gen final_weight_2016 = final_weight * (1 + wage_gr)^3
+gen round_weight_2016 = round(final_weight_2016) 
+
+
+#delimit ;
+twoway 	(kdensity wage3 if pop_of_int == 1 [fweight = round_weight], 
+			bwidth(.9) range(0 20)) 
+		(kdensity w3_adj_min if pop_of_int == 1 [fweight = round_weight_2016], 
+			bwidth(.9) range(0 20)), 
+		title(Figure 2: Distribution of wages in 2013 and 2016(forecast)) 
+		xline(7.25 10.10 11.5)  
+		xlabel(0 "0" 7.5 "7.5" 10.1 "10.10" 11.5 "11.5" 20 "20")
+		legend(order(1 "2013" 2 "2016 (Forecast)"))
+		yscale(off) 
+		xtitle(wage per hour);
+#delimit cr
+```
+
+</div> 
+
+```{r print fig2, echo=FALSE, warning=FALSE, message=FALSE} 
+print(p)
+```  
+
 
 Table 1 below presents more detail statistics for the wage distributions for 2013 and for the forecast wages of 2016.  
   
-```{r, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, error=FALSE, collapse=TRUE, fig.show='hold'}
+```{r, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE, error=FALSE, collapse=TRUE, fig.show='hold'}
 knitr::kable(table_4, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
-
 ```  
 
-  
 Among the population of interest, the employment effects of the minimum wage will be computed separatedley for adults ($age\geq 20$) and teenagers ($16 \leq age < 20$). For this purpose we present the wage distribution for both groups. Figure 3. 
 
-```{r Dist wage by age group, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold'}
+#### Statistics and code behind figure 2
+
+<a id="displayText" href="javascript:toggle(13);">`R`</a>  
+<div id="toggleText13" style="display: none">  
+
+```{r Fig 3, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold'}
 #####################
 #if (!(length(dev.list()) == 0)) { dev.off() }
 #x11()
@@ -992,137 +1053,86 @@ universe.1$selfemp_inc[universe.1$lfstat!="Employed"] = NA
 universe.1$teen[universe.1$lfstat!="Employed"] = NA
 universe.1$wage_c[universe.1$selfemp_inc==1 | universe.1$lfstat!="Employed"] = NA
 
-universe.1$wage_n <- as.factor(universe.1$wage_c)
+universe.1$wage_n <- as.numeric(as.factor(universe.1$wage_c))
 
 universe.1$selfemp_inc[universe.1$selfemp_inc==0]  <- "salary"
 universe.1$selfemp_inc[universe.1$selfemp_inc==1]  <- "self employed or self incorporated"
 
-universe.1$color <-c("#fff7bc","#d95f0e")[as.factor(universe.1$wage_c)] 
+universe.1$color <-c("#d95f0e", "#fff7bc")[as.factor(universe.1$wage_c)] 
 universe.1$color[is.na(universe.1$color)] <- "#D3D3D3" 
 
-treemap(universe.1,
-   index=c("lfstat", "selfemp_inc", "teen", "wage_c"),
-   vSize=c("total"),
-   vColor = c("color"),
-   range = c(7, 15),
-   type="color",
-   aspRatio= 1.5, 
-   algorithm="pivotSize",
-   border.col = c("#FFFFFF", "#000000","#000000","#000000"), 
-  sortID="-wage_n", 
-  fontsize.labels = c(12:8),
-   #aspRatio= c(4,3), 
-  title.legend="number of employees",
-  align.labels=list(c("left", "top"), c("right", "top"), c("right", "bottom"), c("center", "center")), 
-  fontface.labels  = c(3,2,1,1), 
-  bg.labels = 1, 
-  title = "Figure 3: Figure 1 + proportion of salary workers earning more/less than 10.10",
-  lowerbound.cex.labels = 1
-)
+treemap.2 <- function() {  
+  invisible(
+    treemap(universe.1,
+       index=c("lfstat", "selfemp_inc", "teen", "wage_c"),
+       vSize=c("total"),
+       vColor = c("color"),
+       range = c(7, 15),
+       type="color",
+       aspRatio= 1.5, 
+       algorithm="pivotSize",
+       border.col = c("#FFFFFF", "#000000","#000000","#000000"), 
+       sortID="-wage_n", 
+       fontsize.labels = c(12:8),
+       #aspRatio= c(4,3), 
+       title.legend="number of employees",
+       align.labels=list(c("left", "top"), c("right", "top"), 
+                         c("right", "bottom"), c("center", "center")), 
+       fontface.labels  = c(3,2,1,1), 
+       bg.labels = 1, 
+       title = "Figure 3: Figure 1 + proportion of salary workers earning more/less than 10.10",
+       lowerbound.cex.labels = 1
+    )
+  )
+}
 
-  
-#Other ways to plot it:
-#  if (FALSE) {
-#   df %>% ggplot(aes(x = value)) + geom_density(aes(x = value, fill=variable))  %>% print()  + guides(fill="none")
-#   ggplot() + + geom_density(aes(x = value,
-#      colour = variable)) + labs(x = NULL) +
-#      opts(legend.position = "none") + opts(title = "Densities from a kernel density estimator")
-# 
-#  df1 <-  iris %>% 
-#     select(Sepal.Width, Sepal.Length) %>% 
-#     melt()
-#  p <- ggplot(df1,aes(x = value)) + geom_density(aes(x = value, fill=variable))
-#  print(p)
-#  
-#  p <-  iris %>% select(Sepal.Width, Sepal.Length) %>% melt() %>% ggplot(aes(x = value)) + geom_density(aes(x = value, fill=variable))
-#     print(p)  
-# #  ggplot(aes(value, colour = variable)) + 
-#     coord_cartesian(xlim = c(0,30), ylim = c(0 , 1e7)) +
-#     geom_density(aes(weights=final_weights), bw = 1) +
-# ggplot(aes(w3.adj.min)) + 
-#   coord_cartesian(xlim = c(0,20), ylim = c(0 , 1e7)) +
-#   geom_density(aes(weights=final_weights),
-#                 color="red", fill="red") 
-# 
-#   df %>%     
-#     filter(pop_of_int==1 & wage3<=200)  %>% 
-#       with( plot(density(wage3, weight =  final_weights),
-#                  col=rgb(1,0,0,0.4),
-#                  main = "Distribution of Hourly Wages Below $20", 
-#                  xlab = "Hourly Wage",  xlim = c(0, 20)))
-#     
-#   df %>%     
-#     filter(pop_of_int==1 & wage3<=200)  %>% 
-#       with( lines(density(w3.adj.min, weight =  final_weights), 
-#                   col=rgb(1,0,0,0.4),
-#                   main = "Distribution of Hourly Wages Below $20", 
-#                   xlab = "Hourly Wage", xlim = c(0, 20)))
-# 
-#   
-# 
-# # Histogram of wage below $20
-# df  %>% 
-#   filter(pop_of_int==1 & wage3<=20)  %>% 
-#     with(wtd.hist(wage3, breaks = 50, 
-#                   xlab = "Hourly Wage", 
-#                   freq = TRUE, 
-#                   col=rgb(1,0,0,0.4),
-#                   main = "Distribution of Hourly Wages Below $20",
-#                   weight =  final_weights
-#                   ))
-# df  %>% 
-#   filter(pop_of_int==1 & w3.adj.min<=20)  %>% 
-#     with(wtd.hist(w3.adj.min, breaks = 50, 
-#                   xlab = "Hourly Wage", 
-#                   freq = TRUE, 
-#                   main = "Distribution of Hourly Wages Below $20", 
-#                   col=rgb(0,0,1,0.4), 
-#                   weight =  final_weights * gr.factor("workers", 2014, 2016),
-#                   add = TRUE) ) 
-# 
-# abline(v = 7.25, col = "red")
-# 
-# abline(v = 9, col = "red")
-# 
-# abline(v = 10.10, col = "red")
-# 
-# }
-  
-  
-  
-  
-  
-  
-  
-  
-#TO DO: display number of workers below red bars in reactive fashion. Maybe not even a plot: only a slider with min wage and a
+
+#TO DO: display number of workers below red bars in reactive fashion. 
+#Maybe not even a plot: only a slider with min wage and a
 #reactive box with the number of workers that would be below it.
- 
 ```   
 
-### Identify relevant population   
+</div>
+
+<a id="displayText" href="javascript:toggle(14);">`Stata`</a>  
+<div id="toggleText14" style="display: none">  
+
+```{r fig3 STATA, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
+*Note: Stata cannot produce treemaps/mosaic plots, but numbers in table 1
+*should be identical.  
+
+```
+
+</div>
+
+
+```{r print fig3, echo=FALSE, warning=FALSE, message=FALSE} 
+aux.2 <- treemap.2()   
+```  
+
+### Identify relevant population  
 
 Given our universe, the next step is to identify the population that would be actually affected if a raise in the minimum wage takes place.  The two relevant populations to define now are the number of low wage workers ($\widehat{ N_{lowwage} }$) and the number of workers that would earn less than the new minimum wage ($\widehat{ N_{w\leq MW^{1}} }$). CBO defines a low wage as one below \$11.5 dollars per hour in 2016, and the proposed value used for the minimum wage is \$10.10 dollars per hour. From now on we separate each of this group among adults and teenagers following CBO's convention. 
 
 Three adjustments are applied to the population of workers with wages below the new minimum wage:    
   1 - Workers whose earnings are mainly from tips are tagged and a different minimum wage is apply to them (\$2.13).  
-  2 - A fraction $\alpha_{1}$ of $\widehat{ N_{w\leq MW^{1}} }$ is deleted to account for non compliers.  
-  3 - A fraction $\alpha_{2}$ of $\widehat{ N_{w\leq MW^{1}} }$ is deleted to account for workers not subject to the Fair Labor Standards Act.  
+  2 - A fraction $\alpha_{ 1 }$ of $\widehat{ N_{ w\leq MW^{1} } }$ is deleted to account for non compliers.  
+  3 - A fraction $\alpha_{ 2 }$ of $\widehat{ N_{ w\leq MW^{1} } }$ is deleted to account for workers not subject to the Fair Labor Standards Act.  
 
 After this three adjustments, perform over the relevant population forecast for the year 2016, we obtain the final population.  
 
 #### Tipped workers   
-[TO BE COMPLETED] Ask CBO which occupations they used to identify tipped workers and clarify the conceptual need to adjust for this population.    
+[TO BE COMPLETED] Ask CBO which occupations they used to identify tipped workers and clarify the conceptual need to adjust for this population (as the lower min wage only applies if they make *more* than 7.50 an hour).    
 
 Apply different minimum wage to workers who receive more than \$30 in tips. This was applied to 11 occupations (such as waiter, bartender, and hairdresser ~10% if low wage workers)
  
 Given that we do not know which 11 categories the report makes reference to, and which variable that defines the categories, we will use the variable `peernuot` to identify tipped workers. This variable overestimates the number of tipped workers (13% as opposed to the 10% mentioned in the report) because it also contains the workers paid overtime or commissions. 
 
-Tipped workers with wages below 7.25 is are 1% of the total tipped workers. Non-tipped workers with wages below 7.25 are 1.6% of the total. 
+Tipped workers with wages below 7.25 are 1% of the total tipped workers. Non-tipped workers with wages below 7.25 are 1.6% of the total. 
 
 #### Non compliance    
 
-We estimate the *proportion of low workers that earn less than the their state's minimum wage in 2013* as a proxy for non compliers under the new minimum wage in 2016. The original reports mention that it comes up to 12% of the low wage population. 
+We estimate the *proportion of low wage workers (wage less then 11.50) that earn less than the their state's minimum wage in 2013* as a proxy for non compliers under the new minimum wage in 2016. The original reports mention that it comes up to 12% of the low wage population. 
 
 Following the same footnote we will consider salary workers as non compliers only if their wage is strictly less than 25 cents for non-tipped workers or 13 cents for tipped workers. 
 
@@ -1897,7 +1907,10 @@ wage.gain.total <-  df %>%
                    hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) / 1e9
                 )  
 #with(df, hist(new.wage.final - wage.adj.min, xlim = c(-10,10) , ylim=c(0,3e3) , breaks = 50) )
-     
+ 
+df %>% mutate("wls" = ifelse(new.wage.final > wage.adj.min, "winner", ifelse(new.wage.final == wage.adj.min, "nothing", "loser"))) %>% with(wtd.table(wls, weights = hhwgt.2016))
+
+    
      
 ```  
 
@@ -1921,6 +1934,10 @@ The other components of family income were forecast as follows: when a growth ra
 ### Growth of non working population  
 Forecasts of population growth were the same for working population. For non working population, the growth rate was matched to CBO forecasts for that group. 
 
+
+<a id="displayText" href="javascript:toggle(40);">`R`</a>  
+<div id="toggleText40" style="display: none">  
+
 ```{r income,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results='hide'}
 #FOR THE FIRST TIME WE NOW LOOK AT OVERALL INCOME AND THE WHOLE POPULATION
 
@@ -1932,11 +1949,6 @@ non.wage.gr <- ( gr.factor("Price Index, Personal Consumption", 2013, 2016) )^(1
 df$non.wage <- (df$incp_ern - df$incp_wag) 
 df$non.wage.2016 <- df$non.wage * gr.factor("Price Index, Personal Consumption", 2013, 2016)
 
-# The following function takes hourly, individual wages (already forecasted to 2016) and does the folowing:
-# 1 - transform hourly wages in to yearly earnings
-# 2 - aggregate earnings at the hhld level
-# 3 - adds the hhld level wages to non wages earnings (hhld level) to generate overall income
-# 4 - generates income per capita
 
 df <- df %>% mutate("year.wage" = new.wage.final * (hrslyr * wkslyr) ) %>% 
       group_by(hhseq) %>% mutate("hhld.wage" = sum(year.wage, na.rm = TRUE),
@@ -1954,42 +1966,183 @@ df <- df %>% mutate("year.wage" = wage.adj.min * (hrslyr * wkslyr) ) %>%
                                   "sq.inc.pc" = hhld.income/N.fam) %>% 
                                   select(-(hhld.wage:N.fam) )
 
+df$winners = with(df, ifelse(new.inc.pc >= sq.inc.pc, 
+                             new.inc.pc - sq.inc.pc, 
+                             0) )
+df$losers = with(df, - ifelse(new.inc.pc <= sq.inc.pc, 
+                             new.inc.pc - sq.inc.pc, 
+                             0) )
+
+
+
 # Computing differences in income 
 df %>% 
   with(sum( (new.inc.pc - sq.inc.pc) * hhwgt.2016, na.rm = TRUE) ) /1e9
 # Per capita agregate income has slightly less gains, probably due to hhld with winners and losers. 
 wage.gain.total["Total wage gain"]
 
-# Compute variation by hhld
-asd <- df %>% select(new.inc.pc,sq.inc.pc, hhwgt.2016)  %>% 
-  mutate( "variation" = new.inc.pc - sq.inc.pc ) %>% select(variation, sq.inc.pc)
 
-#x11()
-with(asd,plot(sq.inc.pc, variation, xlim = c(0,2e5), ylim = c(-5e3, 5e3), 
-              col = rgb(0,0,0,0.1) , pch =19, cex = .2, 
-              main = "Distribution of gains and loses across per capita income", 
-              xlab = "Per capita income", 
-              ylab = "Change relative to no raise in min wage") )
-abline(v = 11740*1:6, col = "red", lty = 1, cex=1.3)
+pop.dist <- wtd.table( with(df, findInterval(x = sq.inc.pc, vec = c(-Inf,11740, 6*11740, Inf)) ) , weights = df$hhwgt.2016 )$sum.of.weights
+
+losses <- (wage.gain.total["Total wage gain"])*1e9  - 2e9
+losses.pc  <- - as.numeric(losses) * c(.01, 0.29, 0.70) / pop.dist
+
+df$balance.loss <- as.numeric(losses.pc[with(df, findInterval(x = sq.inc.pc, 
+                                               vec = c(-Inf,11740, 6*11740, Inf) )) ]) 
+
+# Compute variation by hhld - plot all the effects 
+final_fig <- df %>% select(new.inc.pc,sq.inc.pc, hhwgt.2016, balance.loss)  %>% 
+  mutate( "variation" = new.inc.pc - sq.inc.pc, 
+          "sixthtile" = findInterval(x = sq.inc.pc, 
+                                     vec = c(-Inf,11740, 11740*1:6, Inf) )) %>% 
+  ggplot(aes(sq.inc.pc, variation)) + 
+  geom_hline(color = "gray", alpha = 0.5, yintercept = 0, size = 1) +
+
+  geom_jitter( colour = "black", alpha = 1/30, size = 1/10, 
+               position = position_jitter(height = 100, width = 50) ) + 
+  coord_cartesian(xlim = c(0,2e5), 
+                    ylim = c(-5e3,5e3) ) +
+  theme_minimal() + 
+  labs(y = "Change relative to no raise in min wage", 
+       x = "Per capita income" , 
+       title = "Distribution of gains and loses across per capita income") +
+  geom_vline(xintercept = 11740*1:6, 
+             col="red", size = 1/3) +
+  scale_y_discrete(limits = c(-50e2, -25e2, 0,25e2, 50e2), 
+                   labels = c("-5K", "-2.5K", "0", "2.5K", "5K")) + 
+  scale_x_discrete(limits = c(5e3,50e3, 103e3, 150e3), 
+                   labels = c("5K","50K", "100K", "150K")) +
+  geom_abline(color = "red", alpha = 0.2, slope=-1/2, intercept=0,
+  na.rm = FALSE, show.legend = NA) + 
+  geom_abline(color = "blue", alpha = 0.2, slope=(10.10/7.25 - 1), intercept=0,
+  na.rm = FALSE, show.legend = NA) +
+  geom_jitter(aes( sq.inc.pc, balance.loss - 120 ), 
+              colour = "blue", alpha = 1/30, 
+              size = 1/10, 
+              position = position_jitter(height = 100, width = 50) )  
+
+print(final_fig)
+
+
+# Compute variation by hhld - plot all the effects in same units (average per group)
+final_fig2 <- df %>% 
+  select(new.inc.pc,sq.inc.pc, hhwgt.2016, balance.loss, winners, losers)  %>%   
+  mutate( "variation" = new.inc.pc - sq.inc.pc, 
+          "sixthtile" = findInterval(x = sq.inc.pc, 
+                                     vec = c(-Inf,11740*1:6, Inf) ), 
+          "inc_gain" = ifelse(variation>0, 
+                              "gain", 
+                              ifelse(variation < 0, "loss", "same" ) ) ) %>%   filter(sixthtile>=0) %>% group_by(sixthtile) %>% 
+  summarise("mean" = wtd.mean(variation, weights = hhwgt.2016),
+            "mean (win)" = wtd.mean(winners, weights = hhwgt.2016), 
+            "mean (lose)" = wtd.mean(losers, weights = hhwgt.2016),
+            "mean (bal lose)" = wtd.mean(-balance.loss, weights = hhwgt.2016),
+            "N" = sum( hhwgt.2016)   
+            ) %>% 
+  select(`mean (win)`, `mean (lose)`, `mean (bal lose)`, sixthtile) %>% 
+  melt(value.variables=c("mean (win)", "mean (lose)") , id="sixthtile") %>% 
+  ggplot(aes(as.factor(sixthtile), value, fill = as.factor(variable))) + 
+  geom_bar(color = "gray", alpha = 0.5, 
+           stat = "summary", fun.y = "mean", 
+           position = "dodge") +
+  coord_cartesian(ylim = c(0,300) ) +
+  geom_text(x = 6.8, y = 265,angle = 90, label = - round(losses.pc[3]) , size = 3, colour = "#6699FF", alpha = 0.5) + 
+  geom_segment(aes(x = 7, y = 200, xend = 7, yend = 310), 
+               colour = "#6699FF", arrow = arrow(length = unit(0.2, "cm"))) + 
+  theme(legend.justification=c(0, 0), 
+                legend.position=c(0.45, 0.5),
+                legend.background = element_rect(colour = 'transparent', fill = 'transparent') 
+                ) +
+  scale_fill_discrete(name=NULL, 
+                      labels=c("Wage +", "Wage -", "Balance -")) + 
+  labs(y = "$/year", 
+       x = "Poverty Lines" , 
+       title = "Distribution of gains and loses across poverty lines") 
+print(final_fig2) 
+
+# Same plot as above but with quintiles instead of poverty lines. 
+  
+  
+p <-  ggplot() + geom_segment(aes(x = 7, y = 200, xend = 7, yend = 300),, color = "blue", arrow = arrow(length = unit(0.2, "cm"))) 
+print(p)  
+  
+  geom_jitter( colour = "black", alpha = 1/30, size = 1/10, 
+               position = position_jitter(height = 100, width = 50) ) + 
+  coord_cartesian(xlim = c(0,2e5), 
+                    ylim = c(-5e3,5e3) ) +
+    theme_minimal() + 
+    labs(y = "Change relative to no raise in min wage", 
+         x = "Per capita income" , 
+         title = "Distribution of gains and loses across per capita income") +
+      geom_vline(xintercept = 11740*1:6, 
+               col="red", size = 1/3) +
+    scale_y_discrete(limits = c(-50e2, -25e2, 0,25e2, 50e2), 
+                     labels = c("-5K", "-2.5K", "0", "2.5K", "5K")) + 
+    scale_x_discrete(limits = c(5e3,50e3, 103e3, 150e3), 
+                   labels = c("5K","50K", "100K", "150K")) +
+  geom_abline(color = "red", alpha = 0.2, slope=-1/2, intercept=0,
+  na.rm = FALSE, show.legend = NA) + 
+  geom_abline(color = "blue", alpha = 0.2, slope=(10.10/7.25 - 1), intercept=0,
+  na.rm = FALSE, show.legend = NA) +
+  geom_jitter(aes(sq.inc.pc, balance.loss-120), 
+              colour = "blue", alpha = 1/30, 
+              size = 1/10, 
+              position = position_jitter(height = 100, width = 50) )  
+
+print(final_fig)
+
+
+ggsave("final_plot.png")
+
+
+   geom_jitter(position = position_jitter(height = .5))
+      geom_jitter(aes(x = one_six_pl, y = , 
+                    colour = "blue", alpha = 1/60, 
+                    size = 1/5), 
+                position = position_jitter(width = .5))
+
+
+
+asd1 <- with(df, )
+
+
+#Substract 2billion dollars from the losses 
+
+
+
+with(asd, points(sq.inc.pc ,-asd3,  xlim = c(0,2e5), 
+              col = rgb(0,0,1,0.1) , pch =19, cex = .2) )
+
+
+
+
+ggplot() + 
+    geom_density(aes(x = value, 
+                     fill=variable, 
+                     weight = final_weights, 
+                     alpha = 1/2, 
+                     colour=variable), bw=1, kernel = "gau") + 
+    geom_vline(xintercept = c(7.25, 10.10, 11.5), col="blue") +
+    coord_cartesian(xlim = c(0,20)) +   
+    guides(alpha = "none", colour="none") + 
+    scale_x_discrete(limits = c(0,7.5, 10.10, 11.5, 20)) +
+    labs(y = NULL, 
+         x = "Wage" , 
+         title = "Figure 2: Distribution of wages in 2013 and 2016(forecast)")+
+    theme(axis.ticks = element_blank(), axis.text.y = element_blank()) +
+    theme(legend.justification=c(0,1), 
+          legend.position=c(0,1), 
+          legend.background = element_rect(fill = "transparent", 
+                                           colour = "transparent") ) +
+    scale_fill_discrete(name=NULL,
+                         labels=c("2013", "2016 (Forecast)"))
+
 
 inc.quartiles <- with(df,
                       wtd.quantile(x = sq.inc.pc, probs = c(.25, .5, .75, .90), weights = hhwgt.2016))
 
 
 #abline(v = inc.quartiles, col = "blue", lty =1, cex=3)
-
-#Substract 2billion dollars from the losses 
-losses <- (wage.gain.total["Total wage gain"])*1e9  - 2e9
-
-asd1 <- with(df, findInterval(x = sq.inc.pc, vec = c(-Inf,11740, 6*11740, Inf)))
-
-asd2  <- as.numeric(losses) * c(0.01, 0.29, 0.70) / wtd.table(asd1, weights = df$hhwgt.2016)[[2]]
-
-asd3 <- asd2[with(asd, findInterval(x = sq.inc.pc, vec = c(-Inf,11740, 6*11740, Inf) )) ] 
-
-with(asd, points(sq.inc.pc ,-asd3,  xlim = c(0,2e5), 
-              col = rgb(0,0,1,0.1) , pch =19, cex = .2) )
-
 
 #Average income per group (height of rectangle)
 asd1 <- df %>% group_by(findInterval(sq.inc.pc, c(-Inf, 11770*1:6, Inf) )) %>% 
@@ -2037,6 +2190,20 @@ table_9[ "other loses", ] <- as.numeric(losses) * c(0.01, rep(.29/2, 2), 0.70)/1
 #    - what is the precise way to define family in CPS?
 #    - what is the standard way to choose one obs per family?
 ```  
+
+</div>
+
+
+
+<a id="displayText" href="javascript:toggle(41);">`Stata`</a>  
+<div id="toggleText41" style="display: none">  
+
+```{r income STATA, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
+*
+
+```
+
+</div>
 
 
 ### Other income losses.   
@@ -2122,6 +2289,11 @@ mod.output.template
 ```  
 
 --> 
+
+```{r sa,}
+121 * 1.05 * 0.144  * .37 * (1 - .13) * 1/3 * 0.1 + 
+  4 * 1.05 * 0.74   * .37 * (1 - .18) * 0.1
+```  
 
 
 [^1]: The report presents smaller estimates for the \$9.00 dollar option (-0.075). The rationale is that a smaller increase (in magnitude but also not indexed by inflation, and with later implementation than the 10.10 option)   will allow firms to adjust other margins before reducing employment. 

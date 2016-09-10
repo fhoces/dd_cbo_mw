@@ -86,7 +86,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 # Setting working directory
 
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = FALSE)
 
 statapath <- "/Applications/Stata/Stata.app/Contents/MacOS/Stata"
 
@@ -1984,14 +1984,18 @@ wage.gain.total["Total wage gain"]
 
 pop.dist <- wtd.table( with(df, findInterval(x = sq.inc.pc, vec = c(-Inf,11740, 6*11740, Inf)) ) , weights = df$hhwgt.2016 )$sum.of.weights
 
-losses <- (wage.gain.total["Total wage gain"])*1e9  - 2e9
-losses.pc  <- - as.numeric(losses) * c(.01, 0.29, 0.70) / pop.dist
+param.factor.1 <- 1
+param.net.benef <- 2e9
+losses <- with(df, sum(winners * hhwgt.2016) - param.factor.1 * sum(losers * hhwgt.2016) )  - param.net.benef
+
+param.dist.loss <- c(.01, 0.29, 0.70)
+losses.pc  <- as.numeric(losses) * param.dist.loss / pop.dist
 
 df$balance.loss <- as.numeric(losses.pc[with(df, findInterval(x = sq.inc.pc, 
                                                vec = c(-Inf,11740, 6*11740, Inf) )) ]) 
 
 # Compute variation by hhld - plot all the effects 
-final_fig <- df %>% select(new.inc.pc,sq.inc.pc, hhwgt.2016, balance.loss)  %>% 
+final_fig1 <- df %>% select(new.inc.pc,sq.inc.pc, hhwgt.2016, balance.loss)  %>% 
   mutate( "variation" = new.inc.pc - sq.inc.pc, 
           "sixthtile" = findInterval(x = sq.inc.pc, 
                                      vec = c(-Inf,11740, 11740*1:6, Inf) )) %>% 
@@ -2016,27 +2020,26 @@ final_fig <- df %>% select(new.inc.pc,sq.inc.pc, hhwgt.2016, balance.loss)  %>%
   na.rm = FALSE, show.legend = NA) + 
   geom_abline(color = "blue", alpha = 0.2, slope=(10.10/7.25 - 1), intercept=0,
   na.rm = FALSE, show.legend = NA) +
-  geom_jitter(aes( sq.inc.pc, balance.loss - 120 ), 
+  geom_jitter(aes( sq.inc.pc, - balance.loss - 120 ), 
               colour = "blue", alpha = 1/30, 
               size = 1/10, 
               position = position_jitter(height = 100, width = 50) )  
 
-print(final_fig)
-
+print(final_fig1)
+ggsave("final_fig1.png")
 
 # Compute variation by hhld - plot all the effects in same units (average per group)
 final_fig2 <- df %>% 
   select(new.inc.pc,sq.inc.pc, hhwgt.2016, balance.loss, winners, losers)  %>%   
   mutate( "variation" = new.inc.pc - sq.inc.pc, 
           "sixthtile" = findInterval(x = sq.inc.pc, 
-                                     vec = c(-Inf,11740*1:6, Inf) ), 
-          "inc_gain" = ifelse(variation>0, 
-                              "gain", 
-                              ifelse(variation < 0, "loss", "same" ) ) ) %>%   filter(sixthtile>=0) %>% group_by(sixthtile) %>% 
+                                     vec = c(-Inf,11740*1:6, Inf) ) ) %>%   
+  filter(sixthtile>=0) %>% 
+  group_by(sixthtile) %>% 
   summarise("mean" = wtd.mean(variation, weights = hhwgt.2016),
             "mean (win)" = wtd.mean(winners, weights = hhwgt.2016), 
             "mean (lose)" = wtd.mean(losers, weights = hhwgt.2016),
-            "mean (bal lose)" = wtd.mean(-balance.loss, weights = hhwgt.2016),
+            "mean (bal lose)" = wtd.mean(balance.loss, weights = hhwgt.2016),
             "N" = sum( hhwgt.2016)   
             ) %>% 
   select(`mean (win)`, `mean (lose)`, `mean (bal lose)`, sixthtile) %>% 
@@ -2050,7 +2053,7 @@ final_fig2 <- df %>%
   geom_segment(aes(x = 7, y = 200, xend = 7, yend = 310), 
                colour = "#6699FF", arrow = arrow(length = unit(0.2, "cm"))) + 
   theme(legend.justification=c(0, 0), 
-                legend.position=c(0.45, 0.5),
+                legend.position=c(0, .7),
                 legend.background = element_rect(colour = 'transparent', fill = 'transparent') 
                 ) +
   scale_fill_discrete(name=NULL, 
@@ -2059,87 +2062,71 @@ final_fig2 <- df %>%
        x = "Poverty Lines" , 
        title = "Distribution of gains and loses across poverty lines") 
 print(final_fig2) 
+ggsave("final_fig2.png")
 
-# Same plot as above but with quintiles instead of poverty lines. 
-  
-  
-p <-  ggplot() + geom_segment(aes(x = 7, y = 200, xend = 7, yend = 300),, color = "blue", arrow = arrow(length = unit(0.2, "cm"))) 
-print(p)  
-  
-  geom_jitter( colour = "black", alpha = 1/30, size = 1/10, 
-               position = position_jitter(height = 100, width = 50) ) + 
-  coord_cartesian(xlim = c(0,2e5), 
-                    ylim = c(-5e3,5e3) ) +
-    theme_minimal() + 
-    labs(y = "Change relative to no raise in min wage", 
-         x = "Per capita income" , 
-         title = "Distribution of gains and loses across per capita income") +
-      geom_vline(xintercept = 11740*1:6, 
-               col="red", size = 1/3) +
-    scale_y_discrete(limits = c(-50e2, -25e2, 0,25e2, 50e2), 
-                     labels = c("-5K", "-2.5K", "0", "2.5K", "5K")) + 
-    scale_x_discrete(limits = c(5e3,50e3, 103e3, 150e3), 
-                   labels = c("5K","50K", "100K", "150K")) +
-  geom_abline(color = "red", alpha = 0.2, slope=-1/2, intercept=0,
-  na.rm = FALSE, show.legend = NA) + 
-  geom_abline(color = "blue", alpha = 0.2, slope=(10.10/7.25 - 1), intercept=0,
-  na.rm = FALSE, show.legend = NA) +
-  geom_jitter(aes(sq.inc.pc, balance.loss-120), 
-              colour = "blue", alpha = 1/30, 
-              size = 1/10, 
-              position = position_jitter(height = 100, width = 50) )  
+quintiles <- with(df,wtd.quantile(x = sq.inc.pc, probs = 1:4/5, weights = hhwgt.2016))
+df$income.group <- with(df, findInterval(x = sq.inc.pc, vec =  c(-Inf,quintiles) ))
 
-print(final_fig)
+# Compute variation by hhld - plot all the effects in same units (average per group) with quintiles instead of poverty lines.
+final_fig3 <- df %>% 
+  select(new.inc.pc,sq.inc.pc, hhwgt.2016, balance.loss, winners, losers, income.group)  %>%   
+  mutate( "variation" = new.inc.pc - sq.inc.pc, 
+           "inc_gain" = ifelse(variation>0, 
+                              "gain", 
+                              ifelse(variation < 0, "loss", "same" ) ) ) %>% group_by(income.group) %>% 
+  summarise("mean" = wtd.mean(variation, weights = hhwgt.2016),
+            "mean (win)" = wtd.mean(winners, weights = hhwgt.2016), 
+            "mean (lose)" = wtd.mean(losers, weights = hhwgt.2016),
+            "mean (bal lose)" = wtd.mean(balance.loss, weights = hhwgt.2016),
+            "N" = sum( hhwgt.2016)   
+            ) 
 
+high.loss <-  as.numeric(final_fig3[max(final_fig3$income.group), "mean (bal lose)"])
 
-ggsave("final_plot.png")
+final_fig3 <- final_fig3 %>% 
+  select(`mean (win)`, `mean (lose)`, `mean (bal lose)`, income.group) %>% 
+  melt(value.variables=c("mean (win)", "mean (lose)") , id="income.group") %>% 
+  ggplot(aes(as.factor(income.group), value, fill = as.factor(variable))) + 
+  geom_bar(color = "gray", alpha = 0.5, 
+           stat = "summary", fun.y = "mean", 
+           position = "dodge") +
+  coord_cartesian(ylim = c(0,400) ) +
+  geom_text(x = 4.8, y = 365,angle = 90, 
+            label = - round(high.loss) , 
+            size = 3, colour = "#6699FF", alpha = 0.5) + 
+  geom_segment(aes(x = 5, y = 300, xend = 5, yend = 410), 
+               colour = "#6699FF", arrow = arrow(length = unit(0.2, "cm"))) + 
+  theme(legend.justification=c(0, 0), 
+                legend.position=c(0, .7),
+                legend.background = element_rect(colour = 'transparent', fill = 'transparent') 
+                ) +
+  scale_fill_discrete(name=NULL, 
+                      labels=c("Wage +", "Wage -", "Balance -")) + 
+  labs(y = "$/year", 
+       x = "Quintiles of per capita income" , 
+       title = "Distribution of gains and loses across quintiles")   
 
+print(final_fig3)  
+ggsave("final_fig3.png")
+ 
 
-   geom_jitter(position = position_jitter(height = .5))
-      geom_jitter(aes(x = one_six_pl, y = , 
-                    colour = "blue", alpha = 1/60, 
-                    size = 1/5), 
-                position = position_jitter(width = .5))
+# Sample decision: value cost an benefits equally and distribution 1/q 
+sum( (df$winners - df$losers - df$balance.loss)*df$hhwgt.2016 )
 
+dist.pref <- function(x, param.dist.pref) 1/(x^param.dist.pref)
+# sum cost a and benefits at the individual level
+final_dec <- function(x) {
+  sum( (df$winners - df$losers - df$balance.loss) * df$hhwgt.2016 * 
+         dist.pref(df$income.group, param.dist.pref = x) ) /1e9
+}
 
+plot(seq(-.5,6,by = 0.1),sapply(seq(-.5,6,by = 0.1) ,final_dec), type = "l")
+abline(h=0, lty = 3)
+# weigth final CBA by quintile
 
-asd1 <- with(df, )
+# Add the result 
 
-
-#Substract 2billion dollars from the losses 
-
-
-
-with(asd, points(sq.inc.pc ,-asd3,  xlim = c(0,2e5), 
-              col = rgb(0,0,1,0.1) , pch =19, cex = .2) )
-
-
-
-
-ggplot() + 
-    geom_density(aes(x = value, 
-                     fill=variable, 
-                     weight = final_weights, 
-                     alpha = 1/2, 
-                     colour=variable), bw=1, kernel = "gau") + 
-    geom_vline(xintercept = c(7.25, 10.10, 11.5), col="blue") +
-    coord_cartesian(xlim = c(0,20)) +   
-    guides(alpha = "none", colour="none") + 
-    scale_x_discrete(limits = c(0,7.5, 10.10, 11.5, 20)) +
-    labs(y = NULL, 
-         x = "Wage" , 
-         title = "Figure 2: Distribution of wages in 2013 and 2016(forecast)")+
-    theme(axis.ticks = element_blank(), axis.text.y = element_blank()) +
-    theme(legend.justification=c(0,1), 
-          legend.position=c(0,1), 
-          legend.background = element_rect(fill = "transparent", 
-                                           colour = "transparent") ) +
-    scale_fill_discrete(name=NULL,
-                         labels=c("2013", "2016 (Forecast)"))
-
-
-inc.quartiles <- with(df,
-                      wtd.quantile(x = sq.inc.pc, probs = c(.25, .5, .75, .90), weights = hhwgt.2016))
+# repeat varying lots of parameters. 
 
 
 #abline(v = inc.quartiles, col = "blue", lty =1, cex=3)
@@ -2160,27 +2147,32 @@ if (FALSE) {
           col = rgb(0,0,0,.3))
 }
 
-table_9 <- matrix(NA, ncol = 4, nrow = 4)
+table_9 <- matrix(NA, ncol = 4, nrow = 5)
 colnames(table_9)  <- c("<1PL", "[1PL, 3PL)", "[3PL, 6PL)", ">6PL")
-rownames(table_9)  <- c("wage gains", "wage loses", "other loses", "N_i")
+rownames(table_9)  <- c("wage gains", "wage loses", "other loses",
+                        "aggr effect", "N_i")
 
 #Classifying by PLs and using sq.income/N.fam
-deciles <- with(df,wtd.quantile(x = sq.inc.pc, probs = 1:9/10, weights = hhwgt.2016))
+quintiles <- with(df,wtd.quantile(x = sq.inc.pc, probs = 1:4/5, weights = hhwgt.2016))
 
-df$income.group <- with(df, findInterval(x = sq.inc.pc, vec = c(-Inf,c(1,3,6)*11740, Inf)))
+#df$income.group <- with(df, findInterval(x = sq.inc.pc, vec =  quintiles ))
+df$income.group <- with(df, findInterval(x = sq.inc.pc, vec =  c(-Inf,11770*c(1,3,6),Inf)  ) )
 
 table_9["N_i", ] <- wtd.table(with(df, income.group) , weights = df$hhwgt.2016)[[2]]/1e6
   
-aux.1 <- df %>% group_by(income.group)  %>% summarise(sum((new.inc.pc - sq.inc.pc) * hhwgt.2016, na.rm = TRUE)/1e9)
+aux.1 <- df %>% group_by(income.group)  %>% summarise(sum((winners) * hhwgt.2016, na.rm = TRUE)/1e9)
 table_9[ "wage gains", ] <- t(as.data.frame(aux.1[,2]) )
   
   
 #Wage loses: compared to SQ
-#aux.1 <- df %>% group_by(income.group)  %>% summarise(mean((sq.inc.pc - cut.income.pc), na.rm = TRUE))  
-#table_9[ "wage loses", ] <- t(as.data.frame(aux.1[,2]) )
+aux.1 <- df %>% group_by(income.group)  %>% summarise(sum((losers) * hhwgt.2016, na.rm = TRUE)/1e9)
+table_9[ "wage loses", ] <- t(as.data.frame(aux.1[,2]) )
 
 #Imputing the balnce of the losses
 table_9[ "other loses", ] <- as.numeric(losses) * c(0.01, rep(.29/2, 2), 0.70)/1e9
+
+aux.1 <- df %>% group_by(income.group)  %>% summarise(sum((winners - losers - balance.loss) * hhwgt.2016, na.rm = TRUE)/1e9)
+table_9[ "aggr effect", ] <- t(as.data.frame(aux.1[,2]) )
 
 #FH: Need to modify/add table that shows number of people affected on each section
 
@@ -2241,9 +2233,9 @@ No interactions with other programs is assumed (SNAP or EITC).
 ```{r final results, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 
 output.template1.f <- cbind(output.template1, "Replication" = c(
-  round(as.numeric(wage.gain.total["Total wage gain"]), 1),  
-  round(as.numeric(wage.gain.total["Total wage loss"]), 1), 
-  round(as.numeric(wage.gain.total["Total wage gain"]), 1) - 2,  
+  round(sum(table_9["wage gains",]), 1),  
+  round(sum(table_9["wage loses",]), 1), 
+  round(sum(table_9["other loses",]), 1),  
   2,  
   paste(round(N_benes_compliance, 1),round(N_benes_compliance_below_min, 1), sep = "/"  ), 
   round(-delta.e1,1) )
@@ -2263,7 +2255,7 @@ table_9[ "other loses", ] <- as.numeric(losses) * c(0.01, rep(.29/2, 2), 0.70)/1
 
 
 output.template2.f <- cbind(t(output.template2), "Replication loses" =  -round((table_9[ "other loses", ]), 1) 
-                          ,"Replication NE" = round(table_9[ "wage gains", ], 1) )
+                          ,"Replication NE" = round(table_9[ "aggr effect", ], 1) )
 
 knitr::kable(
   list(

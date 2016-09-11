@@ -86,7 +86,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 # Setting working directory
 
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(cache = FALSE)
+knitr::opts_chunk$set(cache = TRUE)
 
 statapath <- "/Applications/Stata/Stata.app/Contents/MacOS/Stata"
 
@@ -1935,6 +1935,36 @@ The other components of family income were forecast as follows: when a growth ra
 Forecasts of population growth were the same for working population. For non working population, the growth rate was matched to CBO forecasts for that group. 
 
 
+### Other income losses.   
+Income losses from a reduction in profits ($\Delta^{-}\pi$) and an increase in aggregate prices ($\Delta^{+}P$) is estimated[?] to be distributed as following: 1% of the losses for those below the poverty line (PL), 29% for those between 1 and 6 PL, and 70% for those above 6PL. 
+
+
+
+## Other considerations  
+
+### Economywide income effect  
+
+CBO argues that the overall effect on the economy is positive and of \$2 billion dollars for 2016.  
+
+### Quantifying loses  
+- Mix gains and loses. 
+- Output lost - increase in aggregate demand (!) 
+- net gain (!) of 2 billion dollars.  
+
+### Distributional effects   
+- Only results, no methodology at all!  This is probably the most important (and overlooked part of the report)
+
+### Interaction with other programs 
+No interactions with other programs is assumed (SNAP or EITC).     
+
+
+### What is in the 2/3  
+  - CBO acknowledges uncertainty in the estimates of elasticity due to possible technological changes in the future.  
+  - 
+
+# Results 
+
+
 <a id="displayText" href="javascript:toggle(40);">`R`</a>  
 <div id="toggleText40" style="display: none">  
 
@@ -2025,8 +2055,8 @@ final_fig1 <- df %>% select(new.inc.pc,sq.inc.pc, hhwgt.2016, balance.loss)  %>%
               size = 1/10, 
               position = position_jitter(height = 100, width = 50) )  
 
-print(final_fig1)
-ggsave("final_fig1.png")
+# print(final_fig1)
+# ggsave("final_fig1.png")
 
 # Compute variation by hhld - plot all the effects in same units (average per group)
 final_fig2 <- df %>% 
@@ -2061,8 +2091,8 @@ final_fig2 <- df %>%
   labs(y = "$/year", 
        x = "Poverty Lines" , 
        title = "Distribution of gains and loses across poverty lines") 
-print(final_fig2) 
-ggsave("final_fig2.png")
+# print(final_fig2) 
+# ggsave("final_fig2.png")
 
 quintiles <- with(df,wtd.quantile(x = sq.inc.pc, probs = 1:4/5, weights = hhwgt.2016))
 df$income.group <- with(df, findInterval(x = sq.inc.pc, vec =  c(-Inf,quintiles) ))
@@ -2106,8 +2136,8 @@ final_fig3 <- final_fig3 %>%
        x = "Quintiles of per capita income" , 
        title = "Distribution of gains and loses across quintiles")   
 
-print(final_fig3)  
-ggsave("final_fig3.png")
+# print(final_fig3)  
+# ggsave("final_fig3.png")
  
 
 # Sample decision: value cost an benefits equally and distribution 1/q 
@@ -2120,8 +2150,6 @@ final_dec <- function(x) {
          dist.pref(df$income.group, param.dist.pref = x) ) /1e9
 }
 
-plot(seq(-.5,6,by = 0.1),sapply(seq(-.5,6,by = 0.1) ,final_dec), type = "l")
-abline(h=0, lty = 3)
 # weigth final CBA by quintile
 
 # Add the result 
@@ -2133,7 +2161,7 @@ abline(h=0, lty = 3)
 
 #Average income per group (height of rectangle)
 asd1 <- df %>% group_by(findInterval(sq.inc.pc, c(-Inf, 11770*1:6, Inf) )) %>% 
-  summarise(log(mean(new.inc.pc)))
+summarise(log(mean(new.inc.pc)))
 
 #number of individuals per group (width of recangle)
 asd2 <- df %>%  with( wtd.table(findInterval(sq.inc.pc, c(-Inf, 11770*1:6, Inf)), weights = hhwgt.2016/1e6) )
@@ -2198,39 +2226,47 @@ table_9[ "aggr effect", ] <- t(as.data.frame(aux.1[,2]) )
 </div>
 
 
-### Other income losses.   
-Income losses from a reduction in profits ($\Delta^{-}\pi$) and an increase in aggregate prices ($\Delta^{+}P$) is estimated[?] to be distributed as following: 1% of the losses for those below the poverty line (PL), 29% for those between 1 and 6 PL, and 70% for those above 6PL. 
+
+```{r SA1, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE}
+print(final_fig1)
+print(final_fig2)
+print(final_fig3)
+
+```  
 
 
 
-## Other considerations  
+We combine wage gains ($\delta^{+} W_{i}$), wage loses ($\delta^{-}W_{i}$) and balance loses ($BL_{i}$) at the individual level to obtain a final effect ($FE_{i}$):
 
-### Economywide income effect  
+$$
+\begin{aligned}
+FE_{i} &= \omega_1 \Delta^{+} W_{i} + \omega_2 \Delta^{-} W_{i} + (1 - \omega_1 - \omega_2 ) BL_{i} 
+\end{aligned}
+$$
 
-CBO argues that the overall effect on the economy is positive and of \$2 billion dollars for 2016.  
+Where $\omega_1, \omega_2$ represente the subjective valuation of each effect from the perspective of the policy maker. When aggregating all the final effects the policy maker also will have to make a subjective valuation regarding the redistribution of weatlth. 
 
-### Quantifying loses  
-- Mix gains and loses. 
-- Output lost - increase in aggregate demand (!) 
-- net gain (!) of 2 billion dollars.  
+$$
+\begin{aligned}
+FE &= \sum_{i \in N} \frac{ FE_{i} }{D(y_i)^\rho} 
+\end{aligned}
+$$
 
-### Distributional effects   
-- Only results, no methodology at all!  This is probably the most important (and overlooked part of the report)
+Where $D(y_i)$ is the rank function for per capita income $y_{i}$ that returns the decile of income (1 the lowest and 10 the highest), and $\rho$ parametrizes the preferences towards redistribution ($\rho<0$ dislikes redistribution, $\rho>0$ likes redistribution)
 
-### Interaction with other programs 
-No interactions with other programs is assumed (SNAP or EITC).     
+```{r SA2, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE}
+plot(seq(-.5,6,by = 0.1),sapply(seq(-.5,6,by = 0.1) ,final_dec), type = "l", xlab = "rho", ylab = "FE (billions of $)  ", main = "Final effect of minimum wage raises \nfor different redistributory preferences")
+abline(h=0, v=0, lty = 3)
+segments(x0 = c(-0.3, 0, 0.3, 0), x1 = c(-0.3, -0.3, 0.3, 0.3 ) , 
+         y0 = c(0,final_dec(-0.3), 0,final_dec(0.3) ), 
+         y1 = c(final_dec(-0.3), final_dec(-0.3), final_dec(0.3), final_dec(0.3)  ), col = "red", lty = 1)
+```  
 
-
-### What is in the 2/3  
-  - CBO acknowledges uncertainty in the estimates of elasticity due to possible technological changes in the future.  
-  - 
-
-# Results 
 
 
 <div class="jumbotron">
   <p>This is a simple hero unit, a simple jumbotron-style component for calling extra attention to featured content or information.</p>  
-```{r final results, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
+```{r final results, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE}
 
 output.template1.f <- cbind(output.template1, "Replication" = c(
   round(sum(table_9["wage gains",]), 1),  
@@ -2271,6 +2307,11 @@ knitr::kable(
 ```   
   <p><a class="btn btn-primary btn-lg">Learn more</a></p>
 </div>
+
+
+
+
+
 
 <!-- 
 # Extensions 

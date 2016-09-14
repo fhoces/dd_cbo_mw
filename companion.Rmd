@@ -86,7 +86,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 # Setting working directory
 
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = FALSE)
 
 statapath <- "/Applications/Stata/Stata.app/Contents/MacOS/Stata"
 
@@ -326,7 +326,7 @@ get.growth.data <- function(x){
 # Working with projections from 2013
 trends.df <- get.growth.data( early.2013 )
 
-# Get column of all projections for 2013
+# Get column of all projections for 2013: get data from 2012 up to 2019)
 sel.col <- which(trends.df==2012, arr.ind = TRUE)[2] 
 # Get row with all projections for wages and salaries in billions of (nominal) dollars
 # Note: the excel file always contains two rows with the words "wage[s]" and "salar[ies|y]", 
@@ -453,17 +453,25 @@ min.wage.data <- readRDS("minwage")
 # Function that extracts (in numeric format) the min wage for a specfic year for each state
 state.minw <- function(char.year) {
   options(warn=-1)
-  aux.1 <- as.numeric(gsub("(.*)([0-9.]{5})(.*)", 
-                          "\\2", min.wage.data[, char.year]))
-  # If no state min wage, assign federal.
-  res1 <- as.data.frame(ifelse(is.na(aux.1), aux.1[1] , aux.1))
-  options(warn=0)
+  if  ( !( char.year %in% colnames(min.wage.data) ) ) {
+    res1 <- as.data.frame( rep(NA, dim(min.wage.data)[1]) )
+  } else {
+    aux.1 <- as.numeric(gsub("(.*)([0-9]{1,2}\\.[0-9]{1,2})(.*)",
+                        "\\2",  min.wage.data[, char.year]) )
+    # If no state min wage, assign federal.
+    res1 <- as.data.frame(ifelse(is.na(aux.1), aux.1[1] , aux.1))
+    options(warn=0)
+  }
   rownames(res1) <- rownames(min.wage.data) 
   colnames(res1) <- char.year 
   return(res1)
 }
 
 st.minw <- state.minw("2013")
+
+#To get all min wages in one data frame use:
+# as.data.frame(lapply(1980:2015, function(x) state.minw(as.character(x))) )
+
 
 #CBO makes a forecast of future min wages. We can look at the actual min wage that took place. 
 #If CBO provides their forecast, we could check forecast acuracy. 
@@ -508,34 +516,43 @@ restore
 <div id="toggleText7" style="display: none">  
 
 ```{r Adjusting wages to 2016 , eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results = "hide"}
+#GENERAL NOTE FOR THIS SECTION: the analysis perfomed here is the same as the one with CPS ASEC, so it should be better to wrap it in a function that is called twice to. This way I can make sure that the sensitivity analysis works everywhere. 
+param.states.raise <- 1
+# The base growth rate of wages will determine the dispersion of wage growth, the mean wage groth rate will be given by the 10 year economic forecast. 
+param.base.growth <- 0.024 * 1
+param.wage.gr <- 1
+param.worker.gr <- 1 
 #Wage adjutsment
 
 #CBO mentions that the lowest 10th percent gets a 2.9% growth in anual wage
 #I compute the anualized growth rate of wages and creat 10 bins of wage growth
 #starting at 2.4%, then adjust by minimum wages of 2016 and get a anualized 
 #growth of 2.9% for the lowest decile. 
-wage.gr <- ( gr.factor("wages per worker", 2014, 2016) )^(1/3) - 1
 
-workers.gr <- ( gr.factor("workers", 2014, 2016) )^(1/3) - 1
+#THIS TWO LINES OF CODE ARE DIFFERENT BETWEEN ASEC AND ORG
+wage.gr <- ( ( gr.factor("wages per worker", 2014, 2016) )^(1/3) - 1 ) * param.wage.gr
+workers.gr <- ( ( gr.factor("workers", 2014, 2016) )^(1/3) - 1 ) * param.worker.gr
 
-half.gap <- wage.gr - 0.024
-wage.gr.bins <- seq(0.024, wage.gr + half.gap, length.out = 10)
+#SAME
+half.gap <- wage.gr - param.base.growth
+wage.gr.bins <- seq(param.base.growth, wage.gr + half.gap, length.out = 10)
 
-# CAUTION: DO NOT apply 'ntile()' fn from dplry as is will split ties differently than 'cut()' and results will no
+# CAUTION: DO NOT apply 'ntile()' fn from dplry as is will split ties differently than 'cut()' and results will not
 # be comparable to STATA. 
+#NOT THE SAME (power of 3 intead of 4)
 aux.var  <- wtd.quantile(x = df$wage3, probs = 1:9/10,weights = df$final_weights)
 df <- df %>%
-        mutate( w3.deciles = cut(wage3, c(0, aux.var, Inf) , 
+        mutate( "w3.deciles" = cut(wage3, c(0, aux.var, Inf) , 
                                 right = TRUE, include.lowest = TRUE) ,  
-                w3.adj1 =  wage3 * ( 1 + wage.gr.bins[w3.deciles] )^3) 
-
+                "w3.adj1" =  wage3 * ( 1 + wage.gr.bins[w3.deciles] )^3) 
 
 # Here we adjust min wages
-df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,],
+# SAME
+df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,] * param.states.raise,
                               w3.adj1,
-                              st.minw.2016[state,]) )
+                              st.minw.2016[state,] * param.states.raise) )
 
-#to be done: adjust some states by inflation.
+# to be done: adjust some states by inflation.
 ```  
 
 </div>
@@ -1738,12 +1755,11 @@ The wage forecast is the same methodology as in section 2.  This methodology is 
 #I compute the anualized growth rate of wages and creat 10 bins of wage growth
 #starting at 2.4%, then adjust by minimum wages of 2016 and get a anualized 
 #growth of 2.9% for the lowest decile. 
-wage.gr <- ( gr.factor("wages per worker", 2013, 2016) )^(1/4) - 1
-workers.gr <- ( gr.factor("workers", 2013, 2016) )^(1/4) - 1
+wage.gr <- ( ( gr.factor("wages per worker", 2013, 2016) )^(1/4) - 1 ) * param.wage.gr
+workers.gr <- ( ( gr.factor("workers", 2013, 2016) )^(1/4) - 1 ) * param.worker.gr
 
-
-half.gap <- wage.gr - 0.024
-wage.gr.bins <- seq(0.024, wage.gr + half.gap, length.out = 10)
+half.gap <- wage.gr - param.base.growth
+wage.gr.bins <- seq(param.base.growth, wage.gr + half.gap, length.out = 10)
 
 # CAUTION: DO NOT apply 'ntile()' fn from dplry as is will split ties differently than 'cut()' and results will no
 # be comparable to STATA. 
@@ -1759,9 +1775,9 @@ new_total_n <- format(sum(df$hhwgt[pop_of_int==1] *
                           na.rm = TRUE), big.mark=",")
 
 # Here we adjust min wages up to their state minimum wage
-df$wage.adj.min <- with( df, ifelse(wage.adj1> st.minw.2016[state,],
+df$wage.adj.min <- with( df, ifelse(wage.adj1> st.minw.2016[state,] * param.states.raise,
                               wage.adj1,
-                              st.minw.2016[state,]) )
+                              st.minw.2016[state,] * param.states.raise) )
 #FROM NOW ON 'wage.adj.min' is the variable that contains the forecasted wage in 2016 under the status quo
 ```  
 </div>

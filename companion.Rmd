@@ -148,6 +148,22 @@ mod.output.template["Net effect", ] <- c("5", "12", "2", "-17", "2")
 ```
 
 
+
+```{r SA params,  eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}  
+param.states.raise <- 1
+# The base growth rate of wages will determine the dispersion of wage growth, the mean wage groth rate will be given by the 10 year economic forecast. 
+param.base.growth <- 0.024 * 1
+param.wage.gr <- 1
+param.worker.gr <- 1 
+param.N <- 1
+param.fract.minwage <- 1
+param.noncomp <- 1
+param.F.adj <- 1
+param.av.wage.var <- 1
+param.wages <- 1
+```
+
+
 ```{r tables with notes, results='asis', eval=FALSE, echo=FALSE}
 mod <- lm(mpg ~ wt, data=mtcars) #my linear model
 
@@ -517,11 +533,7 @@ restore
 
 ```{r Adjusting wages to 2016 , eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results = "hide"}
 #GENERAL NOTE FOR THIS SECTION: the analysis perfomed here is the same as the one with CPS ASEC, so it should be better to wrap it in a function that is called twice to. This way I can make sure that the sensitivity analysis works everywhere. 
-param.states.raise <- 1
-# The base growth rate of wages will determine the dispersion of wage growth, the mean wage groth rate will be given by the 10 year economic forecast. 
-param.base.growth <- 0.024 * 1
-param.wage.gr <- 1
-param.worker.gr <- 1 
+
 #Wage adjutsment
 
 #CBO mentions that the lowest 10th percent gets a 2.9% growth in anual wage
@@ -548,9 +560,9 @@ df <- df %>%
 
 # Here we adjust min wages
 # SAME
-df$w3.adj.min <- with( df, ifelse(w3.adj1> st.minw.2016[state,] * param.states.raise,
+df$wages.final <- with( df, ifelse(w3.adj1> st.minw.2016[state,] * param.states.raise,
                               w3.adj1,
-                              st.minw.2016[state,] * param.states.raise) )
+                              st.minw.2016[state,] * param.states.raise) ) * param.wages
 
 # to be done: adjust some states by inflation.
 ```  
@@ -653,12 +665,10 @@ Define variable that tags population of interest
 
 ```{r desc stats2,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, error=FALSE, collapse=TRUE}
 # Tag population of interest
-pop_of_int <- with(df,
-                   (empl == 1 &
+df <- df %>% mutate("pop_of_int" = (empl == 1 &
                       (selfinc == 0 & selfemp == 0) & 
                       ( (paidhre == 0 & ( hrsvary != 1 | is.na(hrsvary) )  )  | paidhre == 1 )  & 
-                      !(wage3 == 0 | is.na(wage3) ) )
-                  )
+                      !(wage3 == 0 | is.na(wage3) ) ) )
 
 # Tables 1 - 4 where constructed to look at the data. Only table 4 is shown in the final output 
 
@@ -736,7 +746,7 @@ table_1_uw <- format(table_1_uw, big.mark = ",", digits = 0, scientific = FALSE)
 
 table_1 <- cbind(table_1, table_1_uw)
 
-new_total_n <- format(sum(df$final_weights[pop_of_int==1] * 
+new_total_n <- format(sum(df$final_weights[df$pop_of_int==1] * 
                             (1 + workers.gr)^3, 
                           na.rm = TRUE), big.mark=",")
 
@@ -781,23 +791,23 @@ table_4[1,1] <- table_1[7]
 table_4[1,2] <- new_total_n
 table_4[2,1] <- table_2[3]
 
-table_4[2,2] <- round( with(df[pop_of_int == 1 & !is.na(df$w3.adj.min), ], 
-                            wtd.quantile( w3.adj.min, weights = final_weights * 
+table_4[2,2] <- round( with(df[df$pop_of_int == 1 & !is.na(df$wages.final), ], 
+                            wtd.quantile( wages.final, weights = final_weights * 
                             (1 + workers.gr)^3, prob = c(.5) ) ), digits = 2 )
 
 table_4[3:7,1]  <- round(as.matrix(table_3), digits = 2)
 
 aux.1 <- df %>% 
-  filter(pop_of_int == 1 & !is.na(w3.adj.min)) %>% 
-    summarise("> $7.50" = weighted.mean(w3.adj.min<7.5,
+  filter(pop_of_int == 1 & !is.na(wages.final)) %>% 
+    summarise("> $7.50" = weighted.mean(wages.final<7.5,
                                         w = final_weights * (1 + workers.gr)^3), 
-              "> $9" = weighted.mean(w3.adj.min<9,
+              "> $9" = weighted.mean(wages.final<9,
                                      w = final_weights * (1 + workers.gr)^3), 
-              "> $10.10" = weighted.mean(w3.adj.min<10.10,
+              "> $10.10" = weighted.mean(wages.final<10.10,
                                          w = final_weights * (1 + workers.gr)^3), 
-              "> $13" = weighted.mean(w3.adj.min<13,
+              "> $13" = weighted.mean(wages.final<13,
                                       w = final_weights * (1 + workers.gr)^3), 
-              "> $15" = weighted.mean(w3.adj.min<15,
+              "> $15" = weighted.mean(wages.final<15,
                                       w = final_weights * (1 + workers.gr)^3) 
               )
 
@@ -975,17 +985,16 @@ For the universe of interest (employed, salaried, with hourly wages or non varyi
 
 #### Statistics and code behind figure 2
 
-
 <a id="displayText" href="javascript:toggle(11);">`R`</a>  
 <div id="toggleText11" style="display: none">  
   
 ```{r Dist wage, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results="hide", error=FALSE, collapse=TRUE, fig.show='hold'}
 p <-    df  %>% 
   filter(pop_of_int==1 & wage3<=200)  %>% 
-  select(wage3, w3.adj.min, final_weights) %>%
-  melt(value.variables=c("wage3", "w3.adj.min") , id="final_weights") %>% 
-  mutate("final_weights" = ifelse(variable=="w3.adj.min", 
-                                  final_weights * gr.factor("workers", 2014, 2016) , 
+  select(wage3, wages.final, final_weights) %>%
+  melt(value.variables=c("wage3", "wages.final") , id="final_weights") %>% 
+  mutate("final_weights" = ifelse(variable=="wages.final", 
+                                  final_weights * (1 + workers.gr)^3, 
                                   final_weights) ) %>% 
   ggplot() + 
     geom_density(aes(x = value, 
@@ -1061,7 +1070,7 @@ Among the population of interest, the employment effects of the minimum wage wil
 #x11()
 universe.1 <- df %>% 
         mutate("teen" = ifelse(age<20, "teen", "adult"), 
-               "wage_c" = ifelse(wage3<10.10 & !is.na(wage3), "w < 10.10", "w > 10.10"), 
+               "wage_c" = ifelse(wage3<10.10 & !is.na(wage3), "w < 10.10", "w >= 10.10"), 
                "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1) ) %>% 
           group_by(lfstat,selfemp, selfemp_inc, teen, wage_c)  %>% 
             summarise("total" = sum(final_weights, na.rm = TRUE)) 
@@ -1136,7 +1145,7 @@ Three adjustments are applied to the population of workers with wages below the 
   2 - A fraction $\alpha_{ 1 }$ of $\widehat{ N_{ w\leq MW^{1} } }$ is deleted to account for non compliers.  
   3 - A fraction $\alpha_{ 2 }$ of $\widehat{ N_{ w\leq MW^{1} } }$ is deleted to account for workers not subject to the Fair Labor Standards Act.  
 
-After this three adjustments, perform over the relevant population forecast for the year 2016, we obtain the final population.  
+After this three adjustments, performed over the relevant population forecast for the year 2016, we obtain the final population.  
 
 #### Tipped workers   
 [TO BE COMPLETED] Ask CBO which occupations they used to identify tipped workers and clarify the conceptual need to adjust for this population (as the lower min wage only applies if they make *more* than 7.50 an hour).    
@@ -1164,7 +1173,7 @@ Following the same footnote we will consider salary workers as non compliers onl
 # variable peernuot seems to be the most appropiate variable to indicate wether or nor receives tips
 # 1=YES; 2=NO
 non.comp.stats <- df %>%
-  select(wage3, state, final_weights, peernuot)  %>%
+  select(wage3, state, final_weights, peernuot, pop_of_int)  %>%
     filter(pop_of_int == 1 & wage3<=11.5)  %>%
       summarise(
         "% of non compliers w/o adj" = 
@@ -1196,15 +1205,15 @@ non.comp.stats <- df %>%
 
  - Include not covered by FLSA but expected to be affected: employees of small firms, occupations generally exempt from FLSA, and teenagers in first 90 days of employment.  
 
-```{r Target population fig , eval=FALSE,echo=FALSE, warning=FALSE, message=FALSE,  error=FALSE, collapse=TRUE, fig.show='hold'}
+```{r Target population fig MAYBE DELETE, eval=FALSE,echo=FALSE, warning=FALSE, message=FALSE,  error=FALSE, collapse=TRUE, fig.show='hold'}
 library(treemap)
 
 if (!(length(dev.list()) == 0)) { dev.off() }
 #x11()
 asd <- df %>% 
         mutate("teen" = ifelse(age<20, "teen", "adult"), 
-               "wage_c" = ifelse(w3.adj.min<11.5, "Low Wage", "High wage"), 
-               "min_wage" = ifelse(w3.adj.min<10.10, "Target Pop", "Think label"), 
+               "wage_c" = ifelse(wages.final<11.5, "Low Wage", "High wage"), 
+               "min_wage" = ifelse(wages.final<10.10, "Target Pop", "Think label"), 
                "selfemp_inc" = 1 * (selfemp == 1 | selfinc == 1) ) %>% 
           group_by(lfstat,selfemp, selfemp_inc, teen, wage_c, min_wage)  %>% 
             summarise("total" = sum(final_weights, na.rm = TRUE)) 
@@ -1213,8 +1222,6 @@ asd$selfemp_inc[asd$lfstat!="Employed"] = NA
 asd$teen[asd$lfstat!="Employed" | asd$selfemp_inc == 1] = NA
 asd$wage_c[asd$lfstat!="Employed"] = NA
 asd$min_wage[asd$lfstat!="Employed" | asd$wage_c == "High wage" ] = NA
-
-
 
 asd$selfemp_inc[asd$selfemp_inc==0]  <- "salary"
 asd$selfemp_inc[asd$selfemp_inc==1]  <- "self employed or self incorporated"
@@ -1304,14 +1311,14 @@ aux.1 <-  bind_rows(
   mutate("adult" = ifelse(age>=20, "Adult", "Teen") )  %>% 
   group_by(adult)  %>% 
   summarise( "Salary workers ($\\hat{ N_{employed} }$) (millions)" = sum(final_weights)/1e6,
-             "Low wage workers ($w \\leq 11.5 p/h$) (millions)" = sum(final_weights * (w3.adj.min <=11.50))/1e6,
-             "% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)" = wtd.mean( 1*(w3.adj.min <=10.10), 
+             "Low wage workers ($w \\leq 11.5 p/h$) (millions)" = sum(final_weights * (wages.final <=11.50))/1e6,
+             "% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)" = wtd.mean( 1*(wages.final <=10.10), 
                                        na.rm = TRUE, weights = final_weights) * 100),   
   df %>% 
   filter(pop_of_int == 1) %>% 
   summarise( "Salary workers ($\\hat{ N_{employed} }$) (millions)" = sum(final_weights)/1e6,
-              "Low wage workers ($w \\leq 11.5 p/h$) (millions)" = sum(final_weights * (w3.adj.min <=11.50))/1e6,
-              "% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)" = wtd.mean( 1*(w3.adj.min <=10.10), 
+              "Low wage workers ($w \\leq 11.5 p/h$) (millions)" = sum(final_weights * (wages.final <=11.50))/1e6,
+              "% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)" = wtd.mean( 1*(wages.final <=10.10), 
                                       na.rm = TRUE, weights = final_weights) * 100) %>% 
   mutate(adult = "Total" )
 )
@@ -1319,7 +1326,7 @@ aux.1 <-  bind_rows(
 #Non compliance (starting from a different denominator: 'pop_of_int == 1 & wage3 < 11.5')
 aux.2 <- bind_rows(
   df %>%
-  select(wage3, age, state, final_weights, peernuot)  %>%
+  select(wage3, age, state, final_weights, peernuot, pop_of_int)  %>%
   filter(pop_of_int == 1 & wage3 <= 11.5) %>% 
   mutate("adult" = ifelse(age>=20, "Adult", "Teen") )  %>% 
   group_by(adult)  %>% 
@@ -1329,7 +1336,7 @@ aux.2 <- bind_rows(
                           0.13 * (peernuot == 1)  < state.minw("2013")[state, ] ), 
                           weights = final_weights)*100 ),  
   df %>%
-  select(wage3, age, state, final_weights, peernuot)  %>%
+  select(wage3, age, state, final_weights, peernuot, pop_of_int)  %>%
   filter(pop_of_int == 1 & wage3 <= 11.5) %>% 
       summarise(
           "% of non compliers ($\\alpha_{1}$)" = 
@@ -1340,10 +1347,9 @@ aux.2 <- bind_rows(
 )
 stats2 <- rbind(t(aux.1[,-1 ]), t(aux.2[, -1]) ) 
 colnames(stats2) <- t(aux.1[,1])
-stats2 <- rbind(stats2, "$\\hat{ g(2016|2013) }$" = gr.factor("workers", 2014, 2016) )
+stats2 <- rbind(stats2, "$\\hat{ g(2016|2013) }$" = (1 + workers.gr)^3 )
 aux.total <- apply(stats2, 2, function(x) x[5] * x[1] * (x[3]/100) * (1 - x[4]/100)  )
 stats2 <- rbind(stats2, "$\\widehat{ N_{final} }$ (millions)" = aux.total)
-
 
 # FH: There a small difference in the overall total and the sum of Teens and Adults:
 # stats2[6,3] - sum( (stats2[6, 1:2])  )
@@ -1491,15 +1497,17 @@ $$
 <div id="toggleText19" style="display: none">  
 
 ```{r employment effect, eval=TRUE, echo=display_code, warning=FALSE, message=FALSE}
-eta.lit <- - 0.1
-factor.extrap <- 1/3
+param.eta.lit <- 1
+param.factor.extrap <- 1
+eta.lit <- - 0.1 * param.eta.lit
+factor.extrap <- 1/3 * param.factor.extrap
 
 stats3 <-  df  %>% 
   filter(pop_of_int == 1) %>% 
   mutate("adult" = ifelse(age>=20, "Adult", "Teen") )  %>% 
   group_by(adult)  %>% 
-  summarise("$\\overline{\\%\\Delta w}$" = wtd.mean( ifelse(w3.adj.min <=10.10,
-                                            (10.10 - w3.adj.min)/w3.adj.min, NA) , 
+  summarise("$\\overline{\\%\\Delta w}$" = wtd.mean( ifelse(wages.final <=10.10,
+                                            (10.10 - wages.final)/wages.final, NA) , 
                                      na.rm = TRUE, weights = final_weights) * 100 ) 
 
 stats3 <- rbind("$\\eta_{lit}$" = c( eta.lit * factor.extrap , eta.lit ), 
@@ -1513,21 +1521,50 @@ stats3 <- rbind(stats3, "$\\widetilde{\\eta_{w\\leq MW}}$"= aux.1)
 
 colnames(stats3) <- c("Adult", "Teen")  
 
+stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)","Teen"]
+stats3["$F_{adj}$", "Teen"]
+stats3["$\\overline{\\%\\Delta w}$","Teen"]
+
 # As described in doc
-delta.e1 <- sum( stats2["$\\widehat{ N_{final} }$ (millions)",1:2] *  
-                   stats3["$\\widetilde{\\eta_{w\\leq MW}}$",1:2] * 
-                   (stats3["$\\overline{\\%\\Delta w}$",]/100) 
-                ) - 0.05 * 0.9
+delta.e1 <- sum( (1 + workers.gr)^3 * 
+                   stats2["Salary workers ($\\hat{ N_{employed} }$) (millions)",1:2] *  param.N *
+                   stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",1:2]/100 * param.fract.minwage *
+                   ( 1 - stats2["% of non compliers ($\\alpha_{1}$)",1:2]/100 - 0) * param.noncomp *
+                    c( eta.lit * factor.extrap , eta.lit ) * 
+                   stats3["$F_{adj}$", "Teen"] * param.F.adj *
+                   (stats3["$\\overline{\\%\\Delta w}$",1:2]/100) * param.av.wage.var  
+                ) + 0.05 * 0.9
 
 # As it should have been computed according to doc
-delta.e2 <- sum( gr.factor("workers", 2014, 2016) * 
-                   stats2["Salary workers ($\\hat{ N_{employed} }$) (millions)",1:2] *  
-                   stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",1:2]/100 * 
-                   ( 1 - stats2["% of non compliers ($\\alpha_{1}$)",1:2]/100 - 0) *       
-                   (-0.1) * c(1/3, 1)  /(stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",1:2]/100) * 
-                   ( 0.39/(stats3["$\\overline{\\%\\Delta w}$",]/100)) *
-                   stats3["$\\overline{\\%\\Delta w}$",]/100  
-                ) - 0.05 * 0.9 
+delta.e2 <- sum( (1 + workers.gr)^3 * 
+                   stats2["Salary workers ($\\hat{ N_{employed} }$) (millions)",1:2] *  param.N *
+                   stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",1:2]/100 * param.fract.minwage *
+                   ( 1 - stats2["% of non compliers ($\\alpha_{1}$)",1:2]/100 - 0) * param.noncomp *
+                    c( eta.lit * factor.extrap , eta.lit ) *  
+                   (1/rep(stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)","Teen"]/100, 2) * param.fract.minwage) *                      ( 0.39 / ( rep(stats3["$\\overline{\\%\\Delta w}$","Teen"]/100,2)  * param.av.wage.var ) ) *
+                   (stats3["$\\overline{\\%\\Delta w}$",1:2]/100) * param.av.wage.var  
+                ) + 0.05 * 0.9
+
+# As it should have been computed according to methodology
+delta.e3 <- sum( (1 + workers.gr)^3 * 
+                   stats2["Salary workers ($\\hat{ N_{employed} }$) (millions)",1:2] *  param.N *
+                   stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",1:2]/100 * param.fract.minwage *
+                   ( 1 - stats2["% of non compliers ($\\alpha_{1}$)",1:2]/100 - 0) * param.noncomp *
+                    c( eta.lit * factor.extrap , eta.lit ) *  
+                   (1/(stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",1:2]/100) * param.fract.minwage) * 
+                   ( 0.39 / ( stats3["$\\overline{\\%\\Delta w}$",1:2]/100  * param.av.wage.var ) ) *
+                   (stats3["$\\overline{\\%\\Delta w}$",1:2]/100) * param.av.wage.var  
+                ) + 0.05 * 0.9
+
+# As I think that should actually be computed
+delta.e4 <- sum( (1 + workers.gr)^3 * 
+                   stats2["Salary workers ($\\hat{ N_{employed} }$) (millions)",1:2] *  param.N *
+                   stats2["% Salary below new MW ($P(\\hat{w} \\leq MW^{1})$)",1:2]/100 * param.fract.minwage *
+                   ( 1 - stats2["% of non compliers ($\\alpha_{1}$)",1:2]/100 - 0) * param.noncomp *
+                    c( eta.lit * factor.extrap , eta.lit ) *  
+                   (stats3["$\\overline{\\%\\Delta w}$",1:2]/100) * param.av.wage.var  
+                ) + 0.05 * 0.9
+
 
 
 # "Arbitrary" Sens. Anal to get lower unemp (0.9 * wage in c, 0.37 to 0.5, 1/3 to 1/4)
@@ -1674,7 +1711,8 @@ table_6 <- df %>%
   filter(pop_of_int == 1 & !is.na(hhwgt)) %>%
     select(incp_wag, hrslyr, wkslyr, hhwgt) 
 
-table_6 <- sapply(table_6[,c("incp_wag", "hrslyr", "wkslyr")],function(x) sum.stas1(x, table_6$hhwgt) )
+table_6 <- sapply(table_6[,c("incp_wag", "hrslyr", "wkslyr")],
+                  function(x) sum.stas1(x, table_6$hhwgt) )
 table_6 <- cbind(table_6)
 colnames(table_6) <- c("Earnings", "Hours", "weeks") 
 
@@ -1775,10 +1813,10 @@ new_total_n <- format(sum(df$hhwgt[pop_of_int==1] *
                           na.rm = TRUE), big.mark=",")
 
 # Here we adjust min wages up to their state minimum wage
-df$wage.adj.min <- with( df, ifelse(wage.adj1> st.minw.2016[state,] * param.states.raise,
+df$wages.final <- with( df, ifelse(wage.adj1> st.minw.2016[state,] * param.states.raise,
                               wage.adj1,
-                              st.minw.2016[state,] * param.states.raise) )
-#FROM NOW ON 'wage.adj.min' is the variable that contains the forecasted wage in 2016 under the status quo
+                              st.minw.2016[state,] * param.states.raise) ) * param.wages
+#FROM NOW ON 'wages.final' is the variable that contains the forecasted wage in 2016 under the status quo
 ```  
 </div>
 
@@ -1816,19 +1854,19 @@ table_8[2,1] <- round( with(df[pop_of_int == 1 & !is.na(df$wage), ],
                             wtd.quantile( wage, weights = hhwgt
                                           , prob = c(.5) ) ), digits = 2 )
 # Median wage after projections
-table_8[2,2] <- round( with(df[pop_of_int == 1 & !is.na(df$wage.adj.min), ], 
-                            wtd.quantile( wage.adj.min, weights = hhwgt * 
+table_8[2,2] <- round( with(df[pop_of_int == 1 & !is.na(df$wages.final), ], 
+                            wtd.quantile( wages.final, weights = hhwgt * 
                             (1 + workers.gr)^4, prob = c(.5) ) ), digits = 2 )
 # Wage distribution in 2013
 table_8[3:7,1]  <- round(as.matrix(table_7[-1]), digits = 2)
 
 aux.1 <- df %>% 
-  filter(pop_of_int == 1 & !is.na(wage.adj.min)) %>% 
-    summarise("> $7.50" = weighted.mean(wage.adj.min<7.5,w = hhwgt * (1 + workers.gr)^4), 
-              "> $9" = weighted.mean(wage.adj.min<9,w = hhwgt * (1 + workers.gr)^4), 
-              "> $10.10" = weighted.mean(wage.adj.min<10.10,w = hhwgt * (1 + workers.gr)^4), 
-              "> $13" = weighted.mean(wage.adj.min<13,w = hhwgt * (1 + workers.gr)^4), 
-              "> $15" = weighted.mean(wage.adj.min<15,w = hhwgt * (1 + workers.gr)^4) 
+  filter(pop_of_int == 1 & !is.na(wages.final)) %>% 
+    summarise("> $7.50" = weighted.mean(wages.final<7.5,w = hhwgt * (1 + workers.gr)^4), 
+              "> $9" = weighted.mean(wages.final<9,w = hhwgt * (1 + workers.gr)^4), 
+              "> $10.10" = weighted.mean(wages.final<10.10,w = hhwgt * (1 + workers.gr)^4), 
+              "> $13" = weighted.mean(wages.final<13,w = hhwgt * (1 + workers.gr)^4), 
+              "> $15" = weighted.mean(wages.final<15,w = hhwgt * (1 + workers.gr)^4) 
               )
 
 table_8[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
@@ -1836,10 +1874,10 @@ table_8[3:7,2] <- round( as.matrix(aux.1), digits = 2 )
 # Histogram of wage below $20
 p2 <-    df  %>% 
   filter(pop_of_int==1 & wage<=200)  %>% 
-  select(wage.2013, wage.adj.min, hhwgt, hhwgt.2013) %>%
+  select(wage.2013, wages.final, hhwgt, hhwgt.2013) %>%
   gather(key = variable, value = value, -c(hhwgt.2013, hhwgt) ) %>% 
-  mutate("hhwgt" = ifelse(variable=="wage.adj.min", 
-                                  hhwgt * gr.factor("workers", 2013, 2016) , 
+  mutate("hhwgt" = ifelse(variable=="wages.final", 
+                                  hhwgt * (1 + workers.gr)^4 , 
                                   hhwgt.2013 ) ) %>% 
   ggplot() + 
     geom_density(aes(x = value, 
@@ -1861,7 +1899,7 @@ p2 <-    df  %>%
                                            colour = "transparent") )+
     scale_fill_discrete(name=NULL,
                          labels=c("2013 (Forecast)", "2016 (Forecast)"))
-#   print(p2) 
+# print(p2) 
 # knitr::kable(table_8, caption="Comparison of 2013 and 2016 under the status quo", digits = 1)
 ```  
 
@@ -1906,45 +1944,45 @@ $$
 
 ```{r positive effects,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 #Increase population size (apply workers growth rate to all pop)
-df$hhwgt.2016 <- df$hhwgt * gr.factor("workers", 2013, 2016)
+df$hhwgt.2016 <- df$hhwgt * (1 + workers.gr)^4
 
 # Get the number of workers whos wage would bebow 10.10 in the status quo (in millions)
-N_benes <- sum(df$hhwgt.2016[df$wage.adj.min <= 10.10 & pop_of_int==1], na.rm = TRUE)/1e6
+N_benes <- sum(df$hhwgt.2016[df$wages.final <= 10.10 & pop_of_int==1], na.rm = TRUE)/1e6
 
 # Tag those workers 
-df$below_min <-with(df, ifelse(wage.adj.min <= 10.10 & pop_of_int == 1,
+df$below_min <-with(df, ifelse(wages.final <= 10.10 & pop_of_int == 1,
                                1, 0) )
 
 df$below_min[is.na(df$below_min)] <- 0
 
 # Compute total wage increase (yearly, in billions) -without ripple effects and before destroying jobs-
 wage.inc <- with(df[df$below_min == 1 & pop_of_int==1, ], 
-      sum((10.10 - wage.adj.min) *  hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) ) / 1e9 
+      sum((10.10 - wages.final) * hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) ) / 1e9 
 
 # Create new wage (after inc in min wage)
-df$new.wage <- with(df, ifelse(wage.adj.min<10.10 & pop_of_int %in% 1, 
+df$new.wage <- with(df, ifelse(wages.final<10.10 & pop_of_int %in% 1, 
                                10.10, 
-                               wage.adj.min) )
+                               wages.final) )
 
 # Apply ripple effects
-df$new.wage <- with(df, ifelse(wage.adj.min>10.10 & wage.adj.min<11.5 & pop_of_int==1, 
-                               wage.adj.min + 0.5 * (11.5 - wage.adj.min),
-                               ifelse(wage.adj.min>8.7 & wage.adj.min<=10.10 & pop_of_int==1,
-                                        10.10 + 0.5 * (wage.adj.min - 7.25),
+df$new.wage <- with(df, ifelse(wages.final>10.10 & wages.final<11.5 & pop_of_int==1, 
+                               wages.final + 0.5 * (11.5 - wages.final),
+                               ifelse(wages.final>8.7 & wages.final<=10.10 & pop_of_int==1,
+                                        10.10 + 0.5 * (wages.final - 7.25),
                                        new.wage
                                         ) ) )
 # Creates the same but using dplyr
-# df <- df %>% mutate( new.wage = ifelse(wage.adj.min>10.10 & wage.adj.min<11.5, 
-#                                      10.10 + 0.5 * (10.10 - wage.adj.min), 
+# df <- df %>% mutate( new.wage = ifelse(wages.final>10.10 & wages.final<11.5, 
+#                                      10.10 + 0.5 * (10.10 - wages.final), 
 #                                      new.wage) )  %>%
-#                 mutate( new.wage = ifelse(wage.adj.min>8.7 & wage.adj.min<10.10, 
-#                                      10.10 + 0.5 * (wage.adj.min - 7.25), 
+#                 mutate( new.wage = ifelse(wages.final>8.7 & wages.final<10.10, 
+#                                      10.10 + 0.5 * (wages.final - 7.25), 
 #                                      new.wage) )
 
 
 # Total gain with ripple effects but without destroying any jobs  
 wage.inc.with.ripple <- df %>% 
-      with( sum((new.wage - wage.adj.min) *  hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) ) / 1e9 
+      with( sum((new.wage - wages.final) *  hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) ) / 1e9 
 ```  
 </div>
 
@@ -1969,10 +2007,10 @@ In section 2.2 we estimate that `r paste(round(stats2["% of non compliers ($\\al
 
 ```{r non compliesrs in asec,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 # Apply ripple effects
-alpha.1 <- stats2["% of non compliers ($\\alpha_{1}$)", "Total"]/100
+alpha.1 <- stats2["% of non compliers ($\\alpha_{1}$)", "Total"] * param.noncomp /100
 # df$new.wage[df$below_min==1 & pop_of_int==1] <- with(df[df$below_min==1 & pop_of_int==1,], 
 #                                                      ifelse(runif( length(new.wage) )< alpha.1, 
-#                                                             wage.adj.min, 
+#                                                             wages.final, 
 #                                                             new.wage) )
 
 set.seed(123)
@@ -1981,19 +2019,19 @@ df <- df %>% mutate("no.comply" = ifelse( pop_of_int==1,
                            "Not comply", "comply"),
                     NA), 
                     "new.wage.nocomp" = ifelse(no.comply %in% "Not comply" , 
-                                        wage.adj.min, 
+                                        wages.final, 
                                         new.wage) 
 ) 
 
 # Total gain with ripple effects but without destroying any jobs and accounting for non-compliance
 wage.inc.with.ripple.non.comp <- df %>% 
     #filter(below_min == 0)  %>% 
-      with( sum((new.wage.nocomp - wage.adj.min) *  hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) ) / 1e9 
+      with( sum((new.wage.nocomp - wages.final) *  hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) ) / 1e9 
 
 # Number of workers with wages below new min, that are eligible to receive wage inc (before job loses)
-N_benes_compliance_below_min <-  sum(df$hhwgt.2016[(df$wage.adj.min != df$new.wage.nocomp) & df$below_min==1], na.rm = TRUE)/1e6
-N_benes_compliance_above_min <-  sum(df$hhwgt.2016[(df$wage.adj.min != df$new.wage.nocomp) & df$below_min==0], na.rm = TRUE)/1e6
-N_benes_compliance<- sum(df$hhwgt.2016[(df$wage.adj.min != df$new.wage.nocomp)], na.rm = TRUE)/1e6
+N_benes_compliance_below_min <-  sum(df$hhwgt.2016[(df$wages.final != df$new.wage.nocomp) & df$below_min==1], na.rm = TRUE)/1e6
+N_benes_compliance_above_min <-  sum(df$hhwgt.2016[(df$wages.final != df$new.wage.nocomp) & df$below_min==0], na.rm = TRUE)/1e6
+N_benes_compliance<- sum(df$hhwgt.2016[(df$wages.final != df$new.wage.nocomp)], na.rm = TRUE)/1e6
 
 pt <- function(x) round(x, 1)
 
@@ -2034,8 +2072,8 @@ Replace $\tilde{w} = \tilde{w}/2$ if :
 #NOT USING THIS FOR NOW
 m_x <- function(beta1 , beta2) with(df, 
                                     beta1 * ( age <= 19 ) - beta2 * ( age >= 20 ) * 
-                                      wage.adj.min - 1000 * 
-                                      (wage.adj.min> 10.10 | pop_of_int == 0) )
+                                      wages.final - 1000 * 
+                                      (wages.final> 10.10 | pop_of_int == 0) )
 
 num.to.del <- - delta.e1*1e6*2
 #WOULD LIKE TO MAKE THE NEXT OPTIMIZATION MORE EFFICIENT
@@ -2043,7 +2081,7 @@ theta <- 3
 cut.job <- 0
 while ( abs(sum(cut.job * df$hhwgt.2016 , na.rm = TRUE) - num.to.del) >= 1e5)  { 
   set.seed(123)
-  cut.job <- 1* ( df$wage.adj.min<=10.10 & pop_of_int==1 & df$no.comply=="comply" &
+  cut.job <- 1* ( df$wages.final<=10.10 & pop_of_int==1 & df$no.comply=="comply" &
                     (theta*runif(dim(df)[1], min = 0, max = 1) < 0.5) )
   # sum(cut.job * df$hhwgt.2016 , na.rm = TRUE)/1e6
   if (sum(cut.job * df$hhwgt.2016 , na.rm = TRUE) - num.to.del >= 10000) {
@@ -2062,24 +2100,24 @@ rm(cut.job)
 
 # Compute variables for each scenario
 # cut jobs, no wage raise
-df$cut.wage <- with(df, ifelse(cut.job %in% 1, wage.adj.min/2, wage.adj.min) )
+df$cut.wage <- with(df, ifelse(cut.job %in% 1, wages.final/2, wages.final) )
 # cut jobs relative to sq, wage raise
-df$new.wage.final <- with(df, ifelse(cut.job %in% 1, wage.adj.min/2, new.wage.nocomp) )
+df$new.wage.final <- with(df, ifelse(cut.job %in% 1, wages.final/2, new.wage.nocomp) )
 # cut jobs relative to raise, wage raise
 df$new.wage.cut <- with(df, ifelse(cut.job %in% 1, new.wage.nocomp/2, new.wage.nocomp) )
 
 # Compute total wage increase after ripple effects (yearly in billions)
 wage.gain.total <-  df %>% 
-      summarise( "Total wage gain" =  sum( (new.wage.final - wage.adj.min) * 
+      summarise( "Total wage gain" =  sum( (new.wage.final - wages.final) * 
                    hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) / 1e9 , 
-                "Total wage loss" = sum( (wage.adj.min - cut.wage) * 
+                "Total wage loss" = sum( (wages.final - cut.wage) * 
                    hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) / 1e9, 
                 "Total gain before JD" =  sum( (new.wage.final - cut.wage) * 
                    hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) / 1e9
                 )  
-#with(df, hist(new.wage.final - wage.adj.min, xlim = c(-10,10) , ylim=c(0,3e3) , breaks = 50) )
+#with(df, hist(new.wage.final - wages.final, xlim = c(-10,10) , ylim=c(0,3e3) , breaks = 50) )
  
-#df %>% mutate("wls" = ifelse(new.wage.final > wage.adj.min, "winner", ifelse(new.wage.final == wage.adj.min, "nothing", "loser"))) %>% with(wtd.table(wls, weights = hhwgt.2016))
+#df %>% mutate("wls" = ifelse(new.wage.final > wages.final, "winner", ifelse(new.wage.final == wages.final, "nothing", "loser"))) %>% with(wtd.table(wls, weights = hhwgt.2016))
 
 ```  
 </div>
@@ -2147,9 +2185,10 @@ No interactions with other programs is assumed (SNAP or EITC).
 
 ```{r income,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results='hide'}
 #FOR THE FIRST TIME WE NOW LOOK AT OVERALL INCOME AND THE WHOLE POPULATION
-
+param.nonwage.gr <- 1
 #FH:again, I would rather use the non wage growth
-non.wage.gr <- ( gr.factor("Price Index, Personal Consumption", 2013, 2016) )^(1/4) - 1
+non.wage.gr <- ( ( gr.factor("Price Index, Personal Consumption", 2013, 2016) )^(1/4) - 1 ) *
+               param.nonwage.gr
 
 #Adjust non-wage income  
 #Separate HH income in to wage and non-wage
@@ -2165,7 +2204,7 @@ df <- df %>% mutate("year.wage" = new.wage.final * (hrslyr * wkslyr) ) %>%
                                   "new.inc.pc" = hhld.income/N.fam) %>% 
                                   select(-(hhld.wage:N.fam) )
   
-df <- df %>% mutate("year.wage" = wage.adj.min * (hrslyr * wkslyr) ) %>% 
+df <- df %>% mutate("year.wage" = wages.final * (hrslyr * wkslyr) ) %>% 
       group_by(hhseq) %>% mutate("hhld.wage" = sum(year.wage, na.rm = TRUE),
                                  "hhld.non.wage" = sum(non.wage.2016, na.rm = TRUE), 
                                  "hhld.income" = hhld.wage + hhld.non.wage, 

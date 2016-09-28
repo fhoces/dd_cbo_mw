@@ -169,6 +169,9 @@ param.net.benef <- 2e9
 param.ripple <- c("scope_below" = 8.7, "scope_above" = 11.5, "intensity" = 0.5)
 param.eta.lit <- 1
 param.factor.extrap <- 1
+param.jobcut <- 1
+param.dist.loss <- c(.01, 0.29, 0.70)
+
 
 ```
 
@@ -327,86 +330,91 @@ The adjustment over number of workers was made through the weight variable `fina
 <div id="toggleText3" style="display: none">      
 
 ```{r Getting forecast data, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results = "hide"}
-# All projections data comes from this website: https://www.cbo.gov/about/products/budget_economic_data
-# name of the files that contain projections from CBO
-early.2016  <- "51135-2016-01-Economic%20Projections.xlsx" 
-late.2015   <- "51135-2015-08-EconomicProjections.xlsx"
-early.2015  <- "51135-2015-01-EconomicProjections.xlsx" 
-late.2014   <- "51135-2014-08-EconomicProjections.xlsx"
-early.2014  <- "51135-2014-02-EconomicProjections.xlsx"
-early.2013  <- "51135-2013-02-EconomicProjections.xls"  #there is no late 2013 report
-
-# This function loads the data for a given report
-get.growth.data <- function(x){
-# Checking if working directory contains data, download if not. 
-  if ( !(x %in% dir()) ) {
-    download.file(url = paste("https://www.cbo.gov/sites/default/files/", 
-                              x , sep = ""), 
-                  destfile = x, mode="wb")
+get.gr.data <- function() {
+  # All projections data comes from this website: https://www.cbo.gov/about/products/budget_economic_data
+  # name of the files that contain projections from CBO
+  early.2016  <- "51135-2016-01-Economic%20Projections.xlsx" 
+  late.2015   <- "51135-2015-08-EconomicProjections.xlsx"
+  early.2015  <- "51135-2015-01-EconomicProjections.xlsx" 
+  late.2014   <- "51135-2014-08-EconomicProjections.xlsx"
+  early.2014  <- "51135-2014-02-EconomicProjections.xlsx"
+  early.2013  <- "51135-2013-02-EconomicProjections.xls"  #there is no late 2013 report
+  
+  # This function loads the data for a given report
+  get.growth.data <- function(x){
+  # Checking if working directory contains data, download if not. 
+    if ( !(x %in% dir()) ) {
+      download.file(url = paste("https://www.cbo.gov/sites/default/files/", 
+                                x , sep = ""), 
+                    destfile = x, mode="wb")
+    }
+    if (x == early.2013) {
+      if  ( !(require(XLConnect)) ) install.packages("XLConnect")
+        out.df <- rio::import( x , sheet= "2. Calendar Year")
+    } else {
+        out.df <- read.xlsx( x , sheet = "2. Calendar Year")
+    }
+    return(out.df)
   }
-  if (x == early.2013) {
-    if  ( !(require(XLConnect)) ) install.packages("XLConnect")
-      out.df <- rio::import( x , sheet= "2. Calendar Year")
-  } else {
-      out.df <- read.xlsx( x , sheet = "2. Calendar Year")
-  }
-  return(out.df)
-}
-
-# Working with projections from 2013
-trends.df <- get.growth.data( early.2013 )
-
-# Get column of all projections for 2013: get data from 2012 up to 2019)
-sel.col <- which(trends.df==2012, arr.ind = TRUE)[2] 
-# Get row with all projections for wages and salaries in billions of (nominal) dollars
-# Note: the excel file always contains two rows with the words "wage[s]" and "salar[ies|y]", 
-# we are looking for the second one (corresponding to Wages and Salaries under Income)
-sel.row1 <- unique(
-                    apply(trends.df,
-                          2, function(x)  grep("Wage.*Salar.*",x ) )
+  
+  # Working with projections from 2013
+  trends.df <- get.growth.data( early.2013 )
+  
+  # Get column of all projections for 2013: get data from 2012 up to 2019)
+  sel.col <- which(trends.df==2012, arr.ind = TRUE)[2] 
+  # Get row with all projections for wages and salaries in billions of (nominal) dollars
+  # Note: the excel file always contains two rows with the words "wage[s]" and "salar[ies|y]", 
+  # we are looking for the second one (corresponding to Wages and Salaries under Income)
+  sel.row1 <- unique(
+                      apply(trends.df,
+                            2, function(x)  grep("Wage.*Salar.*",x ) )
+                      )[[2]]
+  sel.row1 <- sel.row1[2]
+  
+  # Get row with all projections for number people employed (in millions)
+  sel.row2 <- which(trends.df=="Employment, Civilian, 16 Years or Older (Household Survey)", arr.ind = TRUE)[1]
+  # FH: I would use the following. But CBO uses the Price Index, Personal Consumption Expenditures (PCE)
+  # sel.row3 <- unique(
+  #                     apply(trends.df,
+  #                           2, function(x)  grep("Nonwage Income", x ) )
+  #                   )[[2]]
+  # 
+  #
+  
+  sel.row3 <- unique(
+                      apply(trends.df,
+                            2, function(x)  grep("Price Index, Personal Consumption", x ) )
                     )[[2]]
-sel.row1 <- sel.row1[2]
-
-# Get row with all projections for number people employed (in millions)
-sel.row2 <- which(trends.df=="Employment, Civilian, 16 Years or Older (Household Survey)", arr.ind = TRUE)[1]
-# FH: I would use the following. But CBO uses the Price Index, Personal Consumption Expenditures (PCE)
-# sel.row3 <- unique(
-#                     apply(trends.df,
-#                           2, function(x)  grep("Nonwage Income", x ) )
-#                   )[[2]]
-# 
-#
-
-sel.row3 <- unique(
-                    apply(trends.df,
-                          2, function(x)  grep("Price Index, Personal Consumption", x ) )
-                  )[[2]]
-
-
-#Keep only rows and colums identified above
-trends.df <- trends.df[c(sel.row1, sel.row2, sel.row3) , sel.col:(sel.col+7)]
-
-#Labeling and formating
-colnames(trends.df) <- 2012:(2012+7)
-trends.df <- apply(trends.df, 2, as.numeric)
-row.names(trends.df) <- c( "wages(total)", "workers", "Price Index, Personal Consumption")
-
-#Generate wage and non-wage income per worker
-trends.df <- rbind( trends.df ,  
-                    (trends.df["wages(total)", ] * 1e9 ) / ( trends.df["workers", ] * 1e6) )
-
-row.names(trends.df) <- c( "wages(total)", "workers", "Price Index, Personal Consumption",
-                            "wages per worker")
-
-#Transpose the data
-trends.df <- t(trends.df)
-
-# Define a new data set with the anual growth rate of each variable over time
-growth.df <- trends.df/lag(trends.df,1) - 1 
-
+  
+  
+  #Keep only rows and colums identified above
+  trends.df <- trends.df[c(sel.row1, sel.row2, sel.row3) , sel.col:(sel.col+7)]
+  
+  #Labeling and formating
+  colnames(trends.df) <- 2012:(2012+7)
+  trends.df <- apply(trends.df, 2, as.numeric)
+  row.names(trends.df) <- c( "wages(total)", "workers", "Price Index, Personal Consumption")
+  
+  #Generate wage and non-wage income per worker
+  trends.df <- rbind( trends.df ,  
+                      (trends.df["wages(total)", ] * 1e9 ) / ( trends.df["workers", ] * 1e6) )
+  
+  row.names(trends.df) <- c( "wages(total)", "workers", "Price Index, Personal Consumption",
+                              "wages per worker")
+  
+  #Transpose the data
+  trends.df <- t(trends.df)
+  
+  # Define a new data set with the anual growth rate of each variable over time
+  growth.df <- trends.df/lag(trends.df,1) - 1 
+  
+  return(growth.df)
+}
 # Compute the compounded growth factor for a given variable in a time interval
 # For example growth factor between years 1,2 and 3 will be:
 # (1+growth_rate_yr1) * (1+growth_rate_yr2) * (1+growth_rate_yr3)
+growth.df <- get.gr.data()
+
 gr.factor <- function(var1, init.year, last.year) {
   if (init.year == 2012) {init.year <- 2013}
   prod((growth.df[, var1 ] + 1)[as.character(init.year:last.year)])
@@ -700,11 +708,15 @@ Define variable that tags population of interest
 <div id="toggleText9" style="display: none">  
 
 ```{r desc stats2,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, error=FALSE, collapse=TRUE}
-# Tag population of interest
-df <- df %>% mutate("pop_of_int" = (empl == 1 &
-                      (selfinc == 0 & selfemp == 0) & 
-                      ( (paidhre == 0 & ( hrsvary != 1 | is.na(hrsvary) )  )  | paidhre == 1 )  & 
-                      !(wage3 == 0 | is.na(wage3) ) ) )
+# Tag population of interest 
+get.pop.int <- function() {
+  df %>% mutate("pop_of_int" = (empl == 1 &
+               (selfinc == 0 & selfemp == 0) & 
+               ( (paidhre == 0 & ( hrsvary != 1 | is.na(hrsvary) )  )  | 
+                   paidhre == 1 )  & 
+               !(wage3 == 0 | is.na(wage3) ) ) )
+}
+df <- get.pop.int()
 
 # Tables 1 - 4 where constructed to look at the data. Only table 4 is shown in the final output 
 
@@ -1683,25 +1695,30 @@ $$
 <div id="toggleText21" style="display: none">  
 
 ```{r loading data cps_asec, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
-data_use <- "CPER_ASEC"
-
-# Using CEPR ORG data 
-if (data_use == "CPER_ASEC") {
-# Checking if working directory contains data, download if not. 
-  if ( !("cepr_march_2013.dta" %in% dir()) ) {
-  	# create name of file to store data
-  	tf <- "cepr_march_2013.zip"
+call.cps.asec.data <-  function() {
+  data_use <- "CPER_ASEC"
   
-  	# download the CPS repwgts zipped file to the local computer
-  	download.file(url =  "http://ceprdata.org/wp-content/cps/data/cepr_march_2013.zip", tf , mode = "wb" )
-  
-  	# unzip the file's contents and store the file name within the temporary directory
-  	fn <- unzip( zipfile = tf ,"cepr_march_2013.dta",  overwrite = T )
+  # Using CEPR ORG data 
+  if (data_use == "CPER_ASEC") {
+  # Checking if working directory contains data, download if not. 
+    if ( !("cepr_march_2013.dta" %in% dir()) ) {
+    	# create name of file to store data
+    	tf <- "cepr_march_2013.zip"
+    
+    	# download the CPS repwgts zipped file to the local computer
+    	download.file(url =  "http://ceprdata.org/wp-content/cps/data/cepr_march_2013.zip", tf , mode = "wb" )
+    
+    	# unzip the file's contents and store the file name within the temporary directory
+    	fn <- unzip( zipfile = tf ,"cepr_march_2013.dta",  overwrite = T )
+    }
+    df <- read.dta("cepr_march_2013.dta")
   }
-  df <- read.dta("cepr_march_2013.dta")
+  
+  df <- tbl_df(df)
+  return(df)
 }
 
-df <- tbl_df(df)
+df <- call.cps.asec.data()
 
 add.base.vars <- function(SA.hours = param.hours, 
                           SA.weeks = param.weeks, 
@@ -2036,7 +2053,6 @@ $$
 
 ```{r positive effects,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 #Increase population size (apply workers growth rate to all pop)
-df$hhwgt.2016 <- df$hhwgt * (1 + workers.gr)^4
 
 # Create new wage (after inc in min wage)
 # Apply ripple effects
@@ -2067,6 +2083,9 @@ wage.ripple.f <- function(SA.ripple = param.ripple) {
                           ) )
   )
 }
+
+df <- wage.ripple.f()
+
 # Get the number of workers whos wage would bebow 10.10 in the status quo (in millions)
 N_benes <- sum(df$hhwgt.2016[df$wages.final <= 10.10 & pop_of_int==1], na.rm = TRUE)/1e6
 
@@ -2074,7 +2093,6 @@ N_benes <- sum(df$hhwgt.2016[df$wages.final <= 10.10 & pop_of_int==1], na.rm = T
 wage.inc <- with(df[df$below_min == 1 & pop_of_int==1, ], 
       sum((10.10 - wages.final) * hhwgt.2016 * hrslyr * wkslyr , na.rm = TRUE) ) / 1e9 
 
-df <- wage.ripple.f()
 
 # Total gain with ripple effects but without destroying any jobs  
 wage.inc.with.ripple <- df %>% 
@@ -2181,36 +2199,48 @@ Replace $\tilde{w} = \tilde{w}/2$ if :
 #                                       wages.final - 1000 * 
 #                                       (wages.final> 10.10 | pop_of_int == 0) )
 
-num.to.del <- - delta.e1*1e6*2
-#WOULD LIKE TO MAKE THE NEXT OPTIMIZATION MORE EFFICIENT
-theta <- 3
-cut.job <- 0
-while ( abs(sum(cut.job * df$hhwgt.2016 , na.rm = TRUE) - num.to.del) >= 1e5)  { 
-  set.seed(123)
-  cut.job <- 1* ( df$wages.final<=10.10 & pop_of_int==1 & df$no.comply=="comply" &
-                    (theta*runif(dim(df)[1], min = 0, max = 1) < 0.5) )
-  # sum(cut.job * df$hhwgt.2016 , na.rm = TRUE)/1e6
-  if (sum(cut.job * df$hhwgt.2016 , na.rm = TRUE) - num.to.del >= 10000) {
-    theta <- theta * 1.001 
-  } else {
-    theta <- theta * 0.999
-  }
-   #print(theta)
-} 
-df$cut.job <- cut.job
-df$cut.job[is.na(df$cut.job)] <- 0
-rm(cut.job)
+job.killer <- function(SA.jobcut = param.jobcut) {
+  job.cut.factor <- 2 * SA.jobcut
+  num.to.del <- - delta.e1*1e6*job.cut.factor
+  #WOULD LIKE TO MAKE THE NEXT OPTIMIZATION MORE EFFICIENT
+  theta <- 3
+  cut.job <- 0
+  while ( abs(sum(cut.job * df$hhwgt.2016 , na.rm = TRUE) - num.to.del) >= 1e5)  { 
+    set.seed(123)
+    cut.job <- 1* ( df$wages.final<=10.10 & pop_of_int==1 & df$no.comply=="comply" &
+                      (theta*runif(dim(df)[1], min = 0, max = 1) < 0.5) )
+    # sum(cut.job * df$hhwgt.2016 , na.rm = TRUE)/1e6
+    if (sum(cut.job * df$hhwgt.2016 , na.rm = TRUE) - num.to.del >= 10000) {
+      theta <- theta * 1.001 
+    } else {
+      theta <- theta * 0.999
+    }
+     #print(theta)
+  } 
+  df$cut.job <- cut.job
+  df$cut.job[is.na(df$cut.job)] <- 0
+  rm(cut.job)
+  
+  #df$teen <- df$age<20
+  #prop.table(with(df[pop_of_int == 1, ], table(cut.job,teen)), 2)
+  
+  # Compute variables for each scenario
+  # cut jobs, no wage raise
+  df$cut.wage <- with(df, ifelse(cut.job %in% 1, 
+                                 wages.final/job.cut.factor, 
+                                 wages.final) )
+  # cut jobs relative to sq, wage raise
+  df$new.wage.final <- with(df, ifelse(cut.job %in% 1, 
+                                       wages.final/job.cut.factor, 
+                                       new.wage.nocomp) )
+  # cut jobs relative to raise, wage raise
+  df$new.wage.cut <- with(df, ifelse(cut.job %in% 1, 
+                                     new.wage.nocomp/job.cut.factor, 
+                                     new.wage.nocomp) )
 
-#df$teen <- df$age<20
-#prop.table(with(df[pop_of_int == 1, ], table(cut.job,teen)), 2)
-
-# Compute variables for each scenario
-# cut jobs, no wage raise
-df$cut.wage <- with(df, ifelse(cut.job %in% 1, wages.final/2, wages.final) )
-# cut jobs relative to sq, wage raise
-df$new.wage.final <- with(df, ifelse(cut.job %in% 1, wages.final/2, new.wage.nocomp) )
-# cut jobs relative to raise, wage raise
-df$new.wage.cut <- with(df, ifelse(cut.job %in% 1, new.wage.nocomp/2, new.wage.nocomp) )
+  return(df)
+}
+df <- job.killer()
 
 # Compute total wage increase after ripple effects (yearly in billions)
 wage.gain.total <-  df %>% 
@@ -2292,38 +2322,45 @@ No interactions with other programs is assumed (SNAP or EITC).
 ```{r income,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results='hide'}
 #FOR THE FIRST TIME WE NOW LOOK AT OVERALL INCOME AND THE WHOLE POPULATION
 #FH:again, I would rather use the non wage growth
-non.wage.gr <- ( ( gr.factor("Price Index, Personal Consumption", 2013, 2016) )^(1/4) - 1 ) *
-               param.nonwage.gr
+
+non.wage.gr.f <- function(SA.nonwage.gr = param.nonwage.gr) {
+  ( ( gr.factor("Price Index, Personal Consumption", 2013, 2016) )^(1/4) - 1 ) *
+               SA.nonwage.gr
+}
+non.wage.gr <- non.wage.gr.f()
 
 #Adjust non-wage income  
 #Separate HH income in to wage and non-wage
-df$non.wage <- (df$incp_ern - df$incp_wag) 
-df$non.wage.2016 <- df$non.wage * non.wage.gr
-
-df <- df %>% mutate("year.wage" = new.wage.final * (hrslyr * wkslyr) ) %>% 
-      group_by(hhseq) %>% mutate("hhld.wage" = sum(year.wage, na.rm = TRUE),
-                                 "hhld.non.wage" = sum(non.wage.2016, na.rm = TRUE), 
-                                 "hhld.income" = hhld.wage + hhld.non.wage, 
-                                 "N.fam"= n(), 
-                                  "new.inc.pc" = hhld.income/N.fam) %>% 
-                                  select(-(hhld.wage:N.fam) )
+all.income.f <- function() {
+  df$non.wage <- (df$incp_ern - df$incp_wag) 
+  df$non.wage.2016 <- df$non.wage * non.wage.gr
   
-df <- df %>% mutate("year.wage" = wages.final * (hrslyr * wkslyr) ) %>% 
-      group_by(hhseq) %>% mutate("hhld.wage" = sum(year.wage, na.rm = TRUE),
-                                 "hhld.non.wage" = sum(non.wage.2016, na.rm = TRUE), 
-                                 "hhld.income" = hhld.wage + hhld.non.wage, 
-                                 "N.fam"= n(), 
-                                  "sq.inc.pc" = hhld.income/N.fam) %>% 
-                                  select(-(hhld.wage:N.fam) )
+  df <- df %>% mutate("year.wage.1" = new.wage.final * (hrslyr * wkslyr) ) %>% 
+        group_by(hhseq) %>% mutate("hhld.wage" = sum(year.wage.1, na.rm = TRUE),
+                                   "hhld.non.wage" = sum(non.wage.2016, na.rm = TRUE), 
+                                   "hhld.income" = hhld.wage + hhld.non.wage, 
+                                   "N.fam"= n(), 
+                                    "new.inc.pc" = hhld.income/N.fam) %>% 
+                                    select(-(hhld.wage:N.fam) )
+    
+  df <- df %>% mutate("year.wage.2" = wages.final * (hrslyr * wkslyr) ) %>% 
+        group_by(hhseq) %>% mutate("hhld.wage" = sum(year.wage.2, na.rm = TRUE),
+                                   "hhld.non.wage" = sum(non.wage.2016, na.rm = TRUE), 
+                                   "hhld.income" = hhld.wage + hhld.non.wage, 
+                                   "N.fam"= n(), 
+                                    "sq.inc.pc" = hhld.income/N.fam) %>% 
+                                    select(-(hhld.wage:N.fam) )
+  
+  df$winners = with(df, ifelse(new.inc.pc >= sq.inc.pc, 
+                               new.inc.pc - sq.inc.pc, 
+                               0) )
+  df$losers = with(df, - ifelse(new.inc.pc <= sq.inc.pc, 
+                               new.inc.pc - sq.inc.pc, 
+                               0) )
+  return(df)
+}
 
-df$winners = with(df, ifelse(new.inc.pc >= sq.inc.pc, 
-                             new.inc.pc - sq.inc.pc, 
-                             0) )
-df$losers = with(df, - ifelse(new.inc.pc <= sq.inc.pc, 
-                             new.inc.pc - sq.inc.pc, 
-                             0) )
-
-
+df <- all.income.f()
 
 # Computing differences in income 
 #df %>% 
@@ -2331,15 +2368,35 @@ df$losers = with(df, - ifelse(new.inc.pc <= sq.inc.pc,
 # Per capita agregate income has slightly less gains, probably due to hhld with winners and losers. 
 #wage.gain.total["Total wage gain"]
 
-pop.dist <- wtd.table( with(df, findInterval(x = sq.inc.pc, vec = c(-Inf,11740, 6*11740, Inf)) ) , weights = df$hhwgt.2016 )$sum.of.weights
-
+  
 losses <- with(df, sum(winners * hhwgt.2016) - param.factor.1 * sum(losers * hhwgt.2016) )  - param.net.benef
+pop.dist <- wtd.table( with(df, findInterval(x = sq.inc.pc, 
+                                             vec = c(-Inf,11740, 6*11740, Inf)) ) , 
+                         weights = df$hhwgt.2016 )$sum.of.weights
 
-param.dist.loss <- c(.01, 0.29, 0.70)
+  
 losses.pc  <- as.numeric(losses) * param.dist.loss / pop.dist
+  
 
-df$balance.loss <- as.numeric(losses.pc[with(df, findInterval(x = sq.inc.pc, 
-                                               vec = c(-Inf,11740, 6*11740, Inf) )) ]) 
+win.loss.f <- function(SA.factor.1 = param.factor.1, 
+                       SA.net.benef = param.net.benef) {
+
+  df$balance.loss <- as.numeric(losses.pc[with(df, findInterval(x = sq.inc.pc, 
+                                                 vec = c(-Inf,11740, 6*11740, Inf) )) ]) 
+  # Add the result 
+  # START FROM final_dec() backguards. 
+  bins <- with(df,wtd.quantile(x = sq.inc.pc, probs = 1:9/10, weights = hhwgt.2016))
+  df$income.group <- with(df, findInterval(x = sq.inc.pc, vec =  c(-Inf,bins) ))
+  
+  #Classifying by PLs and using sq.income/N.fam
+  quintiles <- with(df,wtd.quantile(x = sq.inc.pc, probs = 1:4/5, weights = hhwgt.2016))
+  
+  #df$income.group <- with(df, findInterval(x = sq.inc.pc, vec =  quintiles ))
+  df$income.group.1 <- with(df, findInterval(x = sq.inc.pc, vec =  c(-Inf,11770*c(1,3,6),Inf)  ) )
+  return(df)
+}
+
+df <- win.loss.f()
 
 # Compute variation by hhld - plot all the effects 
 final_fig1 <- df %>% select(new.inc.pc,sq.inc.pc, hhwgt.2016, balance.loss)  %>% 
@@ -2458,36 +2515,30 @@ final_fig3 <- final_fig3 %>%
  
 
 # Sample decision: value cost an benefits equally and distribution 1/q 
-sum( (df$winners - df$losers - df$balance.loss)*df$hhwgt.2016 )
+sum( (df$winners - df$losers - df$balance.loss) * df$hhwgt.2016 )
 
-dist.pref <- function(x, param.dist.pref) 1/(x^param.dist.pref)
+dist.pref.f <- function(x, param.dist.pref) 1/(x^param.dist.pref)
 # sum cost a and benefits at the individual level
-final_dec <- function(x) {
+final_dec.f <- function(x) {
   sum( (df$winners - df$losers - df$balance.loss) * df$hhwgt.2016 * 
-         dist.pref(df$income.group, param.dist.pref = x) ) /1e9
+         dist.pref.f(df$income.group, param.dist.pref = x) ) /1e9
 }
-
 # weigth final CBA by quintile
 
-# Add the result 
-# START FROM final_dec() backguards. 
-bins <- with(df,wtd.quantile(x = sq.inc.pc, probs = 1:99/100, weights = hhwgt.2016))
-df$income.group <- with(df, findInterval(x = sq.inc.pc, vec =  c(-Inf,bins) ))
-
-# repeat varying lots of parameters. 
 
 
 #abline(v = inc.quartiles, col = "blue", lty =1, cex=3)
 
-#Average income per group (height of rectangle)
-asd1 <- df %>% group_by(findInterval(sq.inc.pc, c(-Inf, 11770*1:6, Inf) )) %>% 
-summarise(log(mean(new.inc.pc)))
-
-#number of individuals per group (width of recangle)
-asd2 <- df %>%  with( wtd.table(findInterval(sq.inc.pc, c(-Inf, 11770*1:6, Inf)), weights = hhwgt.2016/1e6) )
-
 #Create here a kick-ass viz
 if (FALSE) {
+  #Average income per group (height of rectangle)
+  asd1 <- df %>% group_by(findInterval(sq.inc.pc, c(-Inf, 11770*1:6, Inf) )) %>% 
+  summarise(log(mean(new.inc.pc)))
+  
+  #number of individuals per group (width of recangle)
+  asd2 <- df %>%  with( wtd.table(findInterval(sq.inc.pc, c(-Inf, 11770*1:6, Inf)), 
+                                  weights = hhwgt.2016/1e6) )
+
   widths = asd2$sum.of.weights
   heights = asd1$`log(mean(new.inc.pc))`
   
@@ -2500,26 +2551,23 @@ colnames(table_9)  <- c("<1PL", "[1PL, 3PL)", "[3PL, 6PL)", ">6PL")
 rownames(table_9)  <- c("wage gains", "wage loses", "other loses",
                         "aggr effect", "N_i")
 
-#Classifying by PLs and using sq.income/N.fam
-quintiles <- with(df,wtd.quantile(x = sq.inc.pc, probs = 1:4/5, weights = hhwgt.2016))
-
-#df$income.group <- with(df, findInterval(x = sq.inc.pc, vec =  quintiles ))
-df$income.group <- with(df, findInterval(x = sq.inc.pc, vec =  c(-Inf,11770*c(1,3,6),Inf)  ) )
-
-table_9["N_i", ] <- wtd.table(with(df, income.group) , weights = df$hhwgt.2016)[[2]]/1e6
+table_9["N_i", ] <- wtd.table(with(df, income.group.1) , weights = df$hhwgt.2016)[[2]]/1e6
   
-aux.1 <- df %>% group_by(income.group)  %>% summarise(sum((winners) * hhwgt.2016, na.rm = TRUE)/1e9)
+aux.1 <- df %>% group_by(income.group.1)  %>% summarise(sum((winners) * hhwgt.2016, na.rm = TRUE)/1e9)
 table_9[ "wage gains", ] <- t(as.data.frame(aux.1[,2]) )
   
   
 #Wage loses: compared to SQ
-aux.1 <- df %>% group_by(income.group)  %>% summarise(sum((losers) * hhwgt.2016, na.rm = TRUE)/1e9)
+aux.1 <- df %>% group_by(income.group.1)  %>% summarise(sum((losers) * hhwgt.2016, na.rm = TRUE)/1e9)
 table_9[ "wage loses", ] <- t(as.data.frame(aux.1[,2]) )
 
 #Imputing the balnce of the losses
 table_9[ "other loses", ] <- as.numeric(losses) * c(0.01, rep(.29/2, 2), 0.70)/1e9
 
-aux.1 <- df %>% group_by(income.group)  %>% summarise(sum((winners - losers - balance.loss) * hhwgt.2016, na.rm = TRUE)/1e9)
+aux.1 <- df %>% 
+  group_by(income.group.1)  %>% 
+    summarise(sum((winners - losers - balance.loss) * 
+                    hhwgt.2016, na.rm = TRUE)/1e9)
 table_9[ "aggr effect", ] <- t(as.data.frame(aux.1[,2]) )
 
 #AQUI VOY: IDENTIFY ALL PARAMS TO DO SA!
@@ -2575,11 +2623,11 @@ $$
 Where $D(y_i)$ is the rank function for per capita income $y_{i}$ that returns the decile of income (1 the lowest and 10 the highest), and $\rho$ parametrizes the preferences towards redistribution ($\rho<0$ dislikes redistribution, $\rho>0$ likes redistribution)
 
 ```{r SA2, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE}
-plot(seq(-.5,6,by = 0.1),sapply(seq(-.5,6,by = 0.1) ,final_dec), type = "l", xlab = "rho", ylab = "FE (billions of $)  ", main = "Final effect of minimum wage raises \nfor different redistributory preferences")
+plot(seq(-.5,6,by = 0.1),sapply(seq(-.5,6,by = 0.1) ,final_dec.f), type = "l", xlab = "rho", ylab = "FE (billions of $)  ", main = "Final effect of minimum wage raises \nfor different redistributory preferences")
 abline(h=0, v=0, lty = 3)
 segments(x0 = c(-0.3, 0, 0.3, 0), x1 = c(-0.3, -0.3, 0.3, 0.3 ) , 
-         y0 = c(0,final_dec(-0.3), 0,final_dec(0.3) ), 
-         y1 = c(final_dec(-0.3), final_dec(-0.3), final_dec(0.3), final_dec(0.3)  ), col = "red", lty = 1)
+         y0 = c(0,final_dec.f(-0.3), 0,final_dec.f(0.3) ), 
+         y1 = c(final_dec.f(-0.3), final_dec.f(-0.3), final_dec.f(0.3), final_dec.f(0.3)  ), col = "red", lty = 1)
 ```  
 
 
@@ -2643,11 +2691,47 @@ mod.output.template
 
 --> 
 
-```{r sa, echo=FALSE, eval=FALSE}
+```{r sa, final results, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 # 121 * 1.05 * 0.144  * .37 * (1 - .13) * 1/3 * 0.1 + 
 #   4 * 1.05 * 0.74   * .37 * (1 - .18) * 0.1
+rm(list = setdiff(ls(), lsf.str()))
+
+v0 <-  c(-9.807995,  5.669210)
+
+
 
 df <- call.cps.org.data()
+growth.df <- get.gr.data()
+min.wage.data <- readRDS("minwage")
+st.minw <- state.minw("2013")
+st.minw.2016 <- state.minw("2015")
+st.minw.2016[c("AK"	, "AZ", "CA", "CT"	, "HI"	, "IL", "MA", "MI"	, 
+       "MN"	, "MT" , "NV" , "NE" , "NY"	, "OH"	, "RI", "VT"), ] <- 
+          c(  9.75	, 8.05, 10	, 9.6	  , 8.5	  , 8.25, 10	, 8.5	  , 
+      9		  , 8.05 , 8.25 , 9		 , 9		, 8.1	  , 9.6 , 9.6)
+colnames(st.minw.2016) <- "2016"
+
+#step 1: compute effect on employment for many scenarios
+param.eta.lit <- 1.1 #
+param.factor.extrap <- 1.0
+param.base.growth <- 0.024 * 1.0
+param.wage.gr <- 1.0
+param.worker.gr <- 1.0 
+param.N <- 1.0
+param.fract.minwage <- 1.0
+param.noncomp <- 1.0
+param.F.adj <- 1.0
+param.av.wage.var <- 1.0
+param.wages <- 1.0 ####
+param.nonwage.gr <- 1.0
+param.hours <- 1
+param.weeks <- 1
+param.factor.1 <- 1
+param.net.benef <- 2e9
+param.ripple <- c("scope_below" = 8.7, "scope_above" = 11.5, "intensity" = 0.5)
+param.dist.loss <- c(.01, 0.29, 0.70)
+param.jobcut <- 1
+param.states.raise <- 1
 
 #step 1: compute effect on employment for many scenarios
 
@@ -2655,6 +2739,7 @@ wage.gr <- wage.gr.f()
 workers.gr <- workers.gr.f()  
 half.gap <- half.gap.f()
 wage.gr.bins <- wage.gr.bins.f()
+df <- get.pop.int()
 
 df <- wages.final.cps.org.f()
 stats2 <- N.final.f()
@@ -2663,7 +2748,45 @@ eta.lit <- eta.lit.f(SA.eta.lit = param.eta.lit)
 factor.extrap <- factor.extrap.f()
 stats3 <- final.other.comp()
 delta.e1 <- delta.e1.f()
+abs(delta.e1  -  -0.4776402)/0.4776402
 
+##DONE WITH EMPLOYMENT
+
+
+# (calls delta.e1 and stats2
+# step2: compute policy effects given the effects on employment for each scenario. 
+
+#load data
+
+df <- call.cps.asec.data()
+df <- add.base.vars()
+pop_of_int <- with(df,
+                   (empl == 1 &
+                      (selfinc == 0 & selfemp == 0) & 
+                      !(incp_wag == 0 | is.na(incp_wag) ) )
+                    )
+df <- add.wage.var(df)
+wage.gr <- wage.gr.asec.f()
+workers.gr <- workers.gr.asec.f()  
+half.gap <- half.gap.asec.f()
+wage.gr.bins <- wage.gr.bins.asec.f()
+aux.var  <- wtd.quantile(x = df$wage, probs = 1:9/10,weights = df$hhwgt)
+df <- add.wages.1()
+df$wages.final <- wages.final.asec.org.f()
+df <- wage.ripple.f()
+alpha.1 <- stats2["% of non compliers ($\\alpha_{1}$)", "Total"] * param.noncomp /100
+df <- add.nocomp()
+df <- job.killer()
+non.wage.gr <- non.wage.gr.f()
+df <- all.income.f()
+losses <- with(df, sum(winners * hhwgt.2016) - param.factor.1 * sum(losers * hhwgt.2016) )  - param.net.benef
+pop.dist <- wtd.table( with(df, findInterval(x = sq.inc.pc, 
+                                             vec = c(-Inf,11740, 6*11740, Inf)) ) , 
+                         weights = df$hhwgt.2016 )$sum.of.weights
+losses.pc  <- as.numeric(losses) * param.dist.loss / pop.dist
+df <- win.loss.f()
+
+abs(sapply(c(-0.3, 0.3), final_dec.f) - v0)/v0
 
 ```  
 

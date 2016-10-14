@@ -1,6 +1,7 @@
 ---
-title: "Reader Companion for CBO report on Min Wage \n  (Preliminary Version. Do Not
-  Circulate)"
+title: |-
+  Reader Companion for CBO report on Min Wage
+    (Preliminary Version. Do Not Circulate)
 author: "Fernando Hoces de la Guardia + (hopefully) a lot more people"
 date: '`r paste("Last edit:", Sys.Date(), sep=" ")`'
 output:
@@ -49,17 +50,19 @@ The role of policy analysis is to connect research with policy. Because of heavy
 
 Here we attempt to contribute to the policy discussion of the minimum wage. The minimum wage is a contentious policy issue in the US. Increasing it has positive and negative effects that different policymakers value differently. We aim to add clarity on what those effects are, how much do we know about them, and how those effects vary when elements of the analysis change. We select the most up-to-date, non-partisan, policy analysis of the effects of raising the minimum wage, and build an open-source reproducible analysis on top of it.
 
-In 2014 the Congressional Budget Office published the report titled ["The Effects of a Minimum-Wage Increase on Employment and Family Income"](https://www.cbo.gov/publication/44995). The report receive wide attention from the media and has been used extensible as an input in the debate around the minimum wage[^3]. To this date we consider the CBO report to be the best non-partisan estimation of the effects of raising the minimum wage at the federal. Although there was some disagreement among experts around some technical issues, this disagreement has been mainly circumscribed around one of the many inputs used in the analysis, and we can fit both opposing positions in to our framework.
+In 2014 the Congressional Budget Office published the report titled ["The Effects of a Minimum-Wage Increase on Employment and Family Income"](https://www.cbo.gov/publication/44995). The report receive wide attention from key stakeholders and has been used extensible as an input in the debate around the minimum wage[^3]. To this date we consider the CBO report to be the best non-partisan estimation of the effects of raising the minimum wage at the federal level. Although there was disagreement among experts around some technical issues, this disagreement has been mainly circumscribed around one of the many inputs used in the analysis, and we can fit the opposing positions in to our framework.
 
-Our purposes are twofold: First, promote the technical discussion around a recurrent policy issue (minimum wage) by making explicit and visible all the components and key assumptions of its most up-to-date official policy analysis. Second, demonstrate how new scientific practices of transparency and reproducibility (T & R) can be applied to policy analysis. We encourage readers to collaborate in this document and help develop an ever-improving version of the important policy estimates[^3] (re)produced here.
+Our purposes are twofold: First, promote the technical discussion around a recurrent policy issue (minimum wage) by making explicit and visible all the components and key assumptions of its most up-to-date official policy analysis. Second, demonstrate how new scientific practices of transparency and reproducibility (T & R) can be applied to policy analysis. We encourage the reader to collaborate in this document and help develop an ever-improving version of the important policy estimates[^3] (re)produced here.
 
-To achieve our goal we reviewed the CBO report and extract the key components of its analysis. We adapt new guidelines propose by the scientific community  ([TOP](https://cos.io/top/))in to policy analysis. In it, the analysis achieves the highest standards of transparency and reproducibility (T & R) when the data, methods and workflow are completely reproducible and every part of the analysis and its assumptions, are easily readable. We also benefit from hindsight and structure this document around the costs and benefits mainly discussed in the policy debate. 
+To achieve our goal we reviewed the CBO report and extract the key components of its analysis. We adapt new guidelines propose by the scientific community  ([TOP](https://cos.io/top/)) into policy analysis. In it, the analysis achieves the highest standards of transparency and reproducibility (T & R) when the data, methods and workflow are completely reproducible and every part of the analysis and its assumptions, are easily readable. We also benefit from hindsight and structure this document around the costs and benefits mainly discussed in the policy debate. 
 
-CBO's report, in its original form already represents significant improvement in T & R relative to the standard practices of policy analyses. The report contains most of the components required for a full replication. We add the missing components, make explicit assumptions when needed, complement the narrative explanations with some mathematical formulae, visualizations, and the analytical code use behind all the replication.
+CBO's report, in its original form already represents a significant improvement in T & R relative to the standard practices of policy analyses. The report contains most of the components required for a full reproduction. We add the missing components, make explicit assumptions when needed, complement the narrative explanations with some mathematical formulae, visualizations, and the analytical code use behind all the replication.
 
-Although our aim is to translate practices of T & R from Science to Policy Analysis, we need to highlight an important difference regarding reproducibility between the two of them. A scientific report takes the form of a peer review publication that represent several months or years of research, followed up by a review process that can be as lengthy as the research itself. For this reason, when a scientific publication is subject to replication is expected to succeed. Policy analysis is usually performed under tight deadlines, and is not unusual to rely on arbitrary assumptions and/or irreproducible calculations. For this reasons we do not attempt to replicate the CBO report as a way of testing the veracity of the analysis. We use reproducibility, paired with full transparency, to generate a living document that represents the best policy analysis up to date. Our expectations are that this living document will be serve as a building block to discuss and incorporate incremental improvements on the best available policy analysis.
+**Important Note:**
 
-The CBO report describes two policy estimates: the effects of minimum wage on employment and the distributional effects of minimum wage on wages and family income. All the policy estimates to replicate are presented in the following tables.
+Although our aim is to translate practices of T & R from Science to Policy Analysis, we need to highlight an important difference regarding reproducibility between the two of them. A scientific report takes the form of a peer review publication that represent several months or years of research, followed up by a review process that can be as lengthy as the research itself. For this reason, when a scientific publication is subject to replication is expected to succeed. Policy analysis is usually performed under tight deadlines, and is not unusual to rely on arbitrary assumptions and/or irreproducible calculations. For this reasons we do not attempt to replicate the CBO report as a way of testing the veracity of the analysis. We use reproducibility, paired with full transparency, to generate a living document that represents the best policy analysis up to date. Our expectations are that this living document will be serve as a building block to discuss and incorporate incremental improvements to the policy analysis used to inform the debate around the minimum wage. 
+
+The CBO report describes three policy estimates: the effects of raising the minimum wage on income of families with members that receive a raise, the effects on income of families with members that loose their jobs, and the distributions of losses in the economy used to pay for the raise in the minimum wage. All the policy estimates to replicate are presented in the following tables.
 
 **Note on the code languages (`R` and `Stata`):** The analysis can be replicated using either language, but only R provides the one-click workflow. For `Stata` the reader has to copy and paste the scripts sequentially or excecute [this do file](link to final do file). 
 
@@ -68,7 +71,7 @@ Also add link to video on how to install R.
 ```{r setup, include=FALSE}
 if (TRUE) {
   if (Sys.info()["sysname"] == "Darwin") {
-    setwd("/Users/fhocesde/Documents/dissertation/Replication")
+    setwd("/Users/fhoces/dissertation/Replication")
   }else{
     setwd("C:/Users/fhocesde/Documents/replication")
   }
@@ -150,27 +153,29 @@ mod.output.template["Net effect", ] <- c("5", "12", "2", "-17", "2")
 
 
 ```{r SA params,  eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}  
-param.states.raise <- 1
 # The base growth rate of wages will determine the dispersion of wage growth, the mean wage groth rate will be given by the 10 year economic forecast. 
-param.base.growth <- 0.024 * 1
+#data inputs:
 param.wage.gr <- 1
 param.worker.gr <- 1 
-param.N <- 1
-param.fract.minwage <- 1
-param.noncomp <- 1
-param.F.adj <- 1
-param.av.wage.var <- 1
-param.wages <- 1
-param.nonwage.gr <- 1
-param.hours <- 1
-param.weeks <- 1
+
+param.eta.lit <- 1.0 #
+param.factor.extrap <- 1.0
+param.base.growth <- 0.024 * 1.0
+param.N <- 1.0
+param.fract.minwage <- 1.0
+param.noncomp <- 1.0
+param.F.adj <- 1.0
+param.av.wage.var <- 1.0
+param.wages <- 1.0 ####
+param.nonwage.gr <- 1.0
+param.hours <- 1.0
+param.weeks <- 1.0
 param.factor.1 <- 1
-param.net.benef <- 2e9
-param.ripple <- c("scope_below" = 8.7, "scope_above" = 11.5, "intensity" = 0.5)
-param.eta.lit <- 1
-param.factor.extrap <- 1
+param.net.benef <- 2e9*1.0
+param.ripple <- c("scope_below" = 8.7, "scope_above" = 11.5*1.0, "intensity" = 0.5*1.0)
+param.dist.loss <- c(0.01, 0.29, 0.70) #c(0.39567218, 0.53851506, 0.06581275) 
 param.jobcut <- 1
-param.dist.loss <- c(.01, 0.29, 0.70)
+param.states.raise <- 1
 
 
 ```
@@ -349,7 +354,7 @@ get.gr.data <- function() {
                     destfile = x, mode="wb")
     }
     if (x == early.2013) {
-      if  ( !(require(XLConnect)) ) install.packages("XLConnect")
+      if  ( !(require(XLConnect)) ) install.packages("XLConnect", repos= "http://cran.cnr.berkeley.edu/")
         out.df <- rio::import( x , sheet= "2. Calendar Year")
     } else {
         out.df <- read.xlsx( x , sheet = "2. Calendar Year")
@@ -1497,11 +1502,11 @@ Finally CBO argues that as the variation changes the elasticity should be re-sca
 
 $$
 \begin{aligned}
-\widetilde{ \eta^{g}_{w\leq MW} } &=  \frac{\eta^{g}_{lit}}{p^{g}_{w\leq MW}} \times \frac{\%\Delta MW}{\overline{\%\Delta w^{g}}} = \eta^{g}_{lit} \times F_{adjs}  \hspace{4em} g = \{teens, \, adults \}
+\widetilde{ \eta^{g}_{w\leq MW} } &=  \frac{\eta^{g}_{lit}}{p^{g}_{w\leq MW}} \times \frac{\%\Delta MW}{\overline{\%\Delta w^{g}}} = \eta^{g}_{lit} \times F^{g}_{adjs}  \hspace{4em} g = \{teens, \, adults \}
 \end{aligned}
 $$
 
-Looking at historical trends in the CPS, CBO estimates that $F_{adjs}$ is 4.5 for both populations[^2].  In the following table we summarize all the elements required to compute $\widetilde{ \eta^{g}_{w\leq MW} }$ 
+Looking at historical trends in the CPS, CBO estimates that $F^{g}_{adjs}$ is 4.5 for both populations[^2].  In the following table we summarize all the elements required to compute $\widetilde{ \eta^{g}_{w\leq MW} }$ 
 
 ## Other factors  
 CBO reasons that a rise in the minimum wage would have effects in aggregate consumption and this in turn would have effects on employment. The overall effect is estimated as an increase in employment between 30,000 and 50,000 jobs ("a few tens of thousands of jobs"). A narrative argument is provided for the mechanisms behind this effect.
@@ -1662,7 +1667,7 @@ knitr::kable(stats3, caption="Components of Elasticities", digits = 2)
 ```    
 
 
-Using all the components described above we get $\widehat{ \Delta^{-} E } =$ `r round(delta.e1*1000)` thousand jobs. The report however computes $F_{adjs}$ in a different fashion and gets a value of 4.5 (when computing the values of $F_{adjs}$  from the table below - as oppose to using historical values - we get $\widehat{ \Delta^{-} E } =$ `r round(delta.e2*1000)` thousand jobs). 
+Using all the components described above we get $\widehat{ \Delta^{-} E } =$ `r round(delta.e1*1000)` thousand jobs. The report however computes $F^{g}_{adjs}$ in a different fashion and gets a value of 4.5 (when computing the values of $F^{g}_{adjs}$  from the table below - as oppose to using historical values - we get $\widehat{ \Delta^{-} E } =$ `r round(delta.e2*1000)` thousand jobs). 
 
 
 
@@ -1723,9 +1728,9 @@ df <- call.cps.asec.data()
 add.base.vars <- function(SA.hours = param.hours, 
                           SA.weeks = param.weeks, 
                           SA.N = param.N) {
-  df %>% mutate("hrslyr" = hrslyr * param.hours, 
-                "wkslyr" = wkslyr * param.weeks, 
-                "hhwgt" = hhwgt * param.N)
+  df %>% mutate("hrslyr" = hrslyr * SA.hours, 
+                "wkslyr" = wkslyr * SA.weeks, 
+                "hhwgt" = hhwgt * SA.N)
 }
 
 df <- add.base.vars()
@@ -1744,8 +1749,8 @@ df <- add.base.vars()
 
 #### Code for computing wages and descriptive stats  
 
-<a id="displayText" href="javascript:toggle(22);">`R`</a>  
-<div id="toggleText22" style="display: none">  
+<a id="displayText" href="javascript:toggle(23);">`R`</a>  
+<div id="toggleText23" style="display: none">  
 
 ```{r Descript stats1 cps asec, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 # Tag population of interest FH: (1) Need to deal with 598 NA's and (2) clarify that restrictions here are not 
@@ -1820,8 +1825,8 @@ colnames(table_7) <- "Perc (2013)"
 
 </div>
 
-<a id="displayText" href="javascript:toggle(23);">`Stata`</a>  
-<div id="toggleText23" style="display: none">  
+<a id="displayText" href="javascript:toggle(24);">`Stata`</a>  
+<div id="toggleText24" style="display: none">  
 ```{r Descript stats1 cps asec STATA, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
 *Not done yet  
 
@@ -1863,8 +1868,8 @@ The wage forecast is the same methodology as in section 2.  This methodology is 
 
 ##### Code to forecast wages, workers
 
-<a id="displayText" href="javascript:toggle(23);">`R`</a>  
-<div id="toggleText23" style="display: none"> 
+<a id="displayText" href="javascript:toggle(25);">`R`</a>  
+<div id="toggleText25" style="display: none"> 
 ```{r forecasting cps asec wage, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results = "hide"}
 #Wage adjutsment
 #CBO mentions that the lowest 10th percent gets a 2.9% growth in anual wage
@@ -1930,8 +1935,8 @@ df$wages.final <- wages.final.asec.org.f()
 </div>
 
 
-<a id="displayText" href="javascript:toggle(24);">`Stata`</a>  
-<div id="toggleText24" style="display: none">  
+<a id="displayText" href="javascript:toggle(26);">`Stata`</a>  
+<div id="toggleText26" style="display: none">  
 ```{r  forecasting cps asec wage cps_asec STATA, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
 *Not done yet  
 
@@ -1941,10 +1946,10 @@ df$wages.final <- wages.final.asec.org.f()
 
 ##### Statistics and code behind figure 4  
 
-<a id="displayText" href="javascript:toggle(25);">`R`</a>  
-<div id="toggleText25" style="display: none">  
+<a id="displayText" href="javascript:toggle(27);">`R`</a>  
+<div id="toggleText27" style="display: none">  
 
-```{r desc stats2 in forcast asec wage,  eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r desc stats2 in forcast asec wage,  eval=TRUE, echo=display_code, warning=FALSE, message=FALSE}
 # WHY TABLE 4?
 table_8 <- matrix(NA, 7, 2)
 colnames(table_8)  <- c("2013", "2016: status quo")
@@ -2015,8 +2020,8 @@ p2 <-    df  %>%
 </div>
 
 
-<a id="displayText" href="javascript:toggle(26);">`Stata`</a>  
-<div id="toggleText26" style="display: none">  
+<a id="displayText" href="javascript:toggle(28);">`Stata`</a>  
+<div id="toggleText28" style="display: none">  
 ```{r   desc stats2 in forcast asec wage STATA, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
 *Not done yet  
 
@@ -2048,8 +2053,8 @@ $$
 
 ##### Code for ripple effects   
 
-<a id="displayText" href="javascript:toggle(27);">`R`</a>  
-<div id="toggleText27" style="display: none">  
+<a id="displayText" href="javascript:toggle(29);">`R`</a>  
+<div id="toggleText29" style="display: none">  
 
 ```{r positive effects,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 #Increase population size (apply workers growth rate to all pop)
@@ -2101,8 +2106,8 @@ wage.inc.with.ripple <- df %>%
 </div>
 
 
-<a id="displayText" href="javascript:toggle(28);">`Stata`</a>  
-<div id="toggleText28" style="display: none">  
+<a id="displayText" href="javascript:toggle(30);">`Stata`</a>  
+<div id="toggleText30" style="display: none">  
 ```{r  positive effects STATA, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
 *Not done yet  
 
@@ -2116,8 +2121,8 @@ In section 2.2 we estimate that `r paste(round(stats2["% of non compliers ($\\al
 
 ##### Code to substract non compliers  
 
-<a id="displayText" href="javascript:toggle(29);">`R`</a>  
-<div id="toggleText29" style="display: none">  
+<a id="displayText" href="javascript:toggle(31);">`R`</a>  
+<div id="toggleText31" style="display: none">  
 
 ```{r non compliesrs in asec,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}
 # Apply ripple effects
@@ -2164,8 +2169,8 @@ pt <- function(x) round(x, 1)
 </div>
 
 
-<a id="displayText" href="javascript:toggle(30);">`Stata`</a>  
-<div id="toggleText30" style="display: none">  
+<a id="displayText" href="javascript:toggle(32);">`Stata`</a>  
+<div id="toggleText32" style="display: none">  
 ```{r  non compliesrs in asec STATA, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
 *Not done yet  
 
@@ -2190,8 +2195,8 @@ Replace $\tilde{w} = \tilde{w}/2$ if :
 
 #### Code to impute job loses
 
-<a id="displayText" href="javascript:toggle(31);">`R`</a>  
-<div id="toggleText31" style="display: none">  
+<a id="displayText" href="javascript:toggle(33);">`R`</a>  
+<div id="toggleText33" style="display: none">  
 ```{r job destruction,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE}  
 #NOT USING THIS FOR NOW
 # m_x <- function(beta1 , beta2) with(df, 
@@ -2258,8 +2263,8 @@ wage.gain.total <-  df %>%
 ```  
 </div>
 
-<a id="displayText" href="javascript:toggle(32);">`Stata`</a>  
-<div id="toggleText32" style="display: none">  
+<a id="displayText" href="javascript:toggle(34);">`Stata`</a>  
+<div id="toggleText34" style="display: none">  
 ```{r job destruction STATA, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
 *Not done yet  
 
@@ -2316,8 +2321,8 @@ No interactions with other programs is assumed (SNAP or EITC).
 # Results 
 
 
-<a id="displayText" href="javascript:toggle(33);">`R`</a>  
-<div id="toggleText33" style="display: none">  
+<a id="displayText" href="javascript:toggle(35);">`R`</a>  
+<div id="toggleText35" style="display: none">  
 
 ```{r income,  eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results='hide'}
 #FOR THE FIRST TIME WE NOW LOOK AT OVERALL INCOME AND THE WHOLE POPULATION
@@ -2385,7 +2390,7 @@ win.loss.f <- function(SA.factor.1 = param.factor.1,
                                                  vec = c(-Inf,11740, 6*11740, Inf) )) ]) 
   # Add the result 
   # START FROM final_dec() backguards. 
-  bins <- with(df,wtd.quantile(x = sq.inc.pc, probs = 1:9/10, weights = hhwgt.2016))
+  bins <- with(df,wtd.quantile(x = sq.inc.pc, probs = 1:4/5, weights = hhwgt.2016))
   df$income.group <- with(df, findInterval(x = sq.inc.pc, vec =  c(-Inf,bins) ))
   
   #Classifying by PLs and using sq.income/N.fam
@@ -2517,11 +2522,12 @@ final_fig3 <- final_fig3 %>%
 # Sample decision: value cost an benefits equally and distribution 1/q 
 sum( (df$winners - df$losers - df$balance.loss) * df$hhwgt.2016 )
 
-dist.pref.f <- function(x, param.dist.pref) 1/(x^param.dist.pref)
-# sum cost a and benefits at the individual level
+dist.pref.f  <- function(rho, qi, qt) (1 - rho*(qi - qt/2))/sum(1 - rho*(1:qt - qt/2)) * qt
+
+ # sum cost a and benefits at the individual level
 final_dec.f <- function(x) {
   sum( (df$winners - df$losers - df$balance.loss) * df$hhwgt.2016 * 
-         dist.pref.f(df$income.group, param.dist.pref = x) ) /1e9
+         dist.pref.f( rho = x, qi = df$income.group, qt = max(df$income.group)) ) /1e9
 }
 # weigth final CBA by quintile
 
@@ -2583,8 +2589,8 @@ table_9[ "aggr effect", ] <- t(as.data.frame(aux.1[,2]) )
 
 
 
-<a id="displayText" href="javascript:toggle(41);">`Stata`</a>  
-<div id="toggleText41" style="display: none">  
+<a id="displayText" href="javascript:toggle(36);">`Stata`</a>  
+<div id="toggleText36" style="display: none">  
 
 ```{r income STATA, eval=FALSE,echo=display_code, engine="stata", engine.path=statapath, comment=""}
 *
@@ -2623,11 +2629,13 @@ $$
 Where $D(y_i)$ is the rank function for per capita income $y_{i}$ that returns the decile of income (1 the lowest and 10 the highest), and $\rho$ parametrizes the preferences towards redistribution ($\rho<0$ dislikes redistribution, $\rho>0$ likes redistribution)
 
 ```{r SA2, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE}
-plot(seq(-.5,6,by = 0.1),sapply(seq(-.5,6,by = 0.1) ,final_dec.f), type = "l", xlab = "rho", ylab = "FE (billions of $)  ", main = "Final effect of minimum wage raises \nfor different redistributory preferences")
+#png("sample_pref.png")
+plot(seq(-1/4,1/5,by = 0.01),sapply(seq(-1/4,1/5,by = 0.01) ,final_dec.f), type = "l", xlab = "rho", ylab = "FE (billions of $)  ", main = "Final effect of minimum wage raises \nfor different redistributory preferences")
 abline(h=0, v=0, lty = 3)
-segments(x0 = c(-0.3, 0, 0.3, 0), x1 = c(-0.3, -0.3, 0.3, 0.3 ) , 
-         y0 = c(0,final_dec.f(-0.3), 0,final_dec.f(0.3) ), 
-         y1 = c(final_dec.f(-0.3), final_dec.f(-0.3), final_dec.f(0.3), final_dec.f(0.3)  ), col = "red", lty = 1)
+segments(x0 = c(-0.1, 0, 0.1, 0), x1 = c(-0.1, -0.1, 0.1, 0.1 ) , 
+         y0 = c(0,final_dec.f(-0.1), 0,final_dec.f(0.1) ), 
+         y1 = c(final_dec.f(-0.1), final_dec.f(-0.1), final_dec.f(0.1), final_dec.f(0.1)  ), col = "red", lty = 1)
+#dev.off()
 ```  
 
 
@@ -2691,14 +2699,12 @@ mod.output.template
 
 --> 
 
-```{r sa, final results, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r sa, final results, eval=FALSE, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 # 121 * 1.05 * 0.144  * .37 * (1 - .13) * 1/3 * 0.1 + 
 #   4 * 1.05 * 0.74   * .37 * (1 - .18) * 0.1
 rm(list = setdiff(ls(), lsf.str()))
 
-v0 <-  c(-9.807995,  5.669210)
-
-
+v0 <-  c(-4.983990,  9.719147)
 
 df <- call.cps.org.data()
 growth.df <- get.gr.data()
@@ -2712,42 +2718,83 @@ st.minw.2016[c("AK"	, "AZ", "CA", "CT"	, "HI"	, "IL", "MA", "MI"	,
 colnames(st.minw.2016) <- "2016"
 
 #step 1: compute effect on employment for many scenarios
-param.eta.lit <- 1.1 #
-param.factor.extrap <- 1.0
-param.base.growth <- 0.024 * 1.0
+######data inputs########
+#anual average wage growth
 param.wage.gr <- 1.0
+#anual average workers growth
 param.worker.gr <- 1.0 
+#number of salary workers in 2013 (need to improve as is doing diff stuff to ORG and ASEC)
 param.N <- 1.0
+#Fraction of workers earning below the min wage (in ORG only so far)
 param.fract.minwage <- 1.0
-param.noncomp <- 1.0
-param.F.adj <- 1.0
+#Average wage variation for those affected by min wage (only ORG)
 param.av.wage.var <- 1.0
-param.wages <- 1.0 ####
+# Wages of all workers
+param.wages <- 1.0
+
+
 param.nonwage.gr <- 1.0
-param.hours <- 1
-param.weeks <- 1
-param.factor.1 <- 1
-param.net.benef <- 2e9
-param.ripple <- c("scope_below" = 8.7, "scope_above" = 11.5, "intensity" = 0.5)
-param.dist.loss <- c(.01, 0.29, 0.70)
-param.jobcut <- 1
+param.hours <- 1.0
+param.weeks <- 1.0
 param.states.raise <- 1
 
+
+######research inputs#####
+#Elasticity of labor demand for teenagers
+param.eta.lit <- 1.0 #
+param.ripple <- c("scope_below" = 8.7*1.0, "scope_above" = 11.5*1.0, "intensity" = 0.5*1.0)
+
+
+
+######Guess work Inputs #####
+#wage growth of lowest decile (before state min wage increase)
+param.base.growth <- 0.024 * 1.0
+#extrapolation factor from teens to adults
+param.factor.extrap <- 1.0
+#Rate of non-compliance
+param.noncomp <- 1.0
+#Adjustment factor for 'appropiate' population
+param.F.adj <- 1.0
+param.factor.1 <- 1
+param.net.benef <- 2e9*1.0
+param.dist.loss <- c(0.01, 0.29, 0.70) #c(0.39567218, 0.53851506, 0.06581275) 
+param.jobcut <- 1
+
+
 #step 1: compute effect on employment for many scenarios
-
-wage.gr <- wage.gr.f()
-workers.gr <- workers.gr.f()  
-half.gap <- half.gap.f()
-wage.gr.bins <- wage.gr.bins.f()
+#scalar
+wage.gr <- wage.gr.f(SA.wage.gr = param.wage.gr)
+#scalar
+workers.gr <- workers.gr.f(SA.worker.gr = param.worker.gr)  
+#scalar
+half.gap <- half.gap.f(SA.wage.gr = param.wage.gr, 
+                       SA.base.growth = param.base.growth)
+#array
+wage.gr.bins <- wage.gr.bins.f(SA.base.growth = param.base.growth,
+                               SA.wage.gr = param.wage.gr)
+#data
 df <- get.pop.int()
-
-df <- wages.final.cps.org.f()
+#data
+df <- wages.final.cps.org.f(SA.states.raise = param.states.raise, 
+                            SA.wages = param.wages)
+#table
 stats2 <- N.final.f()
 
+#scalar
 eta.lit <- eta.lit.f(SA.eta.lit = param.eta.lit)
-factor.extrap <- factor.extrap.f()
+#scalar
+factor.extrap <- factor.extrap.f(SA.factor.extrap = param.factor.extrap)
+#table
 stats3 <- final.other.comp()
-delta.e1 <- delta.e1.f()
+#scalar
+delta.e1 <- delta.e1.f(SA.N = param.N, 
+                       SA.fract.minwage = param.fract.minwage,
+                       SA.noncomp = param.noncomp, 
+                       SA.eta.lit = param.eta.lit, 
+                       SA.factor.extrap = param.factor.extrap,
+                       SA.F.adj = param.F.adj, 
+                       SA.av.wage.var = param.av.wage.var)
+
 abs(delta.e1  -  -0.4776402)/0.4776402
 
 ##DONE WITH EMPLOYMENT
@@ -2758,13 +2805,18 @@ abs(delta.e1  -  -0.4776402)/0.4776402
 
 #load data
 
+#data
 df <- call.cps.asec.data()
-df <- add.base.vars()
+df <- add.base.vars(SA.hours = param.hours, 
+                    SA.weeks = param.hours, 
+                    SA.N = param.N)
+#variable
 pop_of_int <- with(df,
                    (empl == 1 &
                       (selfinc == 0 & selfemp == 0) & 
                       !(incp_wag == 0 | is.na(incp_wag) ) )
                     )
+#data
 df <- add.wage.var(df)
 wage.gr <- wage.gr.asec.f()
 workers.gr <- workers.gr.asec.f()  
@@ -2786,8 +2838,8 @@ pop.dist <- wtd.table( with(df, findInterval(x = sq.inc.pc,
 losses.pc  <- as.numeric(losses) * param.dist.loss / pop.dist
 df <- win.loss.f()
 
-abs(sapply(c(-0.3, 0.3), final_dec.f) - v0)/v0
-
+(sapply(c(-0.1, 0.1), final_dec.f) - v0)/v0
+sapply(c(-0.1, 0.1), final_dec.f)
 ```  
 
 

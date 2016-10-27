@@ -158,7 +158,7 @@ mod.output.template["Net effect", ] <- c("5", "12", "2", "-17", "2")
 param.wage.gr <- 1
 param.worker.gr <- 1 
 
-param.eta.lit <- 1.0 #
+param.eta.lit <- 1 #
 param.factor.extrap <- 1.0
 param.base.growth <- 0.024 * 1.0
 param.N <- 1.0
@@ -172,10 +172,10 @@ param.hours <- 1.0
 param.weeks <- 1.0
 param.factor.1 <- 1
 param.net.benef <- 2e9*1.0
-param.ripple <- c("scope_below" = 8.7, "scope_above" = 11.5*1.0, "intensity" = 0.5*1.0)
-param.dist.loss <- c(0.01, 0.29, 0.70) #c(0.39567218, 0.53851506, 0.06581275) 
+param.ripple <- c("scope_below" = 8.7*1, "scope_above" = 11.5*1.0, "intensity" = 0.5*1.0)
+param.dist.loss <- c(0.01, 0.29, 0.70) #c(0.2, 0.4, 0.40) #c(0.39567218, 0.53851506, 0.06581275) 
 param.jobcut <- 1
-param.states.raise <- 1
+param.states.raise <- 1.0
 
 
 ```
@@ -2135,7 +2135,7 @@ alpha.1 <- stats2["% of non compliers ($\\alpha_{1}$)", "Total"] * param.noncomp
 set.seed(123)
 
 add.nocomp <- function() {
-  df %>% mutate("no.comply" = ifelse(pop_of_int==1,   
+  df %>% mutate("no.comply" = ifelse(pop_of_int==1 & wages.final<11.5,   
                                     ifelse(runif( length(new.wage) )< alpha.1, 
                                            "Not comply", "comply"),
                                     NA), 
@@ -2515,9 +2515,19 @@ final_fig3 <- final_fig3 %>%
        x = "Quintiles of per capita income" , 
        title = "Distribution of gains and loses across quintiles")   
 
+```
+
+```{r, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results='hide'}
+# NEED TO MAKE SURE I AM EXPORTING IN SAME DIMENSIONS
 # print(final_fig3)  
-# ggsave("final_fig3.png")
- 
+# ggsave("policy_est_bl_204040.png")
+ # 5.89 x 3.69 in image
+#NEED TO CHECk WHY RIPPLE EFFECTS AFFECT WAGE LOSES
+
+```
+
+
+```{r, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results='hide'}
 
 # Sample decision: value cost an benefits equally and distribution 1/q 
 sum( (df$winners - df$losers - df$balance.loss) * df$hhwgt.2016 )
@@ -2608,7 +2618,7 @@ print(final_fig3)
 
 ```  
 
-
+<!-- 
 
 We combine wage gains ($\Delta^{+} W_{i}$), wage loses ($\Delta^{-}W_{i}$) and balance loses ($BL_{i}$) at the individual level to obtain a final effect ($FE_{i}$):
 
@@ -2630,7 +2640,10 @@ Where $D(y_i)$ is the rank function for per capita income $y_{i}$ that returns t
 
 ```{r SA2, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE}
 #png("sample_pref.png")
-plot(seq(-1/4,1/5,by = 0.01),sapply(seq(-1/4,1/5,by = 0.01) ,final_dec.f), type = "l", xlab = "rho", ylab = "FE (billions of $)  ", main = "Final effect of minimum wage raises \nfor different redistributory preferences")
+quartz()
+plot(seq(-1/4,1/5,by = 0.01),sapply(seq(-1/4,1/5,by = 0.01) ,final_dec.f), type = "l", xlab = "rho", ylab = "W (billions of $)  ", main = NULL, axes=F)
+#axis(side=1, at=c(-0.2, -0.1,0,0.1, 0.2), labels=c("-0.2", "Dislikes","0","Likes", "0.2"))
+
 abline(h=0, v=0, lty = 3)
 segments(x0 = c(-0.1, 0, 0.1, 0), x1 = c(-0.1, -0.1, 0.1, 0.1 ) , 
          y0 = c(0,final_dec.f(-0.1), 0,final_dec.f(0.1) ), 
@@ -2638,10 +2651,10 @@ segments(x0 = c(-0.1, 0, 0.1, 0), x1 = c(-0.1, -0.1, 0.1, 0.1 ) ,
 #dev.off()
 ```  
 
-
+--> 
 
 <div class="jumbotron">
-  <p>Final replication output (nothing in the "learn more" button yet)</p>  
+  <p>Final replication output (Nothing on "learn more". Will direct to github/shiny app)</p>  
 ```{r final results, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE}
 
 output.template1.f <- cbind(output.template1, "Replication" = c(
@@ -2711,9 +2724,9 @@ growth.df <- get.gr.data()
 min.wage.data <- readRDS("minwage")
 st.minw <- state.minw("2013")
 st.minw.2016 <- state.minw("2015")
-st.minw.2016[c("AK"	, "AZ", "CA", "CT"	, "HI"	, "IL", "MA", "MI"	, 
+st.minw.2016[c("AK"	, "AZ", "CA", "CT", "DC"	, "HI"	, "IL", "MA", "MI"	, 
        "MN"	, "MT" , "NV" , "NE" , "NY"	, "OH"	, "RI", "VT"), ] <- 
-          c(  9.75	, 8.05, 10	, 9.6	  , 8.5	  , 8.25, 10	, 8.5	  , 
+          c(  9.75	, 8.05, 10	, 9.6, 10.5	  , 8.5	  , 8.25, 10	, 8.5	  , 
       9		  , 8.05 , 8.25 , 9		 , 9		, 8.1	  , 9.6 , 9.6)
 colnames(st.minw.2016) <- "2016"
 
@@ -2755,7 +2768,7 @@ param.factor.extrap <- 1.0
 param.noncomp <- 1.0
 #Adjustment factor for 'appropiate' population
 param.F.adj <- 1.0
-param.factor.1 <- 1
+param.factor.1 <- 1.0
 param.net.benef <- 2e9*1.0
 param.dist.loss <- c(0.01, 0.29, 0.70) #c(0.39567218, 0.53851506, 0.06581275) 
 param.jobcut <- 1

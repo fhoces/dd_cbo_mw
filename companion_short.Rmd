@@ -1,23 +1,6 @@
 ---
-title: |-
-  Dynamic Documention for "The Effects of a Minimum-Wage Increase on Employment and Family Income"
-author: "Download/Modify/Contribute the analysis [here](https://github.com/fhoces/dd_cbo_mw)"
-date: '`r paste("Last edit:", Sys.Date(), sep=" ")`'
-output:
-  html_document:
-    number_sections: yes
-    theme: united
-    toc: yes
-    toc_depth: 2
-    toc_float:
-      collapsed: no
-      smooth_scroll: no
-  pdf_document:
-    header-includes:
-    - \usepackage{caption}
-    - \captionsetup{labelformat=empty}
-    toc: yes
-    toc_depth: '2'
+title: "Untitled"
+output: pdf_document
 ---
 
   <script language="javascript"> 
@@ -157,7 +140,7 @@ mod.output.template["Net effect", ] <- c("5", "12", "2", "-17", "2")
 param.wage.gr <- 1
 param.worker.gr <- 1 
 
-param.eta.lit <- 1 #
+param.eta.lit <- 1.0 #
 param.factor.extrap <- 1.0
 param.base.growth <- 0.024 * 1.0
 param.N <- 1.0
@@ -171,10 +154,10 @@ param.hours <- 1.0
 param.weeks <- 1.0
 param.factor.1 <- 1
 param.net.benef <- 2e9*1.0
-param.ripple <- c("scope_below" = 8.7*1, "scope_above" = 11.5*1.0, "intensity" = 0.5*1.0)
-param.dist.loss <- c(0.01, 0.29, 0.70) #c(0.2, 0.4, 0.40) #c(0.39567218, 0.53851506, 0.06581275) 
+param.ripple <- c("scope_below" = 8.7, "scope_above" = 11.5*1.0, "intensity" = 0.5*1.0)
+param.dist.loss <- c(0.01, 0.29, 0.70) #c(0.39567218, 0.53851506, 0.06581275) 
 param.jobcut <- 1
-param.states.raise <- 1.0
+param.states.raise <- 1
 
 
 ```
@@ -2134,7 +2117,7 @@ alpha.1 <- stats2["% of non compliers ($\\alpha_{1}$)", "Total"] * param.noncomp
 set.seed(123)
 
 add.nocomp <- function() {
-  df %>% mutate("no.comply" = ifelse(pop_of_int==1 & wages.final<11.5,   
+  df %>% mutate("no.comply" = ifelse(pop_of_int==1,   
                                     ifelse(runif( length(new.wage) )< alpha.1, 
                                            "Not comply", "comply"),
                                     NA), 
@@ -2514,19 +2497,9 @@ final_fig3 <- final_fig3 %>%
        x = "Quintiles of per capita income" , 
        title = "Distribution of gains and loses across quintiles")   
 
-```
-
-```{r, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results='hide'}
-# NEED TO MAKE SURE I AM EXPORTING IN SAME DIMENSIONS
 # print(final_fig3)  
-# ggsave("policy_est_bl_204040.png")
- # 5.89 x 3.69 in image
-#NEED TO CHECk WHY RIPPLE EFFECTS AFFECT WAGE LOSES
-
-```
-
-
-```{r, eval=TRUE,echo=display_code, warning=FALSE, message=FALSE, results='hide'}
+# ggsave("final_fig3.png")
+ 
 
 # Sample decision: value cost an benefits equally and distribution 1/q 
 sum( (df$winners - df$losers - df$balance.loss) * df$hhwgt.2016 )
@@ -2617,7 +2590,7 @@ print(final_fig3)
 
 ```  
 
-<!-- 
+
 
 We combine wage gains ($\Delta^{+} W_{i}$), wage loses ($\Delta^{-}W_{i}$) and balance loses ($BL_{i}$) at the individual level to obtain a final effect ($FE_{i}$):
 
@@ -2638,37 +2611,19 @@ $$
 Where $D(y_i)$ is the rank function for per capita income $y_{i}$ that returns the decile of income (1 the lowest and 10 the highest), and $\rho$ parametrizes the preferences towards redistribution ($\rho<0$ dislikes redistribution, $\rho>0$ likes redistribution)
 
 ```{r SA2, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE}
-png("sample_pref.png", width=440, height=350)
-#quartz()
-par(oma = c(0,0,0,0),  mar = c( c(2,2,1,2) + .1))
-plot(seq(-1/4,1/5,by = 0.01),sapply(seq(-1/4,1/5,by = 0.01) ,final_dec.f), type = "l", main = NULL, axes=F, xlab="", ylab="", xlim = c(-0.2, .2))
-axis(side=1, at=c(-0.1), labels=c("Dislikes"))
-axis(side=1, at=c(0.1), labels=c("Likes"))
-axis(side=1, at=c(0.18), labels=c("Redistribution \n pref.") , pos=-1, tick=F, outer=TRUE, cex.axis=1.1)
-  axis(side=1, at=c(0.21), labels=c(expression( (rho) ) ) , pos=-1.5, tick=F, outer=TRUE, cex.axis=1.3)
- 
-axis(side=1, at=c(-.2, -.1, .1), labels=c(), pos=1, tick=F)
-
-axis(side=2, at=final_dec.f(0.1), labels=c(round(final_dec.f(0.1), 1)) , pos=0.01, tick =F, las = 1)
-axis(side=2, at=final_dec.f(-0.1), labels=c(round(final_dec.f(-0.1), 1)) , pos=.04, tick =F, las = 1)
-axis(side=2, at=2, labels=c("2") , pos=0, tick =T, las = 1)
-axis(side=2, at=0, labels=c("(0,0)") , pos=0.3, tick =F, las = 1)
-axis(side=2, at=final_dec.f(0.2), labels=c("W ($bns)") , pos=0.01, tick =F, las = 1, cex = 1.1)
-
-
-#xlab = "rho", ylab = "W (billions of $)  "
-
+#png("sample_pref.png")
+plot(seq(-1/4,1/5,by = 0.01),sapply(seq(-1/4,1/5,by = 0.01) ,final_dec.f), type = "l", xlab = "rho", ylab = "FE (billions of $)  ", main = "Final effect of minimum wage raises \nfor different redistributory preferences")
 abline(h=0, v=0, lty = 3)
 segments(x0 = c(-0.1, 0, 0.1, 0), x1 = c(-0.1, -0.1, 0.1, 0.1 ) , 
          y0 = c(0,final_dec.f(-0.1), 0,final_dec.f(0.1) ), 
          y1 = c(final_dec.f(-0.1), final_dec.f(-0.1), final_dec.f(0.1), final_dec.f(0.1)  ), col = "red", lty = 1)
-dev.off()
+#dev.off()
 ```  
 
---> 
+
 
 <div class="jumbotron">
-  <p>Final replication output (Nothing on "learn more". Will direct to github repo available on 12/10/2016)</p>  
+  <p>Final replication output (nothing in the "learn more" button yet)</p>  
 ```{r final results, eval=TRUE,echo=FALSE, warning=FALSE, message=FALSE}
 
 output.template1.f <- cbind(output.template1, "Replication" = c(
@@ -2738,9 +2693,9 @@ growth.df <- get.gr.data()
 min.wage.data <- readRDS("minwage")
 st.minw <- state.minw("2013")
 st.minw.2016 <- state.minw("2015")
-st.minw.2016[c("AK"	, "AZ", "CA", "CT", "DC"	, "HI"	, "IL", "MA", "MI"	, 
+st.minw.2016[c("AK"	, "AZ", "CA", "CT"	, "HI"	, "IL", "MA", "MI"	, 
        "MN"	, "MT" , "NV" , "NE" , "NY"	, "OH"	, "RI", "VT"), ] <- 
-          c(  9.75	, 8.05, 10	, 9.6, 10.5	  , 8.5	  , 8.25, 10	, 8.5	  , 
+          c(  9.75	, 8.05, 10	, 9.6	  , 8.5	  , 8.25, 10	, 8.5	  , 
       9		  , 8.05 , 8.25 , 9		 , 9		, 8.1	  , 9.6 , 9.6)
 colnames(st.minw.2016) <- "2016"
 

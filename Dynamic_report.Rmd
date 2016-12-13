@@ -1629,6 +1629,7 @@ In this section I keep a list of all the parameters or inputs where some type of
  -  Vary distribution of job destruction  
  -  Destroy jobs up to a 100% (instead of 50% for 2N)  
  -  Impute losses from the increase in the minimum wage to different quintiles.   
+ -  Simple errors like not applying ripple effects to wages above 10.10 (applyinf the ifelse incorrectly)
  ---  
  - CPS_ASEC: cut sample in half  
  - Change earnings variable  

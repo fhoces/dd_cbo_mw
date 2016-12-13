@@ -1,5 +1,5 @@
 * How to get the data:
-use "C:\Users\fhocesde\Documents\data\CPS\cepr_org_2013.dta", clear
+use "/Users/fhocesde/Documents/data/CPS/cepr_org_2013.dta", clear
  
 *Following the notes here (https://cps.ipums.org/cps/outgoing_rotation_notes.shtml) I generate the weights as orgwgt/12
 cap drop *_weight
@@ -9,62 +9,128 @@ gen round_weight = round(orgwgt/12, 1)
 * There are 1293 cases with missin values for the weigths. I delete them from the data. 
 drop if orgwgt == .
 
+* Anual growth rates (R code to compute rates in commnets):
+* ( gr.factor("wages per worker", 2014, 2016) )^(1/3) - 1
+scalar wage_gr = 0.04538147
+*( gr.factor("workers", 2014, 2016) )^(1/3) - 1
+scalar workers_gr = 0.01550989
+
+
+* Get minimum wage walues by state: 2013 and 2016
+preserve 
+	use "/Users/fhocesde/Documents/dissertation/Replication/state_min_w.dta", clear
+	decode states, g(state_s)
+	sort state_s
+	drop states
+	tempfile min_wage
+	save `min_wage'
+restore
+
+* Forecast wages to 2016 : apply diff growth rates per decile (deciles of growth gen in R)
+cap drop w3_*
+xtile w3_deciles = wage3 [w =final_weight], nq(10)
+gen w3_adj1 = wage3 * (1 + 0.02400000)^3 if w3_decile == 1
+
+replace w3_adj1 = wage3 * (1 + 0.02875144)^3 if w3_decile == 2
+replace w3_adj1 = wage3 * (1 + 0.03350288)^3 if w3_decile == 3
+replace w3_adj1 = wage3 * (1 + 0.03825432)^3 if w3_decile == 4
+replace w3_adj1 = wage3 * (1 + 0.04300575)^3 if w3_decile == 5
+replace w3_adj1 = wage3 * (1 + 0.04775719)^3 if w3_decile == 6
+replace w3_adj1 = wage3 * (1 + 0.05250863)^3 if w3_decile == 7
+replace w3_adj1 = wage3 * (1 + 0.05726007)^3 if w3_decile == 8
+replace w3_adj1 = wage3 * (1 + 0.06201151)^3 if w3_decile == 9
+replace w3_adj1 = wage3 * (1 + 0.06676295)^3 if w3_decile == 10
+
+* Merge with State min data and replace wages below state min in 2016 by it.
+decode state, g(state_s)
+sort state_s
+merge state_s using `min_wage'
+* Drop Guam, PRVI, Federal
+drop if _m == 2
+drop _m
+
+gen w3_adj_min = w3_adj1
+replace w3_adj_min = minwage_2016 if w3_adj1 < minwage_2016
+
+
+*Population of interest
+
 *Employment categories:
 global employed "empl == 1" 
 global salary	"empl == 1 & selfinc == 0 & selfemp == 0"
 global nhourly	"empl == 1 & selfinc == 0 & selfemp == 0 & (paidhre == 0 | paidhre ==.)"
 global hrs_vary "empl == 1 & selfinc == 0 & selfemp == 0 & (paidhre == 0 | paidhre ==.) & hrsvary ==1"
 
+
+*Tag poppulation of interest: Salary workers that either paid hourly or not paid by the hour but hours not vary, and have a non zero non missing wage
+cap drop pop_of
+gen pop_of_int = (empl == 1 & (selfinc ==0 & selfemp ==0) & (paidhre ==1 | (paidhre == 0 & hrsvary != 1))  & (wage3 != 0 & wage3 != .) )
+
+matrix table_1 = J(7,2,99)
+
 *1 -Total 
 sum final_weight 
 noi di "Total sample in CPS ORG"
 noi di %14.2f r(sum)
+mat table_1[1,1] = r(sum)
 
 count if final_weight!=. 
 noi di "Total sample in CPS ORG: unweighted"
 noi di %14.2f r(N)
+mat table_1[1,2] = r(N)
+
 
 *2 -Employed
 sum final_weight if $employed
 noi di "Population Employed"
 noi di %14.2f r(sum)
+mat table_1[2,1] = r(sum)
+
 
 count if $employed
 noi di "Population Employed: unweighted"
 noi di %14.2f r(N)
+mat table_1[2,2] = r(N)
+
 
 *3 -Salaried worker
 sum final_weight if $salary
 noi di "Salaried workers"
 noi di %14.2f r(sum)
 local c = r(sum)
+mat table_1[3,1] = r(sum)
+
 
 count if $salary
 noi di "Salaried workers: unweighted"
 noi di %14.2f r(N)
 local c_uw = r(N)
+mat table_1[3,2] = r(N)
 
 
 *4 -Not paid by the hour
 sum final_weight if $nhourly
 noi di "Salaried workes who are not paid by the hour"
 noi di %14.2f r(sum)
+mat table_1[4,1] = r(sum)
 
 count if $nhourly
 noi di "Salaried workes who are not paid by the hour: unweighted"
 noi di %14.2f r(N)
-
+mat table_1[4,2] = r(N)
 
 *5 -Among those who are not paid by the hour: hours vary
 sum final_weight if $hrs_vary
 noi di "Salaried workes who are not paid by the hour and hour vary"
 noi di %14.2f r(sum)
 local a = r(sum)
+mat table_1[5,1] = r(sum)
 
 count if $hrs_vary
 noi di "Salaried workes who are not paid by the hour and hour vary: unweighted"
 noi di %14.2f r(N)
 local a_uw = r(N)
+mat table_1[5,2] = r(N)
 
 
 *Among those in group 3 but not 5, how many has no wage
@@ -72,29 +138,56 @@ sum final_weight if (empl == 1 & selfinc == 0 & selfemp == 0) & (paidhre == 1 | 
 noi di "Among those in group 3 but not 5, how many has no wage"
 noi di %14.2f r(sum)
 local b = r(sum)  + `a'
+mat table_1[6,1] = r(sum)
 
 count if (empl == 1 & selfinc == 0 & selfemp == 0) & (paidhre == 1 | hrsvary != 1) & (wage3==0 | wage3==.)
 noi di "Among those in group 3 but not 5, how many has no wage: unweighted"
 noi di %14.2f r(N)
 local b_uw = r(N)  + `a_uw'
-
+mat table_1[6,2] = r(N)
 
 *Population of interest: Salary workers minus:
 * 	- those workes who are not paid by the hour and hours vary
 *	- any additional workers that doesn't have a wage. 
 noi di "Population of interest:"
 noi di %14.2f  `c' - `b'
+mat table_1[7,1] = `c' - `b'
+
 noi di "Population of interest: unweighted"
 noi di %14.2f  `c_uw' - `b_uw'
-
-
-*Tag poppulation of interest: Salary workers that either paid hourly or not paid by the hour but hours not vary, and have a non zero non missing wage
-cap drop pop_of
-gen pop_of_int = (empl == 1 & (selfinc ==0 & selfemp ==0) & (paidhre ==1 | (paidhre == 0 & hrsvary != 1))  & (wage3 != 0 & wage3 != .) )
+mat table_1[7,2] = `c_uw' - `b_uw'
 
 sum final_weight if pop_of_int == 1 
 noi di "Pop. of interest: workers excluded self* and not paid by the hour whose hours vary"
 noi di %14.2f r(sum)
+
+* Table_1:
+noi di "Table 1"
+noi mat list table_1
+
+*Note: Stata cannot produce treemaps/mosaic plots, but numbers in table 1
+*should be identical.  
+
+*Figure 2
+cap drop *_weight_2016
+gen final_weight_2016 = final_weight * (1 + wage_gr)^3
+gen round_weight_2016 = round(final_weight_2016) 
+
+
+#delimit ;
+twoway 	(kdensity wage3 if pop_of_int == 1 [fweight = round_weight], 
+			bwidth(.9) range(0 20)) 
+		(kdensity w3_adj_min if pop_of_int == 1 [fweight = round_weight_2016], 
+			bwidth(.9) range(0 20)), 
+		title(Figure 2: Distribution of wages in 2013 and 2016(forecast)) 
+		xline(7.25 10.10 11.5)  
+		xlabel(0 "0" 7.5 "7.5" 10.1 "10.10" 11.5 "11.5" 20 "20")
+		legend(order(1 "2013" 2 "2016 (Forecast)"))
+		yscale(off) 
+		xtitle(wage per hour);
+#delimit cr
+
+*****AUI VOY ---  WILL JUMP IN TO COMPUTING WAGE GAINS IN CPS ASEC
 
 
 *Get descriptive stats for wage
